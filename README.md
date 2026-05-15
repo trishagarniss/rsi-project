@@ -26,6 +26,7 @@ Concrete tenant tables and middleware will evolve with your domain model; this r
 | Database     | PostgreSQL 15, SQLAlchemy, psycopg2 |
 | ML           | scikit-learn, pandas                |
 | Auth (planned) | python-jose, passlib              |
+| Tooling        | Poetry (Python dependencies)      |
 
 ## Project layout
 
@@ -38,19 +39,23 @@ app/
 ml_pipeline/
   notebooks/           # Jupyter experiments and EDA
   datasets/            # Raw CSVs (gitignored; .gitkeep preserves folder)
-requirements.txt
+pyproject.toml         # Poetry: backend dependencies
 docker-compose.yml     # PostgreSQL 15, database asgard_db
 ```
 
 ## Quick start
 
-### 1. Python environment
+### 1. Install Poetry and backend dependencies
+
+Install [Poetry](https://python-poetry.org/docs/#installation) if it is not already on your `PATH`.
+
+From the repository root:
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate   # Windows
-pip install -r requirements.txt
+poetry install
 ```
+
+This creates a virtual environment and installs the FastAPI stack and ML libraries declared in `pyproject.toml`.
 
 ### 2. Database
 
@@ -74,8 +79,10 @@ DATABASE_URL=postgresql+psycopg2://asgard:asgard@localhost:5432/asgard_db
 ### 3. Run the API
 
 ```bash
-uvicorn app.main:app --reload
+poetry run uvicorn app.main:app --reload
 ```
+
+On Windows PowerShell, the same command applies once Poetry is installed.
 
 - API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - Health: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)

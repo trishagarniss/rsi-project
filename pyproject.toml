@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "asgard"
+version = "0.1.0"
+description = "Early warning system for student dropout prediction (ASGARD backend)."
+authors = ["ASGARD Contributors"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = ">=0.115.0,<1.0.0"
+uvicorn = { version = ">=0.32.0,<1.0.0", extras = ["standard"] }
+sqlalchemy = ">=2.0.36,<3.0.0"
+psycopg2-binary = ">=2.9.10,<3.0.0"
+scikit-learn = ">=1.5.0,<2.0.0"
+pandas = ">=2.2.0,<3.0.0"
+python-jose = { version = ">=3.3.0,<4.0.0", extras = ["cryptography"] }
+passlib = { version = ">=1.7.4,<2.0.0", extras = ["bcrypt"] }
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
