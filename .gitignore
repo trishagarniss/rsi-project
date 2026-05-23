@@ -89,11 +89,6 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
-# Local data (keep structure with .gitkeep only)
-ml_pipeline/datasets/*.csv
-ml_pipeline/datasets/*.parquet
-!ml_pipeline/datasets/.gitkeep
-
 # Secrets
 *.pem
 secrets/
