@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 from sqlalchemy import text
-from .api.v1 import auth, student, academic, attendance, socio_economic, prediction, dashboard, counseling, reports, tenants, models, audit, monitoring
+from .api.v1 import auth, student, academic, attendance, socio_economic, prediction, dashboard, counseling, reports, tenants, models, audit, monitoring, import_data
 from .core.database import engine, Base
 from .core.redis_client import redis_client
 from .core.config import settings, BACKEND_DIR
@@ -64,6 +64,7 @@ app.include_router(tenants.router, prefix="/api/v1/tenants", tags=["Tenants"])
 app.include_router(models.router, prefix="/api/v1/models", tags=["Models"])
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["Audit"])
 app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["Monitoring"])
+app.include_router(import_data.router, prefix="/api/v1/import", tags=["Import"])
 
 @app.get("/")
 def root():
