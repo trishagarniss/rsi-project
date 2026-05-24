@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from .api.v1 import auth, student, prediction, dashboard, counseling, reports, tenants, models, audit, monitoring
+from .api.v1 import auth, student, academic, attendance, socio_economic, prediction, dashboard, counseling, reports, tenants, models, audit, monitoring
 from .core.database import engine, Base
 from .core.redis_client import redis_client
 from .core.config import settings
@@ -36,6 +36,9 @@ app.add_middleware(
 # Routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(student.router, prefix="/api/v1/students", tags=["Students"])
+app.include_router(academic.router, prefix="/api/v1/academics", tags=["Academic"])
+app.include_router(attendance.router, prefix="/api/v1/attendances", tags=["Attendance"])
+app.include_router(socio_economic.router, prefix="/api/v1/socio-economics", tags=["Socio Economic"])
 app.include_router(prediction.router, prefix="/api/v1/predictions", tags=["Predictions"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
 app.include_router(counseling.router, prefix="/api/v1/counseling", tags=["Counseling"])
