@@ -19,6 +19,7 @@ class StudentCreate(StudentBase):
     pass
 
 class StudentUpdate(BaseModel):
+    nis: Optional[str] = None
     name: Optional[str] = None
     class_name: Optional[str] = None
 
@@ -26,10 +27,18 @@ class StudentUpdate(BaseModel):
 class StudentResponse(StudentBase):
     id: int
     tenant_id: int
+    is_active: bool = True
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+class StudentListResponse(BaseModel):
+    items: list[StudentResponse]
+    total: int
+    page: int
+    limit: int
 
 # === Untuk Import Excel ===
 class BulkImportResult(BaseModel):
