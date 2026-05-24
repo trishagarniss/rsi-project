@@ -4,3 +4,6 @@ from .student import Student
 from .academic import Academic
 from .attendance import Attendance
 from .socio_economic import SocioEconomic
+from .risk_prediction import RiskPrediction, RiskLevel
+from .intervention import Intervention, JenisIntervensi, StatusIntervensi
+from .audit_log import AuditLog
