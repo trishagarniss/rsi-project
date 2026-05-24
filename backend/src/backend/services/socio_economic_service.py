@@ -4,6 +4,7 @@ from typing import Optional
 from ..models.student import Student
 from ..models.socio_economic import SocioEconomic
 from ..schemas.socio_economic import SocioEconomicCreate, SocioEconomicUpdate
+from ..services.audit_service import log_action
 
 async def _validate_student(db: AsyncSession, tenant_id: int, student_id: int):
     result = await db.execute(
@@ -12,7 +13,7 @@ async def _validate_student(db: AsyncSession, tenant_id: int, student_id: int):
     if not result.scalar_one_or_none():
         raise ValueError("Siswa tidak ditemukan")
 
-async def create_socio_economic(db: AsyncSession, tenant_id: int, data: SocioEconomicCreate) -> SocioEconomic:
+async def create_socio_economic(db: AsyncSession, tenant_id: int, data: SocioEconomicCreate, user_id: int) -> SocioEconomic:
     await _validate_student(db, tenant_id, data.student_id)
     existing = await get_by_student(db, tenant_id, data.student_id)
     if existing:
@@ -21,6 +22,7 @@ async def create_socio_economic(db: AsyncSession, tenant_id: int, data: SocioEco
     db.add(record)
     await db.commit()
     await db.refresh(record)
+    await log_action(db, tenant_id, user_id, "create", "socio_economic", record.id, f"Student ID: {data.student_id}")
     return record
 
 async def get_socio_economic(db: AsyncSession, tenant_id: int, id: int) -> Optional[SocioEconomic]:
@@ -35,7 +37,7 @@ async def get_by_student(db: AsyncSession, tenant_id: int, student_id: int) -> O
     )
     return result.scalar_one_or_none()
 
-async def update_socio_economic(db: AsyncSession, tenant_id: int, id: int, data: SocioEconomicUpdate) -> Optional[SocioEconomic]:
+async def update_socio_economic(db: AsyncSession, tenant_id: int, id: int, data: SocioEconomicUpdate, user_id: int) -> Optional[SocioEconomic]:
     record = await get_socio_economic(db, tenant_id, id)
     if not record:
         return None
@@ -44,12 +46,14 @@ async def update_socio_economic(db: AsyncSession, tenant_id: int, id: int, data:
         setattr(record, key, value)
     await db.commit()
     await db.refresh(record)
+    await log_action(db, tenant_id, user_id, "update", "socio_economic", id, f"Update: {update_data}")
     return record
 
-async def delete_socio_economic(db: AsyncSession, tenant_id: int, id: int) -> Optional[SocioEconomic]:
+async def delete_socio_economic(db: AsyncSession, tenant_id: int, id: int, user_id: int) -> Optional[SocioEconomic]:
     record = await get_socio_economic(db, tenant_id, id)
     if not record:
         return None
     await db.delete(record)
     await db.commit()
+    await log_action(db, tenant_id, user_id, "delete", "socio_economic", id)
     return record

@@ -18,7 +18,7 @@ async def create_tenant_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["superadmin"])),
 ):
-    return await create_tenant(db, data)
+    return await create_tenant(db, data, current_user.id)
 
 @router.get("/", response_model=list[TenantResponse])
 async def list_tenants_endpoint(
@@ -49,7 +49,7 @@ async def update_tenant_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["superadmin"])),
 ):
-    tenant = await update_tenant(db, tenant_id, data)
+    tenant = await update_tenant(db, tenant_id, data, current_user.id)
     if not tenant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant tidak ditemukan")
     return tenant
@@ -60,7 +60,7 @@ async def deactivate_tenant_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["superadmin"])),
 ):
-    tenant = await deactivate_tenant(db, tenant_id)
+    tenant = await deactivate_tenant(db, tenant_id, current_user.id)
     if not tenant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant tidak ditemukan")
     return {"message": "Tenant dinonaktifkan", "tenant_id": tenant_id}

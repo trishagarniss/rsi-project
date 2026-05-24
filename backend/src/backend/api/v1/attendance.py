@@ -20,7 +20,7 @@ async def create_attendance_endpoint(
     current_user: User = Depends(require_role(["admin", "superadmin"])),
 ):
     try:
-        return await create_attendance(db, current_user.tenant_id, data)
+        return await create_attendance(db, current_user.tenant_id, data, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
@@ -58,7 +58,7 @@ async def update_attendance_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["admin", "superadmin"])),
 ):
-    record = await update_attendance(db, current_user.tenant_id, attendance_id, data)
+    record = await update_attendance(db, current_user.tenant_id, attendance_id, data, current_user.id)
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Data absensi tidak ditemukan")
     return record
@@ -69,6 +69,6 @@ async def delete_attendance_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["admin", "superadmin"])),
 ):
-    record = await delete_attendance(db, current_user.tenant_id, attendance_id)
+    record = await delete_attendance(db, current_user.tenant_id, attendance_id, current_user.id)
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Data absensi tidak ditemukan")

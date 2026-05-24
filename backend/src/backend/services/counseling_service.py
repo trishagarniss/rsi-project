@@ -4,6 +4,7 @@ from typing import Optional
 from ..models.student import Student
 from ..models.intervention import Intervention
 from ..schemas.intervention import InterventionCreate, InterventionUpdate
+from ..services.audit_service import log_action
 
 async def _validate_student(db: AsyncSession, tenant_id: int, student_id: int):
     result = await db.execute(
@@ -18,6 +19,7 @@ async def create_intervention(db: AsyncSession, tenant_id: int, data: Interventi
     db.add(record)
     await db.commit()
     await db.refresh(record)
+    await log_action(db, tenant_id, user_id, "create", "intervention", record.id, f"Student ID: {data.student_id}, Jenis: {data.jenis.value}")
     return record
 
 async def get_intervention(db: AsyncSession, tenant_id: int, intervention_id: int) -> Optional[Intervention]:
@@ -50,7 +52,7 @@ async def get_interventions(
     result = await db.execute(base.offset(skip).limit(limit).order_by(Intervention.tanggal_intervensi.desc()))
     return list(result.scalars().all()), total
 
-async def update_intervention(db: AsyncSession, tenant_id: int, intervention_id: int, data: InterventionUpdate) -> Optional[Intervention]:
+async def update_intervention(db: AsyncSession, tenant_id: int, intervention_id: int, data: InterventionUpdate, user_id: int) -> Optional[Intervention]:
     record = await get_intervention(db, tenant_id, intervention_id)
     if not record:
         return None
@@ -59,12 +61,14 @@ async def update_intervention(db: AsyncSession, tenant_id: int, intervention_id:
         setattr(record, key, value)
     await db.commit()
     await db.refresh(record)
+    await log_action(db, tenant_id, user_id, "update", "intervention", intervention_id, f"Update: {update_data}")
     return record
 
-async def delete_intervention(db: AsyncSession, tenant_id: int, intervention_id: int) -> Optional[Intervention]:
+async def delete_intervention(db: AsyncSession, tenant_id: int, intervention_id: int, user_id: int) -> Optional[Intervention]:
     record = await get_intervention(db, tenant_id, intervention_id)
     if not record:
         return None
     await db.delete(record)
     await db.commit()
+    await log_action(db, tenant_id, user_id, "delete", "intervention", intervention_id)
     return record

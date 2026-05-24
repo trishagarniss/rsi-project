@@ -1,7 +1,8 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
 from typing import Optional
 from enum import Enum
+import re
 
 class UserRole(str, Enum):
     SUPERADMIN = "superadmin"
@@ -9,9 +10,24 @@ class UserRole(str, Enum):
     KONSELOR = "konselor"
 
 # === Request Schemas ===
-class UserCreate(BaseModel):
+class PasswordCreate(BaseModel):
+    password: str = Field(..., min_length=8)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_strength(cls, v):
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Harus mengandung minimal 1 huruf besar")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Harus mengandung minimal 1 huruf kecil")
+        if not re.search(r"\d", v):
+            raise ValueError("Harus mengandung minimal 1 angka")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>_\-]", v):
+            raise ValueError("Harus mengandung minimal 1 simbol (!@#$%^&*)")
+        return v
+
+class UserCreate(PasswordCreate):
     email: EmailStr
-    password: str = Field(..., min_length=6)
     full_name: str = Field(..., min_length=1)
     role: UserRole = UserRole.KONSELOR
     tenant_id: Optional[int] = None
@@ -54,6 +70,15 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int = 900
     user: UserResponse
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v):
+        return PasswordCreate.validate_password_strength(cls, v)
 
 class TokenData(BaseModel):
     sub: str  # user_id as string

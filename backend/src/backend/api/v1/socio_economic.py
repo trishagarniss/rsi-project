@@ -19,7 +19,7 @@ async def create_socio_economic_endpoint(
     current_user: User = Depends(require_role(["admin", "superadmin"])),
 ):
     try:
-        return await create_socio_economic(db, current_user.tenant_id, data)
+        return await create_socio_economic(db, current_user.tenant_id, data, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
@@ -52,7 +52,7 @@ async def update_socio_economic_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["admin", "superadmin"])),
 ):
-    record = await update_socio_economic(db, current_user.tenant_id, id, data)
+    record = await update_socio_economic(db, current_user.tenant_id, id, data, current_user.id)
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Data sosial ekonomi tidak ditemukan")
     return record
@@ -63,6 +63,6 @@ async def delete_socio_economic_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["admin", "superadmin"])),
 ):
-    record = await delete_socio_economic(db, current_user.tenant_id, id)
+    record = await delete_socio_economic(db, current_user.tenant_id, id, current_user.id)
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Data sosial ekonomi tidak ditemukan")

@@ -4,6 +4,7 @@ from typing import Optional
 from ..models.student import Student
 from ..models.academic import Academic
 from ..schemas.academic import AcademicCreate, AcademicUpdate
+from ..services.audit_service import log_action
 
 async def _validate_student(db: AsyncSession, tenant_id: int, student_id: int):
     result = await db.execute(
@@ -12,12 +13,13 @@ async def _validate_student(db: AsyncSession, tenant_id: int, student_id: int):
     if not result.scalar_one_or_none():
         raise ValueError("Siswa tidak ditemukan")
 
-async def create_academic(db: AsyncSession, tenant_id: int, data: AcademicCreate) -> Academic:
+async def create_academic(db: AsyncSession, tenant_id: int, data: AcademicCreate, user_id: int) -> Academic:
     await _validate_student(db, tenant_id, data.student_id)
     record = Academic(tenant_id=tenant_id, **data.model_dump())
     db.add(record)
     await db.commit()
     await db.refresh(record)
+    await log_action(db, tenant_id, user_id, "create", "academic", record.id, f"Student ID: {data.student_id}, Semester: {data.semester}")
     return record
 
 async def get_academic(db: AsyncSession, tenant_id: int, academic_id: int) -> Optional[Academic]:
@@ -46,7 +48,7 @@ async def get_academics(
     result = await db.execute(base.offset(skip).limit(limit).order_by(Academic.semester))
     return list(result.scalars().all()), total
 
-async def update_academic(db: AsyncSession, tenant_id: int, academic_id: int, data: AcademicUpdate) -> Optional[Academic]:
+async def update_academic(db: AsyncSession, tenant_id: int, academic_id: int, data: AcademicUpdate, user_id: int) -> Optional[Academic]:
     record = await get_academic(db, tenant_id, academic_id)
     if not record:
         return None
@@ -55,12 +57,14 @@ async def update_academic(db: AsyncSession, tenant_id: int, academic_id: int, da
         setattr(record, key, value)
     await db.commit()
     await db.refresh(record)
+    await log_action(db, tenant_id, user_id, "update", "academic", academic_id, f"Update: {update_data}")
     return record
 
-async def delete_academic(db: AsyncSession, tenant_id: int, academic_id: int) -> Optional[Academic]:
+async def delete_academic(db: AsyncSession, tenant_id: int, academic_id: int, user_id: int) -> Optional[Academic]:
     record = await get_academic(db, tenant_id, academic_id)
     if not record:
         return None
     await db.delete(record)
     await db.commit()
+    await log_action(db, tenant_id, user_id, "delete", "academic", academic_id)
     return record

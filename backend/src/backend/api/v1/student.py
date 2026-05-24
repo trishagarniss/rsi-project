@@ -22,7 +22,7 @@ async def create_student_endpoint(
     current_user: User = Depends(require_role(["admin", "superadmin"])),
 ):
     try:
-        student = await create_student(db, current_user.tenant_id, data)
+        student = await create_student(db, current_user.tenant_id, data, current_user.id)
         return student
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
@@ -33,7 +33,7 @@ async def bulk_create_students_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["admin", "superadmin"])),
 ):
-    return await bulk_create_students(db, current_user.tenant_id, data)
+    return await bulk_create_students(db, current_user.tenant_id, data, current_user.id)
 
 @router.get("/", response_model=StudentListResponse)
 async def list_students_endpoint(
@@ -71,7 +71,7 @@ async def update_student_endpoint(
     current_user: User = Depends(require_role(["admin", "superadmin"])),
 ):
     try:
-        student = await update_student(db, current_user.tenant_id, student_id, data)
+        student = await update_student(db, current_user.tenant_id, student_id, data, current_user.id)
         if not student:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Siswa tidak ditemukan")
         return student
@@ -84,7 +84,7 @@ async def delete_student_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["admin", "superadmin"])),
 ):
-    student = await soft_delete_student(db, current_user.tenant_id, student_id)
+    student = await soft_delete_student(db, current_user.tenant_id, student_id, current_user.id)
     if not student:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Siswa tidak ditemukan")
     return student

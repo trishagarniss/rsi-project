@@ -60,7 +60,7 @@ async def update_intervention_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    record = await update_intervention(db, current_user.tenant_id, intervention_id, data)
+    record = await update_intervention(db, current_user.tenant_id, intervention_id, data, current_user.id)
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Intervensi tidak ditemukan")
     return record
@@ -71,6 +71,6 @@ async def delete_intervention_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["admin", "superadmin"])),
 ):
-    record = await delete_intervention(db, current_user.tenant_id, intervention_id)
+    record = await delete_intervention(db, current_user.tenant_id, intervention_id, current_user.id)
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Intervensi tidak ditemukan")

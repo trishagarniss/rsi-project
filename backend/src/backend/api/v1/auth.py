@@ -6,11 +6,11 @@ from ...core.database import get_db
 from ...core.security import (
     verify_password, create_access_token, create_refresh_token,
     verify_refresh_token, extend_refresh_token, revoke_refresh_token,
-    get_current_user,
+    get_current_user, get_password_hash,
 )
 from ...core.redis_client import redis_client
 from ...models.user import User
-from ...schemas.user import UserLogin, UserResponse, RefreshRequest, LoginResponse
+from ...schemas.user import UserLogin, UserResponse, RefreshRequest, LoginResponse, ChangePasswordRequest
 
 router = APIRouter(tags=["Authentication"])
 
@@ -79,3 +79,16 @@ async def logout(data: RefreshRequest):
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.put("/change-password")
+async def change_password(
+    data: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not verify_password(data.old_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Password lama salah")
+
+    current_user.password_hash = get_password_hash(data.new_password)
+    await db.commit()
+    return {"message": "Password berhasil diubah"}

@@ -4,6 +4,7 @@ from typing import Optional
 from ..models.student import Student
 from ..models.attendance import Attendance
 from ..schemas.attendance import AttendanceCreate, AttendanceUpdate
+from ..services.audit_service import log_action
 
 async def _validate_student(db: AsyncSession, tenant_id: int, student_id: int):
     result = await db.execute(
@@ -12,13 +13,14 @@ async def _validate_student(db: AsyncSession, tenant_id: int, student_id: int):
     if not result.scalar_one_or_none():
         raise ValueError("Siswa tidak ditemukan")
 
-async def create_attendance(db: AsyncSession, tenant_id: int, data: AttendanceCreate) -> Attendance:
+async def create_attendance(db: AsyncSession, tenant_id: int, data: AttendanceCreate, user_id: int) -> Attendance:
     await _validate_student(db, tenant_id, data.student_id)
     persentase = round((data.hadir / data.total_hari) * 100, 2) if data.total_hari > 0 else 0.0
     record = Attendance(tenant_id=tenant_id, persentase_kehadiran=persentase, **data.model_dump())
     db.add(record)
     await db.commit()
     await db.refresh(record)
+    await log_action(db, tenant_id, user_id, "create", "attendance", record.id, f"Student ID: {data.student_id}, Semester: {data.semester}")
     return record
 
 async def get_attendance(db: AsyncSession, tenant_id: int, attendance_id: int) -> Optional[Attendance]:
@@ -43,7 +45,7 @@ async def get_attendances(
     result = await db.execute(base.offset(skip).limit(limit).order_by(Attendance.semester))
     return list(result.scalars().all()), total
 
-async def update_attendance(db: AsyncSession, tenant_id: int, attendance_id: int, data: AttendanceUpdate) -> Optional[Attendance]:
+async def update_attendance(db: AsyncSession, tenant_id: int, attendance_id: int, data: AttendanceUpdate, user_id: int) -> Optional[Attendance]:
     record = await get_attendance(db, tenant_id, attendance_id)
     if not record:
         return None
@@ -58,12 +60,14 @@ async def update_attendance(db: AsyncSession, tenant_id: int, attendance_id: int
         setattr(record, key, value)
     await db.commit()
     await db.refresh(record)
+    await log_action(db, tenant_id, user_id, "update", "attendance", attendance_id, f"Update: {update_data}")
     return record
 
-async def delete_attendance(db: AsyncSession, tenant_id: int, attendance_id: int) -> Optional[Attendance]:
+async def delete_attendance(db: AsyncSession, tenant_id: int, attendance_id: int, user_id: int) -> Optional[Attendance]:
     record = await get_attendance(db, tenant_id, attendance_id)
     if not record:
         return None
     await db.delete(record)
     await db.commit()
+    await log_action(db, tenant_id, user_id, "delete", "attendance", attendance_id)
     return record
