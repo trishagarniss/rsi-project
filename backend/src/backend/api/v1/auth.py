@@ -6,11 +6,15 @@ from ...core.database import get_db
 from ...core.security import (
     verify_password, create_access_token, create_refresh_token,
     verify_refresh_token, extend_refresh_token, revoke_refresh_token,
-    get_current_user, get_password_hash,
+    get_current_user, get_password_hash, require_role,
 )
 from ...core.redis_client import redis_client
 from ...models.user import User
-from ...schemas.user import UserLogin, UserResponse, RefreshRequest, LoginResponse, ChangePasswordRequest
+from ...schemas.user import (
+    UserLogin, UserResponse, UserCreate, UserCreateResponse,
+    RefreshRequest, LoginResponse, ChangePasswordRequest,
+)
+from ...services.user_service import create_user
 
 router = APIRouter(tags=["Authentication"])
 
@@ -92,3 +96,21 @@ async def change_password(
     current_user.password_hash = get_password_hash(data.new_password)
     await db.commit()
     return {"message": "Password berhasil diubah"}
+
+@router.post("/users", response_model=UserCreateResponse, status_code=status.HTTP_201_CREATED)
+async def create_user_endpoint(
+    data: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(["superadmin"])),
+):
+    user, password = await create_user(db, data, current_user.id)
+    return UserCreateResponse(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        role=user.role,
+        tenant_id=user.tenant_id,
+        is_active=user.is_active,
+        created_at=user.created_at,
+        generated_password=password,
+    )

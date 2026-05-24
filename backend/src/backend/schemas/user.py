@@ -26,7 +26,7 @@ class PasswordCreate(BaseModel):
             raise ValueError("Harus mengandung minimal 1 simbol (!@#$%^&*)")
         return v
 
-class UserCreate(PasswordCreate):
+class UserCreate(BaseModel):
     email: EmailStr
     full_name: str = Field(..., min_length=1)
     role: UserRole = UserRole.KONSELOR
@@ -79,6 +79,9 @@ class ChangePasswordRequest(BaseModel):
     @classmethod
     def validate_new_password(cls, v):
         return PasswordCreate.validate_password_strength(cls, v)
+
+class UserCreateResponse(UserResponse):
+    generated_password: str
 
 class TokenData(BaseModel):
     sub: str  # user_id as string
