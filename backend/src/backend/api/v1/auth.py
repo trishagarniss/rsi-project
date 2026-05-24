@@ -6,7 +6,7 @@ from ...core.security import verify_password, create_access_token
 from ...models.user import User
 from ...schemas.user import UserLogin, Token
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 
 @router.post("/login", response_model=Token)
 async def login(user_cred: UserLogin, db: AsyncSession = Depends(get_db)):
