@@ -1,16 +1,29 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import os
+from sqlalchemy import text
 from .api.v1 import auth, student, academic, attendance, socio_economic, prediction, dashboard, counseling, reports, tenants, models, audit, monitoring
 from .core.database import engine, Base
 from .core.redis_client import redis_client
-from .core.config import settings
+from .core.config import settings, BACKEND_DIR
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
+            # Setup Row-Level Security untuk multi-tenant isolation
+            rls_path = os.path.join(BACKEND_DIR, "scripts", "rls.sql")
+            if os.path.exists(rls_path):
+                with open(rls_path) as f:
+                    rls_sql = f.read()
+                for statement in rls_sql.split(";"):
+                    stmt = statement.strip()
+                    if stmt:
+                        await conn.execute(text(stmt + ";"))
+                print("[RLS] Row-Level Security policies applied")
     except Exception as e:
         print(f"[WARN] Database tidak tersedia: {e}")
     yield

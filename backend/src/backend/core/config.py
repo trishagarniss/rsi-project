@@ -1,4 +1,8 @@
+import os
 from pydantic_settings import BaseSettings
+
+_this_dir = os.path.dirname(os.path.abspath(__file__))
+BACKEND_DIR = os.path.dirname(os.path.dirname(_this_dir))
 
 class Settings(BaseSettings):
     DATABASE_URL: str
