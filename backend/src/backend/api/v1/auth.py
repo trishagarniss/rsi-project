@@ -12,7 +12,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 async def login(user_cred: UserLogin, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == user_cred.email))
     user = result.scalar_one_or_none()
-    if not user or not verify_password(user_cred.password, user.hashed_password):
+    if not user or not verify_password(user_cred.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role, "tenant_id": str(user.tenant_id) if user.tenant_id else None})
