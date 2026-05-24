@@ -8,13 +8,17 @@ from .core.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        print(f"[WARN] Database tidak tersedia: {e}")
     yield
-    # Shutdown
-    await engine.dispose()
-    await redis_client.close()
+    try:
+        await engine.dispose()
+        await redis_client.close()
+    except Exception:
+        pass
     
 app = FastAPI(
     title="ASGARD API",
