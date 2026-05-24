@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+import secrets
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -9,9 +10,13 @@ from sqlalchemy import text, select
 from ..models.user import User
 from ..core.database import get_db
 from .config import settings
+from .redis_client import redis_client
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
+
+ACCESS_TOKEN_TTL = 900
+REFRESH_TOKEN_TTL = 10800
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
@@ -21,9 +26,28 @@ def get_password_hash(password: str) -> str:
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(seconds=ACCESS_TOKEN_TTL))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+async def create_refresh_token(user_id: int) -> str:
+    token = secrets.token_urlsafe(48)
+    key = f"refresh:{token}"
+    await redis_client.setex(key, REFRESH_TOKEN_TTL, str(user_id))
+    return token
+
+async def verify_refresh_token(token: str) -> Optional[str]:
+    key = f"refresh:{token}"
+    user_id = await redis_client.get(key)
+    return user_id.decode() if user_id else None
+
+async def extend_refresh_token(token: str) -> None:
+    key = f"refresh:{token}"
+    await redis_client.expire(key, REFRESH_TOKEN_TTL)
+
+async def revoke_refresh_token(token: str) -> None:
+    key = f"refresh:{token}"
+    await redis_client.delete(key)
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),

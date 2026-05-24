@@ -41,7 +41,19 @@ class UserResponse(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+    expires_in: int = 900
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+class LoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = 900
+    user: UserResponse
 
 class TokenData(BaseModel):
     sub: str  # user_id as string
