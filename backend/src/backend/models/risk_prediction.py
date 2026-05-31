@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, Enum as SQLEnum
 from sqlalchemy.sql import func
 import enum
-from ..core.database import Base
+from ..database.engine import Base
 
 class RiskLevel(str, enum.Enum):
     RENDAH = "rendah"

@@ -1,6 +1,5 @@
 import json
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, case
 from typing import Optional
 from datetime import datetime, timezone
 
@@ -9,11 +8,19 @@ from ..models.risk_prediction import RiskPrediction, RiskLevel
 from ..services.academic_service import get_academics
 from ..services.attendance_service import get_attendances
 from ..services.socio_economic_service import get_by_student as get_socio_by_student
+from ..services.audit_service import log_action
+from ..repositories.prediction_repository import (
+    find_student_by_id, create_prediction as repo_create_prediction,
+    find_predictions_by_student as repo_find_predictions,
+    find_latest_prediction as repo_find_latest_prediction,
+    get_risk_summary_query, get_top_risk_query,
+)
 
 WEIGHT_ACADEMIC = 0.40
 WEIGHT_ATTENDANCE = 0.35
 WEIGHT_SOCIO = 0.25
 MODEL_VERSION = "rule-based-v1"
+
 
 def _academic_score(academic_records) -> float:
     total = 0
@@ -40,6 +47,7 @@ def _academic_score(academic_records) -> float:
         return 50
     return min(total / count, 100)
 
+
 def _attendance_score(attendance_records) -> float:
     total = 0
     count = 0
@@ -62,6 +70,7 @@ def _attendance_score(attendance_records) -> float:
         return 50
     return min(total / count, 100)
 
+
 def _socio_score(socio) -> float:
     if not socio:
         return 50
@@ -82,6 +91,7 @@ def _socio_score(socio) -> float:
         score += 10
     return min(score, 100)
 
+
 def _compute_risk_level(total_score: float) -> RiskLevel:
     if total_score >= 65:
         return RiskLevel.TINGGI
@@ -89,11 +99,9 @@ def _compute_risk_level(total_score: float) -> RiskLevel:
         return RiskLevel.SEDANG
     return RiskLevel.RENDAH
 
-async def predict_student(db: AsyncSession, tenant_id: int, student_id: int) -> dict:
-    result = await db.execute(
-        select(Student).where(Student.id == student_id, Student.tenant_id == tenant_id, Student.is_active == True)
-    )
-    student = result.scalar_one_or_none()
+
+async def predict_student(db: AsyncSession, tenant_id: int, student_id: int, user_id: int) -> dict:
+    student = await find_student_by_id(db, tenant_id, student_id)
     if not student:
         raise ValueError("Siswa tidak ditemukan")
 
@@ -125,9 +133,9 @@ async def predict_student(db: AsyncSession, tenant_id: int, student_id: int) -> 
         fitur_snapshot=json.dumps(features, ensure_ascii=False),
         model_version=MODEL_VERSION,
     )
-    db.add(prediction)
+    prediction = await repo_create_prediction(db, prediction)
     await db.commit()
-    await db.refresh(prediction)
+    await log_action(db, tenant_id, user_id, "create", "risk_prediction", prediction.id, f"Student ID: {student_id}, Skor: {round(total, 2)}, Label: {level.value}")
 
     return {
         "student_id": student_id,
@@ -136,52 +144,17 @@ async def predict_student(db: AsyncSession, tenant_id: int, student_id: int) -> 
         "model_version": MODEL_VERSION,
     }
 
+
 async def get_predictions_by_student(db: AsyncSession, tenant_id: int, student_id: int, limit: int = 10) -> list[RiskPrediction]:
-    result = await db.execute(
-        select(RiskPrediction)
-        .where(RiskPrediction.student_id == student_id, RiskPrediction.tenant_id == tenant_id)
-        .order_by(RiskPrediction.created_at.desc())
-        .limit(limit)
-    )
-    return list(result.scalars().all())
+    return await repo_find_predictions(db, tenant_id, student_id, limit)
+
 
 async def get_latest_prediction(db: AsyncSession, tenant_id: int, student_id: int) -> Optional[RiskPrediction]:
-    result = await db.execute(
-        select(RiskPrediction)
-        .where(RiskPrediction.student_id == student_id, RiskPrediction.tenant_id == tenant_id)
-        .order_by(RiskPrediction.created_at.desc())
-        .limit(1)
-    )
-    return result.scalar_one_or_none()
+    return await repo_find_latest_prediction(db, tenant_id, student_id)
+
 
 async def get_risk_summary(db: AsyncSession, tenant_id: int) -> dict:
-    total = (
-        await db.execute(
-            select(func.count()).select_from(Student).where(Student.tenant_id == tenant_id, Student.is_active == True)
-        )
-    ).scalar()
-
-    subq = (
-        select(
-            RiskPrediction.student_id,
-            func.row_number().over(
-                partition_by=RiskPrediction.student_id,
-                order_by=RiskPrediction.created_at.desc(),
-            ).label("rn"),
-            RiskPrediction.label_risiko,
-        )
-        .where(RiskPrediction.tenant_id == tenant_id)
-        .subquery()
-    )
-
-    latest = select(subq.c.label_risiko).where(subq.c.rn == 1).subquery()
-
-    counts = (
-        await db.execute(
-            select(latest.c.label_risiko, func.count().label("jml"))
-            .group_by(latest.c.label_risiko)
-        )
-    ).all()
+    total, counts = await get_risk_summary_query(db, tenant_id)
 
     count_map = {RiskLevel.RENDAH: 0, RiskLevel.SEDANG: 0, RiskLevel.TINGGI: 0}
     for row in counts:
@@ -197,40 +170,12 @@ async def get_risk_summary(db: AsyncSession, tenant_id: int) -> dict:
         "persentase_tinggi": tinggi_pct,
     }
 
-async def get_top_risk(db: AsyncSession, tenant_id: int, limit: int = 10) -> list[dict]:
-    latest_subq = (
-        select(
-            RiskPrediction.student_id,
-            RiskPrediction.skor_risiko,
-            RiskPrediction.label_risiko,
-            RiskPrediction.tanggal_prediksi,
-            func.row_number().over(
-                partition_by=RiskPrediction.student_id,
-                order_by=RiskPrediction.created_at.desc(),
-            ).label("rn"),
-        )
-        .where(RiskPrediction.tenant_id == tenant_id)
-        .subquery()
-    )
 
-    result = await db.execute(
-        select(
-            Student.id,
-            Student.nis,
-            Student.name,
-            Student.class_name,
-            latest_subq.c.skor_risiko,
-            latest_subq.c.label_risiko,
-            latest_subq.c.tanggal_prediksi,
-        )
-        .join(latest_subq, Student.id == latest_subq.c.student_id)
-        .where(latest_subq.c.rn == 1, Student.is_active == True)
-        .order_by(latest_subq.c.skor_risiko.desc())
-        .limit(limit)
-    )
+async def get_top_risk(db: AsyncSession, tenant_id: int, limit: int = 10) -> list[dict]:
+    rows = await get_top_risk_query(db, tenant_id, limit)
 
     items = []
-    for i, row in enumerate(result.all(), 1):
+    for i, row in enumerate(rows, 1):
         items.append({
             "rank": i,
             "id": row.id,

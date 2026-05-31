@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Enum as SQLEnum
 from sqlalchemy.sql import func
 import enum
-from ..core.database import Base
+from ..database.engine import Base
 
 class UserRole(str, enum.Enum):
     SUPERADMIN = "superadmin"

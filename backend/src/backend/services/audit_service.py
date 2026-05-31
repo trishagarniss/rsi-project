@@ -1,7 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 from typing import Optional
 from ..models.audit_log import AuditLog
+from ..repositories.audit_repository import create_audit_log as repo_create_audit_log, find_audit_logs
+
 
 async def log_action(
     db: AsyncSession,
@@ -13,18 +14,10 @@ async def log_action(
     detail: Optional[str] = None,
     ip_address: Optional[str] = None,
 ) -> AuditLog:
-    log = AuditLog(
-        tenant_id=tenant_id,
-        user_id=user_id,
-        aksi=aksi,
-        target_type=target_type,
-        target_id=target_id,
-        detail=detail,
-        ip_address=ip_address,
-    )
-    db.add(log)
+    log = await repo_create_audit_log(db, tenant_id, user_id, aksi, target_type, target_id, detail, ip_address)
     await db.commit()
     return log
+
 
 async def get_audit_logs(
     db: AsyncSession,
@@ -32,16 +25,8 @@ async def get_audit_logs(
     skip: int = 0,
     limit: int = 50,
 ) -> tuple[list[AuditLog], int]:
-    base = select(AuditLog).order_by(AuditLog.created_at.desc())
-    count_base = select(func.count()).select_from(AuditLog)
+    return await find_audit_logs(db, tenant_id, skip, limit)
 
-    if tenant_id is not None:
-        base = base.where(AuditLog.tenant_id == tenant_id)
-        count_base = count_base.where(AuditLog.tenant_id == tenant_id)
-
-    total = (await db.execute(count_base)).scalar()
-    result = await db.execute(base.offset(skip).limit(limit))
-    return list(result.scalars().all()), total
 
 async def get_logs_by_tenant(db: AsyncSession, tenant_id: int, skip: int = 0, limit: int = 50) -> tuple[list[AuditLog], int]:
-    return await get_audit_logs(db, tenant_id=tenant_id, skip=skip, limit=limit)
+    return await find_audit_logs(db, tenant_id=tenant_id, skip=skip, limit=limit)

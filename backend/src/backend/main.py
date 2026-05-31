@@ -3,10 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 from sqlalchemy import text
-from .api.v1 import auth, student, academic, attendance, socio_economic, prediction, dashboard, counseling, reports, tenants, models, audit, monitoring, import_data
-from .core.database import engine, Base
-from .core.redis_client import redis_client
-from .core.config import settings, BACKEND_DIR
+from .routes import auth, student, academic, attendance, socio_economic, prediction, dashboard, counseling, reports, tenants, models, audit, monitoring, import_data
+from .database.engine import engine, Base
+from .database.redis import redis_client
+from .config.settings import settings, BACKEND_DIR
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

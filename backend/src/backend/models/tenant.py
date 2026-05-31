@@ -3,7 +3,7 @@ from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.sql import func
 import enum
 from sqlalchemy import Enum as SQLEnum
-from ..core.database import Base
+from ..database.engine import Base
 
 class TenantStatus(str, enum.Enum):
     ACTIVE = "active"

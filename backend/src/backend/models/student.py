@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, UniqueConstraint
 from sqlalchemy.sql import func
-from ..core.database import Base
+from ..database.engine import Base
 
 class Student(Base):
     __tablename__ = "students"

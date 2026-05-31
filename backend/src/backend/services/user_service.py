@@ -1,11 +1,12 @@
 import secrets
 import string
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
 from ..models.user import User
-from ..schemas.user import UserCreate
-from ..core.security import get_password_hash
+from ..dto.user import UserCreate
+from ..middlewares.auth import get_password_hash
 from ..services.audit_service import log_action
+from ..repositories.user_repository import create_user as repo_create_user
+
 
 def generate_random_password(length: int = 12) -> str:
     uppercase = string.ascii_uppercase
@@ -26,6 +27,7 @@ def generate_random_password(length: int = 12) -> str:
     secrets.SystemRandom().shuffle(password)
     return "".join(password)
 
+
 async def create_user(
     db: AsyncSession,
     data: UserCreate,
@@ -34,16 +36,14 @@ async def create_user(
     password = generate_random_password()
     hashed = get_password_hash(password)
 
-    user = User(
-        email=data.email,
-        password_hash=hashed,
-        full_name=data.full_name,
-        role=data.role,
-        tenant_id=data.tenant_id,
-    )
-    db.add(user)
+    user = await repo_create_user(db, {
+        "email": data.email,
+        "password_hash": hashed,
+        "full_name": data.full_name,
+        "role": data.role,
+        "tenant_id": data.tenant_id,
+    })
     await db.commit()
-    await db.refresh(user)
 
     audit_tenant = data.tenant_id
     await log_action(
