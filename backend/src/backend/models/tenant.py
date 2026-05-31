@@ -1,14 +1,8 @@
-# backend/src/backend/models/tenant.py
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.sql import func
-import enum
 from sqlalchemy import Enum as SQLEnum
-from ..core.database import Base
-
-class TenantStatus(str, enum.Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    TRIAL = "trial"
+from ..database.engine import Base
+from .enums import TenantStatus
     
 class Tenant(Base):
     __tablename__ = "tenants"

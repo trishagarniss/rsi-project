@@ -1,12 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Enum as SQLEnum
 from sqlalchemy.sql import func
-import enum
-from ..core.database import Base
-
-class UserRole(str, enum.Enum):
-    SUPERADMIN = "superadmin"
-    ADMIN = "admin"
-    KONSELOR = "konselor"
+from ..database.engine import Base
+from .enums import UserRole
 
 class User(Base):
     __tablename__ = "users"
