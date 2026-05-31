@@ -66,7 +66,7 @@ app.include_router(audit.router, prefix="/api/v1/audit", tags=["Audit"])
 app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["Monitoring"])
 app.include_router(import_data.router, prefix="/api/v1/import", tags=["Import"])
 
-@app.get("/")
+@app.get("/") 
 def root():
     return {"message": "ASGARD API is running"}
 @app.get("/health")

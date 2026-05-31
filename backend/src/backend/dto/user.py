@@ -1,15 +1,10 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
 from typing import Optional
-from enum import Enum
 import re
+from ..models.enums import UserRole
 
-class UserRole(str, Enum):
-    SUPERADMIN = "superadmin"
-    ADMIN = "admin"
-    KONSELOR = "konselor"
-
-# === Request Schemas ===
+# Request Schemas
 class PasswordCreate(BaseModel):
     password: str = Field(..., min_length=8)
 
@@ -78,7 +73,7 @@ class ChangePasswordRequest(BaseModel):
     @field_validator("new_password")
     @classmethod
     def validate_new_password(cls, v):
-        return PasswordCreate.validate_password_strength(cls, v)
+        return PasswordCreate.validate_password_strength(v)
 
 class UserCreateResponse(UserResponse):
     generated_password: str

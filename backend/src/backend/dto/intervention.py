@@ -1,21 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
-from enum import Enum
-
-class JenisIntervensi(str, Enum):
-    KONSELING_INDIVIDU = "konseling_individu"
-    KONSELING_KELOMPOK = "konseling_kelompok"
-    HOME_VISIT = "home_visit"
-    REFERRAL = "referral"
-    KLASIKAL = "klasikal"
-    LAINNYA = "lainnya"
-
-class StatusIntervensi(str, Enum):
-    DIRENCANAKAN = "direncanakan"
-    DILAKSANAKAN = "dilaksanakan"
-    SELESAI = "selesai"
-    DITINDAKLANJUTI = "ditindaklanjuti"
+from ..models.enums import JenisIntervensi, StatusIntervensi
 
 class InterventionBase(BaseModel):
     student_id: int

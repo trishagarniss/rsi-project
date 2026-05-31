@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
-from .student import RiskLevel
+from ..models.enums import RiskLevel
 
 class PredictionResponse(BaseModel):
     id: int

@@ -1,21 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Enum as SQLEnum
 from sqlalchemy.sql import func
-import enum
 from ..database.engine import Base
-
-class JenisIntervensi(str, enum.Enum):
-    KONSELING_INDIVIDU = "konseling_individu"
-    KONSELING_KELOMPOK = "konseling_kelompok"
-    HOME_VISIT = "home_visit"
-    REFERRAL = "referral"
-    KLASIKAL = "klasikal"
-    LAINNYA = "lainnya"
-    
-class StatusIntervensi(str, enum.Enum):
-    DIRENCANAKAN = "direncanakan"
-    DILAKSANAKAN = "dilaksanakan"
-    SELESAI = "selesai"
-    DITINDAKLANJUTI = "ditindaklanjuti"
+from .enums import JenisIntervensi, StatusIntervensi
     
 class Intervention(Base):
     __tablename__ = "interventions"

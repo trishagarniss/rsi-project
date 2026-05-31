@@ -1,5 +1,6 @@
 import csv
 import io
+import json
 from fastapi import Depends, HTTPException, status, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,8 +13,12 @@ from ..models.student import Student
 from ..models.academic import Academic
 from ..models.attendance import Attendance
 from ..models.socio_economic import SocioEconomic
-from ..dto.import_schema import IMPORT_SCHEMA_HEADER, CSV_TEMPLATE_CONTENT, ImportResult
+from ..models.risk_prediction import RiskPrediction
+from ..dto.import_schema import IMPORT_SCHEMA_HEADER, CSV_TEMPLATE_CONTENT, ImportResult, ImportPrediction
 from ..services.audit_service import log_action
+from ..services.ml_service import get_active_model, load_model, extract_features, predict_with_model
+from ..repositories.prediction_repository import create_prediction as repo_create_prediction
+
 
 async def download_template():
     return StreamingResponse(
@@ -49,6 +54,15 @@ async def upload_csv(
     success = 0
     errors = []
     tenant_id = current_user.tenant_id
+    imported_students = []
+
+    active_ml_model = await get_active_model(db)
+    if not active_ml_model:
+        raise HTTPException(
+            status_code=400,
+            detail="Belum ada model prediksi aktif. Hubungi superadmin untuk mengupload model terlebih dahulu.",
+        )
+    ml_model = load_model(active_ml_model.file_path)
 
     for i, row in enumerate(rows, 1):
         try:
@@ -143,6 +157,7 @@ async def upload_csv(
 
             await db.flush()
             success += 1
+            imported_students.append(student)
 
         except Exception as e:
             errors.append({"row": i, "error": str(e)})
@@ -153,7 +168,67 @@ async def upload_csv(
         "import", "csv", None,
         f"Import CSV: {total} baris, {success} sukses, {total - success} gagal",
     )
-    return ImportResult(total_rows=total, success_count=success, failed_count=total - success, errors=errors)
+
+    predictions = []
+    for student in imported_students:
+        try:
+            result = await db.execute(
+                select(Academic).where(Academic.student_id == student.id).order_by(Academic.semester.desc())
+            )
+            academic_records = result.scalars().all()
+            result = await db.execute(
+                select(Attendance).where(Attendance.student_id == student.id).order_by(Attendance.semester.desc())
+            )
+            attendance_records = result.scalars().all()
+            result = await db.execute(
+                select(SocioEconomic).where(SocioEconomic.student_id == student.id)
+            )
+            socio = result.scalar_one_or_none()
+
+            features = extract_features({
+                "rata_rata_nilai": academic_records[0].rata_rata_nilai if academic_records else 0,
+                "jumlah_mapel_tidak_tuntas": academic_records[0].jumlah_mapel_tidak_tuntas if academic_records else 0,
+                "persentase_kehadiran": attendance_records[0].persentase_kehadiran if attendance_records else 0,
+                "alpha": attendance_records[0].alpha if attendance_records else 0,
+                "penghasilan_ortu": socio.penghasilan_ortu if socio else 0,
+                "jarak_rumah_sekolah": socio.jarak_rumah_sekolah if socio else 0,
+                "penerima_kip": (socio.penerima_kip if socio else False) or False,
+            })
+            score, level = predict_with_model(ml_model, features)
+
+            pred_data = RiskPrediction(
+                student_id=student.id,
+                tenant_id=tenant_id,
+                skor_risiko=score,
+                label_risiko=level,
+                fitur_snapshot=json.dumps({
+                    "academic_score": academic_records[0].rata_rata_nilai if academic_records else None,
+                    "attendance_score": attendance_records[0].persentase_kehadiran if attendance_records else None,
+                    "has_socio": socio is not None,
+                }, ensure_ascii=False),
+                model_version=active_ml_model.version,
+            )
+            await repo_create_prediction(db, pred_data)
+
+            predictions.append(ImportPrediction(
+                nis=student.nis,
+                name=student.name,
+                skor_risiko=score,
+                label_risiko=level.value,
+            ))
+        except Exception:
+            predictions.append(ImportPrediction(
+                nis=student.nis,
+                name=student.name,
+                skor_risiko=0,
+                label_risiko="RENDAH",
+            ))
+
+    await db.commit()
+    return ImportResult(
+        total_rows=total, success_count=success, failed_count=total - success,
+        errors=errors, predictions=predictions,
+    )
 
 
 def _parse_float(val):

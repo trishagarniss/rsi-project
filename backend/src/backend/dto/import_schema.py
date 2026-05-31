@@ -57,10 +57,17 @@ class ImportRow(BaseModel):
     penerima_kip: Optional[bool] = False
     jarak_rumah_sekolah: Optional[float] = None
 
+class ImportPrediction(BaseModel):
+    nis: str
+    name: str
+    skor_risiko: float
+    label_risiko: str
+
 class ImportResult(BaseModel):
     total_rows: int
     success_count: int
     failed_count: int
     errors: list[dict] = []
+    predictions: list[ImportPrediction] = []
 
 CSV_TEMPLATE_CONTENT = "nis,name,class_name,tingkat,jurusan,semester,tahun_ajaran,rata_rata_nilai,jumlah_mapel_tidak_tuntas,kenaikan_kelas,hadir,sakit,izin,alpha,total_hari,penghasilan_ortu,jumlah_tanggungan,pendidikan_ayah,pendidikan_ibu,penerima_kip,jarak_rumah_sekolah\n123456789,Budi Santoso,12-A,12,IPA,1,2024/2025,82.5,2,TRUE,100,3,2,1,120,2500000,4,SMA,SMP,FALSE,3.5\n"

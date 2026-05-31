@@ -1,6 +1,5 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
 from ..database.engine import get_db
 from ..middlewares.auth import (
@@ -15,10 +14,11 @@ from ..dto.user import (
     RefreshRequest, LoginResponse, ChangePasswordRequest,
 )
 from ..services.user_service import create_user
+from ..services.audit_service import log_action
+from ..repositories.user_repository import find_user_by_email, find_user_by_id
 
 async def login(user_cred: UserLogin, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == user_cred.email))
-    user = result.scalar_one_or_none()
+    user = await find_user_by_email(db, user_cred.email)
     if not user or not verify_password(user_cred.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Email atau password salah")
 
@@ -50,8 +50,7 @@ async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)
     if not user_id:
         raise HTTPException(status_code=401, detail="Refresh token tidak valid atau expired")
 
-    result = await db.execute(select(User).where(User.id == int(user_id)))
-    user = result.scalar_one_or_none()
+    user = await find_user_by_id(db, int(user_id))
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User tidak ditemukan atau tidak aktif")
 
@@ -88,6 +87,11 @@ async def change_password(
 
     current_user.password_hash = get_password_hash(data.new_password)
     await db.commit()
+    await log_action(
+        db, current_user.tenant_id, current_user.id,
+        "update", "user", current_user.id,
+        "Password diubah",
+    )
     return {"message": "Password berhasil diubah"}
 
 async def create_user_endpoint(

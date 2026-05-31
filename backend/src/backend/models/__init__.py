@@ -7,3 +7,4 @@ from .socio_economic import SocioEconomic
 from .risk_prediction import RiskPrediction, RiskLevel
 from .intervention import Intervention, JenisIntervensi, StatusIntervensi
 from .audit_log import AuditLog
+from .ml_model import MlModel

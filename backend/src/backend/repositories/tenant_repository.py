@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import Optional
 from ..models.tenant import Tenant
+from ..models.enums import TenantStatus
 
 
 async def create_tenant(db: AsyncSession, data_dict: dict) -> Tenant:
@@ -32,7 +33,6 @@ async def update_tenant_fields(db: AsyncSession, tenant: Tenant, update_data: di
 
 
 async def deactivate_tenant(db: AsyncSession, tenant: Tenant) -> Tenant:
-    from ..models.tenant import TenantStatus
     tenant.status = TenantStatus.INACTIVE
     await db.flush()
     await db.refresh(tenant)

@@ -1,13 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
-from enum import Enum
-
-# === Risk Level Enum ===
-class RiskLevel(str, Enum):
-    RENDAH = "rendah"
-    SEDANG = "sedang"
-    TINGGI = "tinggi"
+from ..models.enums import RiskLevel
 
 # === Request Schemas ===
 class StudentBase(BaseModel):
