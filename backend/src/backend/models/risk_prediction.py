@@ -6,13 +6,16 @@ from sqlalchemy.orm import relationship
 
 from src.backend.database.engine import Base
 
+def generate_risk_prediction_id():
+    return f"RP_{uuid.uuid4()}"
+
 class RiskPredictionLog(Base):
     __tablename__ = "risk_prediction_logs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    student_id = Column(UUID(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
-    model_id = Column(UUID(as_uuid=True), ForeignKey("ml_models.id"), nullable=False)
+    id = Column(String(50), primary_key=True, default=generate_risk_prediction_id, index=True)
+    student_id = Column(String(50), ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=False)
+    model_id = Column(String(50), ForeignKey("ml_models.id"), nullable=False)
     
     risk_status = Column(String(50), nullable=False) # 'At_Risk' atau 'Not_At_Risk'
     risk_score = Column(Float, nullable=False) # Nilai probabilitas 0.0 - 1.0

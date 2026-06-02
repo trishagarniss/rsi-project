@@ -1,18 +1,20 @@
 import uuid
 from sqlalchemy import Column, String, Boolean, ForeignKey, DateTime, Enum as SQLEnum
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from src.backend.database.engine import Base
 from src.backend.models.enums import UserRole
 
+def generate_user_id():
+    return f"U_{uuid.uuid4()}"
+
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=True)
-    
+    id = Column(String(50), primary_key=True, default=generate_user_id, index=True)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=True)
+
     fullname = Column(String(150), nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)

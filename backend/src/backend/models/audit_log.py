@@ -5,6 +5,9 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 from src.backend.database.engine import Base
 
+def generate_audit_log_id():
+    return f"AL_{uuid.uuid4()}"
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 

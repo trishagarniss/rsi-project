@@ -6,12 +6,15 @@ from sqlalchemy.orm import relationship
 
 from src.backend.database.engine import Base
 
+def generate_academic_id():
+    return f"AC_{uuid.uuid4()}"
+
 class Academic(Base):
     __tablename__ = "academics"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    student_id = Column(UUID(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    id = Column(String(50), primary_key=True, default=generate_academic_id, index=True)
+    student_id = Column(String(50), ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=False)
     
     semester = Column(Integer, nullable=False) # Contoh: 1, 2, 3
     academic_year = Column(String(20), nullable=False) # Contoh: "2025/2026"

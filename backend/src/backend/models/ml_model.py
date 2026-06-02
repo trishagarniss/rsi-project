@@ -5,10 +5,13 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from src.backend.database.engine import Base
 
+def generate_ml_model_id():
+    return f"ML_{uuid.uuid4()}"
+
 class MlModel(Base):
     __tablename__ = "ml_models"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(String(50), primary_key=True, default=generate_ml_model_id, index=True)
     version = Column(String(50), unique=True, nullable=False)
     algorithm = Column(String(100), nullable=False) # misal: 'Random Forest'
     file_path = Column(String(255), nullable=False) # lokasi file

@@ -1,16 +1,18 @@
 import uuid
 from sqlalchemy import Column, String, DateTime, Enum as SQLEnum
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from src.backend.database.engine import Base
 from src.backend.models.enums import TenantStatus
 
+def generate_tenant_id():
+    return f"T_{uuid.uuid4()}"
+
 class Tenant(Base):
     __tablename__ = "tenants"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(String(50), primary_key=True, default=generate_tenant_id, index=True)
     name = Column(String(150), nullable=False)
     address = Column(String(255), nullable=True)
     status = Column(SQLEnum(TenantStatus), default=TenantStatus.ACTIVE)
