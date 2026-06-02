@@ -1,0 +1,20 @@
+# Menggunakan Python 3.14
+FROM python:3.14-rc-slim
+
+# Menyiapkan folder kerja di dalam kontainer
+WORKDIR /app
+
+# Menginstal uv (Dependency Manager)
+RUN pip install uv
+
+# Menyalin file konfigurasi dependensi terlebih dahulu
+COPY pyproject.toml uv.lock* ./
+
+# Menginstal semua dependensi menggunakan uv ke dalam sistem kontainer
+RUN uv pip install --system -e .
+
+# Menyalin seluruh sisa kode backend
+COPY . .
+
+# Membuka port 8000 untuk FastAPI
+EXPOSE 8000
