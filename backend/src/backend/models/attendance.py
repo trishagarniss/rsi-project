@@ -1,24 +1,28 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, UniqueConstraint
+import uuid
+from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from ..database.engine import Base
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from src.backend.database.engine import Base
 
 class Attendance(Base):
     __tablename__ = "attendances"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    student_id = Column(UUID(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
     
-    id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     semester = Column(Integer, nullable=False)
-    tahun_ajaran = Column(String(20), nullable=False)
-    hadir = Column(Integer, default=0)
-    sakit = Column(Integer, default=0)
-    izin = Column(Integer, default=0)
-    alpha = Column(Integer, default=0)
-    total_hari = Column(Integer, nullable=False)
-    persentase_kehadiran = Column(Float, nullable=True)
+    academic_year = Column(String(20), nullable=False)
+    
+    present_count = Column(Integer, default=0)
+    sick_count = Column(Integer, default=0)
+    excused_count = Column(Integer, default=0)
+    unexcused_count = Column(Integer, default=0)
+    attendance_percentage = Column(Float, nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    __table_args__ = (
-        UniqueConstraint('student_id', 'semester', 'tahun_ajaran', name='uq_attendance_student_semester'),
-    )
+
+    student = relationship("Student", backref="attendances")
