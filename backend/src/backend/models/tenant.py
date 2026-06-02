@@ -12,7 +12,7 @@ class Tenant(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     name = Column(String(150), nullable=False)
-    alamat = Column(String(255), nullable=True)
+    address = Column(String(255), nullable=True)
     status = Column(SQLEnum(TenantStatus), default=TenantStatus.ACTIVE)
     contact_email = Column(String(100), nullable=True)
     
