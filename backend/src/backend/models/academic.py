@@ -1,23 +1,27 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime, UniqueConstraint
+import uuid
+from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from ..database.engine import Base
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from src.backend.database.engine import Base
 
 class Academic(Base):
     __tablename__ = "academics"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    student_id = Column(UUID(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
     
-    id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    semester = Column(Integer, nullable=False)                    # 1 = Ganjil, 2 = Genap
-    tahun_ajaran = Column(String(20), nullable=False)             # "2024/2025"
-    tingkat = Column(String(10), nullable=False)                  # "7", "8", "9" / "10", "11", "12"
-    jurusan = Column(String(30), nullable=True)                   # "IPA"/"IPS"/"Bahasa" (SMA), null (SMP)
-    rata_rata_nilai = Column(Float, nullable=True)
-    jumlah_mapel_tidak_tuntas = Column(Integer, nullable=True)
-    kenaikan_kelas = Column(Boolean, nullable=True)               # naik kelas atau tidak
+    semester = Column(Integer, nullable=False) # Contoh: 1, 2, 3
+    academic_year = Column(String(20), nullable=False) # Contoh: "2025/2026"
+    
+    average_score = Column(Float, nullable=False)
+    failed_subjects_count = Column(Integer, default=0)
+    incomplete_assignments_count = Column(Integer, default=0)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    __table_args__ = (
-        UniqueConstraint('student_id', 'semester', 'tahun_ajaran', name='uq_academic_student_semester'),
-    )
+
+    # Relasi
+    student = relationship("Student", backref="academics")
