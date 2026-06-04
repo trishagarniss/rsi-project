@@ -1,9 +1,10 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Date
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Date, Enum as SQLEnum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
 from src.backend.database.engine import Base
+from src.backend.models.enums import Gender
 
 def generate_student_id():
     return f"S_{uuid.uuid4()}"
@@ -16,7 +17,7 @@ class Student(Base):
 
     nis = Column(String(50), index=True, nullable=False)
     name = Column(String(150), nullable=False)
-    gender = Column(String(20), nullable=False)
+    gender = Column(SQLEnum(Gender), nullable=False)
     date_of_birth = Column(Date, nullable=True)
     address = Column(String(255), nullable=True)
     

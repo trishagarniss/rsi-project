@@ -1,9 +1,10 @@
 import uuid
-from sqlalchemy import Column, Integer, BigInteger, Float, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, Float, String, Boolean, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
 from src.backend.database.engine import Base
+from src.backend.models.enums import HousingStatus
 
 def generate_socio_economic_id():
     return f"SE_{uuid.uuid4()}"
@@ -27,7 +28,7 @@ class SocioEconomic(Base):
     has_internet_access = Column(Boolean, default=True)
     
     distance_to_school_km = Column(Float, nullable=True)
-    housing_status = Column(String(50), nullable=True) # Contoh: 'Milik Sendiri', 'Sewa', 'Numpang', dll
+    housing_status = Column(SQLEnum(HousingStatus), nullable=True)
     transportation_mode = Column(String(50), nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
