@@ -45,3 +45,10 @@ def update_user_profile(db: Session, user_id: str, update_data: UserUpdateDTO):
         "message": "Profil berhasil diperbarui",
         "data": safe_data
     }
+    
+def delete_existing_user(db: Session, user_id: str, current_user: User):
+    user_service.remove_user(db, user_id, current_user)
+    return {
+        "status": "success",
+        "message": "Akun pengguna berhasil dihapus!"
+    }

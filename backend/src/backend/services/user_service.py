@@ -67,3 +67,15 @@ def modify_existing_user(db: Session, user_id: str, update_data: UserUpdateDTO) 
     get_user_detail(db, user_id) # Cek keberadaan user
     updated_user = user_repo.update_user(db, user_id, update_data)
     return updated_user
+
+def remove_user(db: Session, user_id: str, current_user: User):
+    user_to_delete = get_user_detail(db, user_id)
+    
+    if current_user.role == UserRole.ADMIN:
+        if user_to_delete.tenant_id != current_user.tenant_id:
+            raise HTTPException(status_code=403, detail="Anda hanya bisa menghapus pengguna dari sekolah Anda sendiri.")
+        
+        if user_to_delete.role in [UserRole.SUPERADMIN, UserRole.ADMIN]:
+            raise HTTPException(status_code=403, detail="Anda tidak memiliki izin untuk menghapus Admin atau Superadmin.")
+            
+    user_repo.delete_user(db, user_id)
