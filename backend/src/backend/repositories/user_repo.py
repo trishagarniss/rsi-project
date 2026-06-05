@@ -10,8 +10,11 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
 def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
     return db.query(User).filter(User.id == user_id).first()
 
-def get_all_users(db: Session, skip: int = 0, limit: int = 100) -> List[User]:
-    return db.query(User).offset(skip).limit(limit).all()
+def get_all_users(db: Session, skip: int = 0, limit: int = 100, tenant_id: str = None) -> List[User]:
+    query = db.query(User)
+    if tenant_id:
+        query = query.filter(User.tenant_id == tenant_id)
+    return query.offset(skip).limit(limit).all()
 
 def create_user(
     db: Session, 

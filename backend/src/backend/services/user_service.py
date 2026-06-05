@@ -22,18 +22,20 @@ def register_new_user(db: Session, user_data: UserCreateDTO) -> User:
     if not tenant:
         raise HTTPException(status_code=400, detail="Kode registrasi tidak valid atau tidak ditemukan.")
 
-    # 3. Hash Password
+    existing_admin = db.query(User).filter(User.tenant_id == tenant.id, User.role == UserRole.ADMIN).first()
+    if existing_admin:
+        raise HTTPException(status_code=403, detail="Sekolah ini sudah memiliki Admin. Pendaftaran ditolak.")
+
     hashed_pw = get_password_hash(user_data.password)
 
-    # 4. Buat Akun (Otomatis role ADMIN & masuk ke tenant yang ditemukan)
     return user_repo.create_user(
         db=db, 
         fullname=user_data.fullname,
         email=user_data.email,
         hashed_password=hashed_pw,
-        tenant_id=tenant.id,   # ID Tenant otomatis didapat
-        role=UserRole.ADMIN    # Role otomatis dikunci
-    )
+        tenant_id=tenant.id,
+        role=UserRole.ADMIN
+    )   
     
 def register_new_counselor(db: Session, counselor_data: CounselorCreateDTO, admin_user: User) -> User:
     # 1. Cek Duplikasi Email
@@ -54,27 +56,29 @@ def register_new_counselor(db: Session, counselor_data: CounselorCreateDTO, admi
         role=UserRole.COUNSELOR           # Otomatis dikunci jadi Konselor
     )
     
-def get_users_list(db: Session, skip: int = 0, limit: int = 100) -> List[User]:
-    return user_repo.get_all_users(db, skip, limit)
+def get_users_list(db: Session, current_user: User, skip: int = 0, limit: int = 100) -> List[User]:
+    if current_user.role == UserRole.SUPERADMIN:
+        return user_repo.get_all_users(db, skip=skip, limit=limit)
+    return user_repo.get_all_users(db, skip=skip, limit=limit, tenant_id=current_user.tenant_id)
 
-def get_user_detail(db: Session, user_id: str) -> User:
+def get_user_detail(db: Session, user_id: str, current_user: User) -> User:
     user = user_repo.get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan.")
+    
+    if current_user.role in [UserRole.ADMIN, UserRole.COUNSELOR] and user.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="Akses ditolak. Pengguna ini berada di luar sekolah Anda.")
+    
     return user
 
-def modify_existing_user(db: Session, user_id: str, update_data: UserUpdateDTO) -> User:
-    get_user_detail(db, user_id) # Cek keberadaan user
-    updated_user = user_repo.update_user(db, user_id, update_data)
-    return updated_user
+def modify_existing_user(db: Session, user_id: str, update_data: UserUpdateDTO, current_user: User) -> User:
+    get_user_detail(db, user_id, current_user)
+    return user_repo.update_user(db, user_id, update_data)
 
 def remove_user(db: Session, user_id: str, current_user: User):
-    user_to_delete = get_user_detail(db, user_id)
+    user_to_delete = get_user_detail(db, user_id, current_user) 
     
     if current_user.role == UserRole.ADMIN:
-        if user_to_delete.tenant_id != current_user.tenant_id:
-            raise HTTPException(status_code=403, detail="Anda hanya bisa menghapus pengguna dari sekolah Anda sendiri.")
-        
         if user_to_delete.role in [UserRole.SUPERADMIN, UserRole.ADMIN]:
             raise HTTPException(status_code=403, detail="Anda tidak memiliki izin untuk menghapus Admin atau Superadmin.")
             
