@@ -21,30 +21,17 @@ def register_counselor(db: Session, counselor_data: CounselorCreateDTO, admin_us
         "data": safe_data
     }
 
-def fetch_all_users(db: Session, skip: int = 0, limit: int = 100):
-    users = user_service.get_users_list(db, skip, limit)
-    safe_data = [UserResponseDTO.model_validate(u) for u in users]
-    return {
-        "status": "success",
-        "data": safe_data
-    }
+def fetch_all_users(db: Session, current_user: User, skip: int = 0, limit: int = 100):
+    users = user_service.get_users_list(db, current_user, skip, limit)
+    return {"status": "success", "data": [UserResponseDTO.model_validate(u) for u in users]}
 
-def fetch_user_detail(db: Session, user_id: str):
-    user = user_service.get_user_detail(db, user_id)
-    safe_data = UserResponseDTO.model_validate(user)
-    return {
-        "status": "success",
-        "data": safe_data
-    }
+def fetch_user_detail(db: Session, user_id: str, current_user: User):
+    user = user_service.get_user_detail(db, user_id, current_user)
+    return {"status": "success", "data": UserResponseDTO.model_validate(user)}
 
-def update_user_profile(db: Session, user_id: str, update_data: UserUpdateDTO):
-    updated = user_service.modify_existing_user(db, user_id, update_data)
-    safe_data = UserResponseDTO.model_validate(updated)
-    return {
-        "status": "success",
-        "message": "Profil berhasil diperbarui",
-        "data": safe_data
-    }
+def update_user_profile(db: Session, user_id: str, update_data: UserUpdateDTO, current_user: User):
+    updated = user_service.modify_existing_user(db, user_id, update_data, current_user)
+    return {"status": "success", "message": "Profil diperbarui", "data": UserResponseDTO.model_validate(updated)}
     
 def delete_existing_user(db: Session, user_id: str, current_user: User):
     user_service.remove_user(db, user_id, current_user)
