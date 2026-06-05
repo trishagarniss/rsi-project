@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from src.backend.models.user import User
 from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO
+from src.backend.models.enums import UserRole
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     return db.query(User).filter(User.email == email).first()
@@ -12,13 +13,20 @@ def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
 def get_all_users(db: Session, skip: int = 0, limit: int = 100) -> List[User]:
     return db.query(User).offset(skip).limit(limit).all()
 
-def create_user(db: Session, user_data: UserCreateDTO, hashed_password: str) -> User:
+def create_user(
+    db: Session, 
+    fullname: str, 
+    email: str, 
+    hashed_password: str, 
+    tenant_id: str, 
+    role: UserRole
+) -> User:
     new_user = User(
-        tenant_id=user_data.tenant_id,
-        fullname=user_data.fullname,
-        email=user_data.email,
+        tenant_id=tenant_id,
+        fullname=fullname,
+        email=email,
         password_hash=hashed_password, 
-        role=user_data.role
+        role=role
     )
     db.add(new_user)
     db.commit()

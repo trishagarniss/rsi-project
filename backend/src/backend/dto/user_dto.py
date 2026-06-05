@@ -5,12 +5,10 @@ from src.backend.models.enums import UserRole
 
 # 1. DTO Register
 class UserCreateDTO(BaseModel):
-    # Dibuat Optional karena SUPERADMIN tidak punya tenant
-    tenant_id: Optional[str] = Field(None, description="ID Sekolah (Kosongkan jika mendaftar sebagai Superadmin)")
+    registration_code: str
     fullname: str = Field(..., min_length=3, max_length=150)
     email: EmailStr
     password: str = Field(..., min_length=8, description="Minimal 8 karakter")
-    role: UserRole = UserRole.COUNSELOR
 
 # 2. DTO Login
 class UserLoginDTO(BaseModel):
@@ -34,5 +32,4 @@ class UserResponseDTO(BaseModel):
 # 4. DTO Update Profil (Untuk ubah nama / role / status aktif)
 class UserUpdateDTO(BaseModel):
     fullname: Optional[str] = Field(None, min_length=3, max_length=150)
-    role: Optional[UserRole] = Field(None)
     is_active: Optional[bool] = Field(None)
