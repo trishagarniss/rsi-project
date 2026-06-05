@@ -6,7 +6,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 # Jika gagal, akan jatuh ke nilai default untuk keperluan testing lokal
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL", 
-    "postgresql://asgard_admin:asgard_rahasia_123@localhost:5432/asgard_db"
+    "postgresql://asgard_user:asgard123@localhost:5432/asgard_db"
 )
 
 # Membuat engine SQLAlchemy

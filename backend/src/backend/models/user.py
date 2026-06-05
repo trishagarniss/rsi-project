@@ -19,7 +19,7 @@ class User(Base):
     email = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     
-    role = Column(SQLEnum(UserRole), default=UserRole.KONSELOR, nullable=False)
+    role = Column(SQLEnum(UserRole), default=UserRole.COUNSELOR, nullable=False)
     is_active = Column(Boolean, default=True)
     
     last_login_at = Column(DateTime(timezone=True), nullable=True)

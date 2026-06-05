@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from src.backend.routes import tenant_routes
+from src.backend.routes import tenant_routes, user_routes
 
 app = FastAPI(
     title="ASGARD API",
@@ -7,8 +7,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Mendaftarkan router tenant ke aplikasi utama
+# Daftar Routes
 app.include_router(tenant_routes.router)
+app.include_router(user_routes.router)
 
 @app.get("/")
 def root():

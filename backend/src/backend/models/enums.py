@@ -4,7 +4,7 @@ import enum
 class UserRole(str, enum.Enum):
     SUPERADMIN = "superadmin"
     ADMIN = "admin"
-    KONSELOR = "counselor"
+    COUNSELOR = "counselor"
 
 # Status Sekolah (tenant.py)
 class TenantStatus(str, enum.Enum):
