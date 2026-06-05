@@ -33,3 +33,9 @@ class UserResponseDTO(BaseModel):
 class UserUpdateDTO(BaseModel):
     fullname: Optional[str] = Field(None, min_length=3, max_length=150)
     is_active: Optional[bool] = Field(None)
+    
+# 5. DTO Register Khusus Konselor (Dibuat oleh Admin)
+class CounselorCreateDTO(BaseModel):
+    fullname: str = Field(..., min_length=3, max_length=150)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
