@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from src.backend.routes import auth_routes, tenant_routes, user_routes
+from src.backend.routes import auth_routes, tenant_routes, user_routes, student_routes
 
 app = FastAPI(
     title="ASGARD API",
@@ -11,6 +11,7 @@ app = FastAPI(
 app.include_router(auth_routes.router)
 app.include_router(tenant_routes.router)
 app.include_router(user_routes.router)
+app.include_router(student_routes.router)
 
 @app.get("/")
 def root():

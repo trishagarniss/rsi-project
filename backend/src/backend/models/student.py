@@ -2,6 +2,7 @@ import uuid
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Date, Enum as SQLEnum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from sqlalchemy import UniqueConstraint
 
 from src.backend.database.engine import Base
 from src.backend.models.enums import Gender
@@ -11,11 +12,16 @@ def generate_student_id():
 
 class Student(Base):
     __tablename__ = "students"
+    __table_args__ = (
+        UniqueConstraint('tenant_id', 'nis', name='_tenant_nis_uc'),
+    )
 
     id = Column(String(50), primary_key=True, default=generate_student_id, index=True)
-    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=False)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), index=True, nullable=False)
 
     nis = Column(String(50), index=True, nullable=False)
+    nisn = Column(String(20), index=True, unique=True, nullable=True)
+    
     name = Column(String(150), nullable=False)
     gender = Column(SQLEnum(Gender), nullable=False)
     date_of_birth = Column(Date, nullable=True)

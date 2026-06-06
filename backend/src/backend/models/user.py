@@ -13,7 +13,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(String(50), primary_key=True, default=generate_user_id, index=True)
-    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=True)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), index=True, nullable=True)
 
     fullname = Column(String(150), nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
