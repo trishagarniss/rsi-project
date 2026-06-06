@@ -12,8 +12,8 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(String(50), primary_key=True, default=generate_audit_log_id, index=True)
-    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=True)
-    user_id = Column(String(50), ForeignKey("users.id"), nullable=True)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), index=True, nullable=True)
+    user_id = Column(String(50), ForeignKey("users.id"), index=True, nullable=True)
 
     action = Column(String(100), nullable=False) # Contoh: 'UPDATE_STUDENT', 'BULK_UPLOAD'
     details = Column(JSONB, nullable=True) # Payload perubahan

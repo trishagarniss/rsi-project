@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from src.backend.models.student import Student
 from src.backend.dto.student_dto import StudentCreateDTO
 
@@ -29,3 +30,9 @@ def get_student_by_nis(db: Session, nis: str, tenant_id: str):
         Student.nis == nis, 
         Student.tenant_id == tenant_id
     ).first()
+    
+def soft_delete_student_repo(db: Session, student: Student):
+    student.is_active = False
+    student.deleted_at = func.now()
+    db.commit()
+    return student

@@ -20,7 +20,7 @@ def fetch_students(db: Session, current_user: User, skip: int, limit: int):
     
 def delete_student(db: Session, student_id: str, current_user: User):
     student_service.soft_delete_student(db, student_id, current_user)
-    return {"status": "success", "message": "Data siswa berhasil dihapus (soft delete)."}
+    return {"status": "success", "message": "Data siswa berhasil dihapus!"}
 
 def update_student(db: Session, student_id: str, student_data: StudentCreateDTO, current_user: User):
     updated = student_service.update_student(db, student_id, student_data, current_user)

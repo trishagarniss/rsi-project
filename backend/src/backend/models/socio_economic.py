@@ -13,8 +13,8 @@ class SocioEconomic(Base):
     __tablename__ = "socio_economics"
 
     id = Column(String(50), primary_key=True, default=generate_socio_economic_id, index=True)
-    student_id = Column(String(50), ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
-    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=False)
+    student_id = Column(String(50), ForeignKey("students.id", ondelete="CASCADE"), index=True, nullable=False)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), index=True, nullable=False)
     
     parents_income = Column(BigInteger, nullable=True)
     monthly_expenses = Column(BigInteger, nullable=True)

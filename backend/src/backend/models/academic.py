@@ -12,8 +12,8 @@ class Academic(Base):
     __tablename__ = "academics"
 
     id = Column(String(50), primary_key=True, default=generate_academic_id, index=True)
-    student_id = Column(String(50), ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
-    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=False)
+    student_id = Column(String(50), ForeignKey("students.id", ondelete="CASCADE"), index=True, nullable=False)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), index=True, nullable=False)
     
     semester = Column(Integer, nullable=False) # Contoh: 1, 2, 3
     academic_year = Column(String(20), nullable=False) # Contoh: "2025/2026"
