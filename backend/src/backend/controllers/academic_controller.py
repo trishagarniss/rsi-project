@@ -17,3 +17,18 @@ def fetch_student_academics(db: Session, student_id: str, current_user: User):
         "status": "success",
         "data": [AcademicResponseDTO.model_validate(r) for r in records]
     }
+    
+def update_academic(db: Session, academic_id: str, data: AcademicUpdateDTO, current_user: User):
+    updated_record = academic_service.modify_academic_record(db, academic_id, data, current_user)
+    return {
+        "status": "success",
+        "message": "Data akademik berhasil diperbarui.",
+        "data": AcademicResponseDTO.model_validate(updated_record)
+    }
+    
+def remove_academic(db: Session, academic_id: str, current_user: User):
+    academic_service.delete_academic_record(db, academic_id, current_user)
+    return {
+        "status": "success",
+        "message": "Data akademik berhasil dihapus."
+    }

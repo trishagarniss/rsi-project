@@ -24,3 +24,20 @@ def get_academics(
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
 ):
     return academic_controller.fetch_student_academics(db, student_id, current_user)
+
+@router.put("/{academic_id}")
+def update_academic(
+    academic_id: str,
+    data: AcademicUpdateDTO,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
+):
+    return academic_controller.update_academic(db, academic_id, data, current_user)
+
+@router.delete("/{academic_id}")
+def delete_academic(
+    academic_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN])) # Hanya admin yang boleh menghapus rekam jejak nilai
+):
+    return academic_controller.remove_academic(db, academic_id, current_user)

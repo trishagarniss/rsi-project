@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -10,6 +10,10 @@ def generate_academic_id():
 
 class Academic(Base):
     __tablename__ = "academics"
+    __table_args__ = (
+        # 1 Siswa hanya punya 1 data per semester per tahun ajaran
+        UniqueConstraint('student_id', 'semester', 'academic_year', name='_student_semester_uc'),
+    )
 
     id = Column(String(50), primary_key=True, default=generate_academic_id, index=True)
     student_id = Column(String(50), ForeignKey("students.id", ondelete="CASCADE"), index=True, nullable=False)

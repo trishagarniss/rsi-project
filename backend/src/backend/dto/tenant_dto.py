@@ -22,12 +22,12 @@ class TenantResponseDTO(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True 
-
 # 3. Skema untuk Update (Request dari Frontend jika mau edit data)
 class TenantUpdateDTO(BaseModel):
     name: Optional[str] = Field(None, min_length=3, max_length=150)
     address: Optional[str] = Field(None, max_length=255)
     contact_email: Optional[EmailStr] = Field(None)
     status: Optional[TenantStatus] = Field(None)
+
+    class Config:
+        from_attributes = True 
