@@ -39,3 +39,8 @@ class CounselorCreateDTO(BaseModel):
     fullname: str = Field(..., min_length=3, max_length=150)
     email: EmailStr
     password: str = Field(..., min_length=8)
+    
+# 6. DTO Khusus untuk Ganti Password (Keamanan)
+class UserChangePasswordDTO(BaseModel):
+    old_password: str = Field(..., description="Password lama wajib diisi untuk verifikasi")
+    new_password: str = Field(..., min_length=8, description="Password baru minimal 8 karakter")

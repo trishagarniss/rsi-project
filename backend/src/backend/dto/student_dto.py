@@ -6,6 +6,7 @@ from src.backend.models.enums import Gender
 # 1. Skema untuk Validasi Input (Request dari Frontend)
 class StudentCreateDTO(BaseModel):
     nis: str = Field(..., max_length=50)
+    nisn: str = Field(..., max_length=20)
     name: str = Field(..., min_length=3, max_length=150)
     gender: Gender
     date_of_birth: Optional[date] = None
@@ -13,10 +14,12 @@ class StudentCreateDTO(BaseModel):
     parent_name: Optional[str] = Field(None, max_length=150)
     parent_phone: Optional[str] = Field(None, max_length=50)
 
+# 2. Skema untuk Validasi Output (Response ke Frontend)
 class StudentResponseDTO(BaseModel):
     id: str
     tenant_id: str
     nis: str
+    nisn: str
     name: str
     gender: Gender
     date_of_birth: Optional[date]
@@ -27,3 +30,15 @@ class StudentResponseDTO(BaseModel):
 
     class Config:
         from_attributes = True
+        
+# 3. Skema untuk Update (Request dari Frontend jika mau edit data siswa)
+class StudentUpdateDTO(BaseModel):
+    nis: Optional[str] = Field(None, max_length=50)
+    nisn: Optional[str] = Field(None, max_length=20)
+    name: Optional[str] = Field(None, min_length=3, max_length=150)
+    gender: Optional[Gender] = None
+    date_of_birth: Optional[date] = None
+    address: Optional[str] = Field(None, max_length=255)
+    parent_name: Optional[str] = Field(None, max_length=150)
+    parent_phone: Optional[str] = Field(None, max_length=50)
+    is_active: Optional[bool] = None 
