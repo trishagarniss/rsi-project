@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 
-# 1. Skema untuk Validasi Input (Request dari Frontend)
+# 1. DTO Create (Input Baru)
 class AcademicCreateDTO(BaseModel):
     student_id: str
     semester: int = Field(..., ge=1, le=14)
@@ -10,7 +10,15 @@ class AcademicCreateDTO(BaseModel):
     failed_subjects_count: int = Field(0, ge=0)
     incomplete_assignments_count: int = Field(0, ge=0)
 
-# 2. Skema untuk Validasi Output (Response ke Frontend)
+# 2. DTO Update (Edit Data)
+class AcademicUpdateDTO(BaseModel):
+    semester: Optional[int] = Field(None, ge=1, le=14)
+    academic_year: Optional[str] = Field(None, min_length=9, max_length=9)
+    average_score: Optional[float] = Field(None, ge=0.0, le=100.0)
+    failed_subjects_count: Optional[int] = Field(None, ge=0)
+    incomplete_assignments_count: Optional[int] = Field(None, ge=0)
+
+# 3. DTO Response (Output ke Frontend)
 class AcademicResponseDTO(BaseModel):
     id: str
     student_id: str
@@ -23,11 +31,3 @@ class AcademicResponseDTO(BaseModel):
     
     class Config:
         from_attributes = True
-
-# 3. Skema untuk Update (Request dari Frontend jika mau edit data)
-class AcademicUpdateDTO(BaseModel):
-    semester: Optional[int] = Field(None, ge=1, le=14)
-    academic_year: Optional[str] = Field(None, min_length=9, max_length=9)
-    average_score: Optional[float] = Field(None, ge=0.0, le=100.0)
-    failed_subjects_count: Optional[int] = Field(None, ge=0)
-    incomplete_assignments_count: Optional[int] = Field(None, ge=0)
