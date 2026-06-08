@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from typing import List
 
-from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, CounselorCreateDTO
+from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, StaffCreateDTO
 from src.backend.models.user import User
 from src.backend.models.tenant import Tenant
 from src.backend.repositories import user_repo, tenant_repo
@@ -18,7 +18,7 @@ def register_new_user(db: Session, user_data: UserCreateDTO) -> User:
             detail="Kode registrasi tidak valid atau tidak ditemukan!"
         )
         
-    # 2. 🔒 KUNCI UTAMA (CEK SINGLE-USE CODE)
+    # 2. Cek Single Use Code & Pastikan Belum Ada Admin Utama di Sekolah Ini
     existing_admin = user_repo.get_admin_by_tenant(db, tenant.id)
     if existing_admin:
         raise HTTPException(
@@ -43,20 +43,31 @@ def register_new_user(db: Session, user_data: UserCreateDTO) -> User:
         role=UserRole.ADMIN
     )   
     
-def register_new_counselor(db: Session, counselor_data: CounselorCreateDTO, admin_user: User) -> User:
-    existing_user = user_repo.get_user_by_email(db, email=counselor_data.email)
+def register_staff_member(db: Session, staff_data: StaffCreateDTO, current_admin: User) -> User:
+    # 1. Pastikan hanya Admin yang boleh menambah staf
+    if current_admin.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Hanya Admin sekolah yang berhak menambah staf.")
+        
+    # 2. Keamanan ketat: Admin tidak boleh iseng membuat akun Superadmin
+    if staff_data.role == UserRole.SUPERADMIN:
+        raise HTTPException(status_code=403, detail="Anda tidak berhak membuat akun Superadmin.")
+
+    # 3. Cek apakah email staf sudah terdaftar
+    existing_user = user_repo.get_user_by_email(db, email=staff_data.email)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar.")
 
-    hashed_pw = get_password_hash(counselor_data.password)
+    # 4. Hash password dan buat akun
+    hashed_pw = get_password_hash(staff_data.password)
 
+    # Akun baru otomatis diikat ke tenant_id milik Admin yang membuatnya!
     return user_repo.create_user(
         db=db, 
-        fullname=counselor_data.fullname,
-        email=counselor_data.email,
+        fullname=staff_data.fullname,
+        email=staff_data.email,
         hashed_password=hashed_pw,
-        tenant_id=admin_user.tenant_id,   
-        role=UserRole.COUNSELOR           
+        tenant_id=current_admin.tenant_id, 
+        role=staff_data.role              
     )
     
 def get_users_list(db: Session, current_user: User, skip: int = 0, limit: int = 100) -> List[User]:

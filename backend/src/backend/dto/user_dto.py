@@ -34,11 +34,12 @@ class UserUpdateDTO(BaseModel):
     fullname: Optional[str] = Field(None, min_length=3, max_length=150)
     is_active: Optional[bool] = Field(None)
     
-# 5. DTO Register Khusus Konselor (Dibuat oleh Admin)
-class CounselorCreateDTO(BaseModel):
+# 5. DTO Tambah Staf (Admin bisa tambah Admin atau Counselor baru) - mirip dengan UserCreateDTO tapi tanpa registration_code
+class StaffCreateDTO(BaseModel):
     fullname: str = Field(..., min_length=3, max_length=150)
     email: EmailStr
     password: str = Field(..., min_length=8)
+    role: UserRole = Field(..., description="Pilih ADMIN atau COUNSELOR")
     
 # 6. DTO Khusus untuk Ganti Password (Keamanan)
 class UserChangePasswordDTO(BaseModel):
