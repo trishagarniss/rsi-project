@@ -16,6 +16,12 @@ def get_all_users(db: Session, skip: int = 0, limit: int = 100, tenant_id: str =
         query = query.filter(User.tenant_id == tenant_id)
     return query.offset(skip).limit(limit).all()
 
+def get_admin_by_tenant(db: Session, tenant_id: str):
+    return db.query(User).filter(
+        User.tenant_id == tenant_id,
+        User.role == UserRole.ADMIN
+    ).first()
+
 def create_user(
     db: Session, 
     fullname: str, 
