@@ -94,3 +94,5 @@ secrets/
 
 # Docker
 *.log
+
+*.txt
