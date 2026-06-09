@@ -23,7 +23,7 @@ import {
   FaLinkedin 
 } from 'react-icons/fa';
 
-// --- DATA TIM PENGEMBANG ---
+// DATA TIM PENGEMBANG
 const teamMembers = [
   { 
     name: 'Trisha Garnis W.', 
@@ -31,23 +31,29 @@ const teamMembers = [
     role: 'Project Manager', 
     initial: 'TG', 
     color: '#161D6F',
-    image: '' // Isi dengan path fotomu nanti, contoh: '/team/trisha.jpg'
+    image: '/team/trisha.jpeg',
+    github: 'https://github.com/trishagarniss',
+    linkedin: 'https://www.linkedin.com/in/trisha-garnis-wahningyun-7276782b3/'
   },
   { 
     name: 'Alvian Damar B.H.', 
     nim: 'L0224014', 
     role: 'Backend Developer', 
     initial: 'AD', 
-    color: '#22C55E',
-    image: '' 
+    color: '#FFC107',
+    image: '',
+    github: 'https://github.com/deskafimcode',
+    linkedin: '' 
   },
   { 
     name: 'Fathul Fajar N.I.', 
     nim: 'L0224018', 
     role: 'Data Analyst', 
     initial: 'FF', 
-    color: '#FFC107',
-    image: '' 
+    color: '#22C55E',
+    image: '',
+    github: 'https://github.com/SansZee',
+    linkedin: ''
   },
   { 
     name: 'Kunto Rossindu H.', 
@@ -55,7 +61,9 @@ const teamMembers = [
     role: 'Frontend Developer', 
     initial: 'KR', 
     color: '#FFC107',
-    image: '' 
+    image: '',
+    github: 'https://github.com/decaldaraaa',
+    linkedin: '' 
   },
   { 
     name: 'Zaki Elias A.Q.', 
@@ -63,7 +71,9 @@ const teamMembers = [
     role: 'System Analyst', 
     initial: 'ZE', 
     color: '#161D6F',
-    image: '' 
+    image: '',
+    github: 'https://github.com/KHAEZ246',
+    linkedin: '' 
   }
 ];
 
@@ -142,33 +152,27 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ================= SECTION 2: LATAR BELAKANG (WHY ASGARD EXISTS) ================= */}
+      {/* ================= SECTION 2: LATAR BELAKANG ================= */}
       <section className="py-24 px-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           
-          {/* --- BAGIAN KIRI: FOTO & FLOATING WIDGET --- */}
+          {/* --- BAGIAN KIRI: FOTO & EMBEDDED WIDGETS --- */}
           <div className="order-2 lg:order-1 relative" data-aos="fade-right">
-            {/* Dekorasi Background Belakang Foto */}
+            {/* Dekorasi latar belakang foto */}
             <div className="absolute inset-0 bg-linear-to-tr from-asgard-primary/20 to-asgard-secondary/30 rounded-[40px] transform -rotate-3 scale-105 -z-10" />
-            <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-asgard-secondary/20 rounded-full blur-2xl -z-10" />
 
             {/* Container Foto Utama */}
-            <div className="relative w-full aspect-[4/5] sm:aspect-square rounded-[40px] overflow-hidden shadow-[0_20px_50px_-12px_rgba(22,29,111,0.2)] border-4 border-white group">
-              {/* Overlay gelap tipis agar foto terlihat premium */}
-              <div className="absolute inset-0 bg-asgard-primary/10 group-hover:bg-transparent transition-colors duration-500 z-10" />
-              
-              {/* Gambar dari Unsplash */}
-              <img 
-                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800" 
-                alt="Siswa dan Guru berdiskusi" 
-                className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-1000"
+            <div className="relative w-full aspect-[4/5] sm:aspect-square rounded-[40px] overflow-hidden shadow-[0_20px_50px_-12px_rgba(22,29,111,0.2)] border-4 border-white">
+              <Image 
+                src="/about-team.jpg" 
+                alt="Tim ASGARD" 
+                fill //
+                className="object-cover w-full h-full"
               />
 
-              {/* Floating Widget 1: Indikator Penurunan Risiko */}
-              <div 
-                className="absolute bottom-8 left-[-20px] z-20 bg-white/95 backdrop-blur-xl p-5 rounded-3xl shadow-2xl border border-white flex items-center gap-4 animate-bounce"
-              >
-                <div className="w-12 h-12 bg-red-50 text-red-500 flex items-center justify-center rounded-2xl shadow-inner">
+              {/* Widget Risiko Dropout (Tertanam di dalam foto - Kiri Bawah) */}
+              <div className="absolute bottom-6 left-6 z-20 bg-white/90 backdrop-blur-md p-5 rounded-3xl shadow-xl border border-white/50 flex items-center gap-4">
+                <div className="w-12 h-12 bg-red-50 text-red-500 flex items-center justify-center rounded-2xl">
                   <TrendingDown size={24} strokeWidth={2.5} />
                 </div>
                 <div>
@@ -177,12 +181,9 @@ export default function AboutPage() {
                 </div>
               </div>
 
-              {/* Floating Widget 2: Status AI AI */}
-              <div 
-                className="absolute top-10 right-[-10px] sm:right-[-20px] z-20 bg-asgard-primary/95 backdrop-blur-xl p-4 rounded-3xl shadow-2xl border border-white/20 flex items-center gap-3"
-                data-aos="fade-down" data-aos-delay="300"
-              >
-                <div className="w-10 h-10 bg-asgard-secondary text-asgard-primary flex items-center justify-center rounded-xl shadow-inner">
+              {/* Widget Analisis AI (Tertanam di dalam foto - Kanan Atas) */}
+              <div className="absolute top-6 right-6 z-20 bg-asgard-primary/90 backdrop-blur-md p-4 rounded-3xl shadow-xl border border-white/10 flex items-center gap-3">
+                <div className="w-10 h-10 bg-asgard-secondary text-asgard-primary flex items-center justify-center rounded-xl">
                   <Bot size={20} strokeWidth={2.5} />
                 </div>
                 <div className="pr-2">
@@ -209,8 +210,8 @@ export default function AboutPage() {
             </p>
             
             <div className="space-y-4">
-              <div className="group p-5 bg-white border border-slate-200 rounded-3xl hover:-translate-y-1 hover:shadow-lg hover:shadow-asgard-primary/5 hover:border-asgard-primary/20 transition-all duration-300 flex gap-5 items-start">
-                <div className="p-3 bg-red-500/10 text-red-500 rounded-xl shrink-0 group-hover:bg-red-500 group-hover:text-white transition-colors">
+              <div className="p-5 bg-white border border-slate-200 rounded-3xl flex gap-5 items-start">
+                <div className="p-3 bg-red-500/10 text-red-500 rounded-xl shrink-0">
                   <TrendingDown size={24} />
                 </div>
                 <div>
@@ -218,8 +219,8 @@ export default function AboutPage() {
                   <p className="text-sm text-slate-500 mt-1 leading-relaxed">Gejala putus sekolah menumpuk perlahan dan baru disadari ketika niat siswa sudah tak bisa diubah.</p>
                 </div>
               </div>
-              <div className="group p-5 bg-white border border-slate-200 rounded-3xl hover:-translate-y-1 hover:shadow-lg hover:shadow-asgard-primary/5 hover:border-asgard-primary/20 transition-all duration-300 flex gap-5 items-start">
-                <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl shrink-0 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+              <div className="p-5 bg-white border border-slate-200 rounded-3xl flex gap-5 items-start">
+                <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl shrink-0">
                   <Database size={24} />
                 </div>
                 <div>
@@ -267,7 +268,7 @@ export default function AboutPage() {
               </div>
               
               {/* Main Icon */}
-              <div className="w-20 h-20 bg-indigo-50/80 backdrop-blur-sm text-asgard-primary rounded-2xl flex items-center justify-center mb-8 border border-indigo-100 group-hover:bg-asgard-primary group-hover:text-asgard-secondary transition-all duration-500 shadow-sm group-hover:shadow-lg group-hover:-rotate-6">
+              <div className="w-20 h-20 bg-indigo-50/80 backdrop-blur-sm text-asgard-primary rounded-2xl flex items-center justify-center mb-8 border border-indigo-100 group-hover:bg-asgard-primary group-hover:text-asgard-secondary transition-all duration-500 shadow-sm group-hover:shadow-lg">
                 <Target size={36} strokeWidth={2} />
               </div>
               
@@ -287,7 +288,7 @@ export default function AboutPage() {
               </div>
 
               {/* Main Icon */}
-              <div className="w-20 h-20 bg-indigo-50/80 backdrop-blur-sm text-asgard-primary rounded-2xl flex items-center justify-center mb-8 border border-indigo-100 group-hover:bg-asgard-primary group-hover:text-asgard-secondary transition-all duration-500 shadow-sm group-hover:shadow-lg group-hover:-rotate-6">
+              <div className="w-20 h-20 bg-indigo-50/80 backdrop-blur-sm text-asgard-primary rounded-2xl flex items-center justify-center mb-8 border border-indigo-100 group-hover:bg-asgard-primary group-hover:text-asgard-secondary transition-all duration-500 shadow-sm group-hover:shadow-lg">
                 <TrendingUp size={36} strokeWidth={2} />
               </div>
               
@@ -307,7 +308,7 @@ export default function AboutPage() {
               </div>
 
               {/* Main Icon */}
-              <div className="w-20 h-20 bg-indigo-50/80 backdrop-blur-sm text-asgard-primary rounded-2xl flex items-center justify-center mb-8 border border-indigo-100 group-hover:bg-asgard-primary group-hover:text-asgard-secondary transition-all duration-500 shadow-sm group-hover:shadow-lg group-hover:-rotate-6">
+              <div className="w-20 h-20 bg-indigo-50/80 backdrop-blur-sm text-asgard-primary rounded-2xl flex items-center justify-center mb-8 border border-indigo-100 group-hover:bg-asgard-primary group-hover:text-asgard-secondary transition-all duration-500 shadow-sm group-hover:shadow-lg">
                 <Users size={36} strokeWidth={2} />
               </div>
               
@@ -387,101 +388,165 @@ export default function AboutPage() {
       </section>
 
       {/* ================= SECTION 5: TIM PENGEMBANG ================= */}
-      <section className="py-24 px-6 bg-slate-50 border-t border-slate-200/60 relative overflow-hidden">
+      <section className="py-32 px-6 bg-[#F8FAFC] border-t border-slate-200/60 relative overflow-hidden">
+        
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#000000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-asgard-primary/10 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#FFC107]/15 rounded-full blur-[120px] pointer-events-none translate-y-1/2 -translate-x-1/4" />
+
         <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center mb-24" data-aos="fade-up">
-            <h2 className="text-3xl md:text-5xl font-extrabold text-asgard-primary tracking-tight mb-6">
+          
+          <div className="text-center mb-28" data-aos="fade-up">
+            <div className="inline-flex items-center gap-2 text-asgard-primary font-bold tracking-wider text-sm uppercase mb-4">
+              <span className="w-8 h-0.5 bg-asgard-secondary" /> Behind The System
+            </div>
+            <h2 className="text-4xl md:text-5xl font-extrabold text-[#161D6F] tracking-tight mb-6">
               Tim Pengembang ASGARD
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
-              Mahasiswa Sains Data Universitas Sebelas Maret (SD-04) yang berdedikasi membangun solusi teknologi inovatif untuk ekosistem pendidikan Indonesia.
+              Mahasiswa Sains Data Universitas Sebelas Maret yang berdedikasi membangun solusi teknologi inovatif untuk ekosistem pendidikan.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-x-6 gap-y-16 max-w-7xl mx-auto mt-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-x-6 gap-y-20 max-w-7xl mx-auto">
             {teamMembers.map((member, idx) => (
               <div 
                 key={idx} 
                 data-aos="fade-up"
                 data-aos-delay={idx * 100}
-                className="relative bg-white rounded-[2rem] p-6 pt-16 text-center border border-slate-200 shadow-[0_10px_30px_-15px_rgba(22,29,111,0.1)] hover:-translate-y-3 hover:shadow-[0_20px_40px_-15px_rgba(22,29,111,0.15)] hover:border-asgard-secondary/30 transition-all duration-500 group flex flex-col items-center"
+                className="relative bg-white rounded-[2.5rem] p-6 pt-16 pb-8 text-center border border-slate-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] hover:-translate-y-4 hover:shadow-[0_25px_50px_-12px_rgba(22,29,111,0.15)] transition-all duration-500 group flex flex-col items-center"
               >
-                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-500 z-20 bg-white">
-                  {member.image ? (
-                    <Image src={member.image} alt={member.name} width={96} height={96} className="w-full h-full object-cover" />
-                  ) : (
-                    <div 
-                      className="w-full h-full flex items-center justify-center text-white text-2xl font-black"
-                      style={{ background: `linear-gradient(135deg, ${member.color}, ${member.color}99)` }}
-                    >
-                      {member.initial}
-                    </div>
-                  )}
+                {/* Garis Warna Akses di Atas Kartu (Muncul saat Hover) */}
+                <div 
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1.5 rounded-b-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  style={{ backgroundColor: member.color }}
+                />
+
+                {/* --- AVATAR MELAYANG (DYNAMIC GLOW) --- */}
+                <div className="absolute -top-14 left-1/2 -translate-x-1/2 w-28 h-28 group-hover:-translate-y-2 transition-transform duration-500 z-20">
+                  
+                  {/* Efek Glow menyala sesuai warna unik per-anak */}
+                  <div 
+                    className="absolute inset-0 rounded-full blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500 scale-110" 
+                    style={{ backgroundColor: member.color }}
+                  />
+                  
+                  {/* Foto / Inisial (Berwarna) */}
+                  <div className="relative w-full h-full rounded-full border-[6px] border-white shadow-xl overflow-hidden bg-slate-50">
+                    {member.image ? (
+                      <Image src={member.image} alt={member.name} width={112} height={112} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    ) : (
+                      <div 
+                        className="w-full h-full flex items-center justify-center text-white text-3xl font-black group-hover:scale-110 transition-transform duration-500"
+                        style={{ background: `linear-gradient(135deg, ${member.color}, ${member.color}DD)` }}
+                      >
+                        {member.initial}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
-                <h3 className="text-lg font-bold text-slate-800 mb-1 group-hover:text-asgard-primary transition-colors">{member.name}</h3>
-                <p className="text-sm font-semibold text-slate-400 mb-4 tracking-wider">{member.nim}</p>
+                {/* --- KONTEN TEKS --- */}
+                <h3 className="text-xl font-bold text-slate-800 mb-1.5 mt-2 group-hover:text-[#161D6F] transition-colors">{member.name}</h3>
+                <p className="text-sm font-semibold text-slate-400 mb-6 tracking-widest">{member.nim}</p>
                 
+                {/* Colorful Pill Badge */}
                 <div 
-                  className="inline-flex px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 mb-6"
+                  className="inline-flex items-center px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest mb-8 transition-colors duration-300"
                   style={{ backgroundColor: `${member.color}15`, color: member.color }}
                 >
                   {member.role}
                 </div>
 
-                <div className="flex items-center gap-3 mt-auto pt-4 border-t border-slate-100 w-full justify-center">
-                  <button className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-asgard-primary hover:text-white transition-colors">
-                    <FaGithub size={16} />
-                  </button>
-                  <button className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-blue-600 hover:text-white transition-colors">
-                    <FaLinkedin size={16} />
-                  </button>
+                {/* --- SOCIAL LINKS --- */}
+                <div className="flex items-center gap-4 mt-auto justify-center">
+                  
+                  {/* Tombol GitHub */}
+                  {member.github && (
+                    <a 
+                      href={member.github} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                      style={{ backgroundColor: `${member.color}15`, color: member.color }}
+                    >
+                      <FaGithub size={18} />
+                    </a>
+                  )}
+
+                  {/* Tombol LinkedIn */}
+                  {member.linkedin && (
+                    <a 
+                      href={member.linkedin} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                      style={{ backgroundColor: `${member.color}15`, color: member.color }}
+                    >
+                      <FaLinkedin size={18} />
+                    </a>
+                  )}
+
                 </div>
+                
               </div>
             ))}
           </div>
+          
         </div>
       </section>
 
-      {/* ================= SECTION 6: CLOSING CTA (PREMIUM GLOW EFFECT) ================= */}
-      <section className="relative py-28 px-6 bg-asgard-primary overflow-hidden">
-        {/* Decorative Background Grid */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+      {/* ================= SECTION 6: CLOSING CTA (PREMIUM FULL-WIDTH) ================= */}
+      <section className="relative py-28 md:py-36 px-6 bg-[#161D6F] overflow-hidden">
         
-        {/* Dynamic Background Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-asgard-secondary/10 blur-[120px] rounded-full" />
+        {/* Dekorasi Background Grid */}
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#ffffff 2px, transparent 2px)', backgroundSize: '40px 40px' }} />
+        
+        {/* Glowing Orbs / Cahaya Dinamis Menyebar dari Sudut Layar */}
+        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-asgard-secondary/20 blur-[120px] rounded-full pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-500/20 blur-[120px] rounded-full pointer-events-none translate-x-1/2 translate-y-1/2" />
+        
+        {/* Garis Cahaya Halus Pemisah di Atas */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[1px] bg-linear-to-r from-transparent via-asgard-secondary/50 to-transparent" />
 
-        <div className="max-w-4xl mx-auto relative z-10" data-aos="zoom-in" data-aos-duration="800">
+        <div className="relative z-10 max-w-4xl mx-auto text-center" data-aos="zoom-in" data-aos-duration="800">
           
-          {/* Glassmorphism Container */}
-          <div className="bg-white/5 backdrop-blur-xl p-12 md:p-16 rounded-[3rem] border border-white/10 shadow-2xl text-center">
-            
-            <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight mb-8 leading-tight">
-              Ambil Langkah Pertama <br className="hidden md:block" />
-              Menyelamatkan Masa Depan Siswa
-            </h2>
-            
-            <p className="text-white/70 text-lg mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-              ASGARD hadir untuk membantu institusi pendidikan mengidentifikasi risiko putus sekolah lebih awal melalui pendekatan berbasis data dan analitik.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link 
-                href="/login" 
-                className="inline-flex items-center justify-center gap-3 bg-asgard-secondary hover:bg-asgard-accent text-asgard-primary px-10 py-5 rounded-2xl font-black text-lg transition-all duration-300 shadow-[0_10px_30px_rgba(255,193,7,0.3)] hover:shadow-[0_20px_40px_rgba(255,193,7,0.4)] hover:-translate-y-1 focus:ring-4 focus:ring-asgard-secondary/50 outline-none"
-              >
-                Masuk ke Dashboard <ArrowRight size={20} strokeWidth={3} />
-              </Link>
-              
-              <Link 
-                href="/contact" 
-                className="inline-flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 text-white px-10 py-5 rounded-2xl font-bold text-lg transition-all duration-300 border border-white/10 hover:border-white/20"
-              >
-                Hubungi Kami
-              </Link>
-            </div>
+          {/* Badge Pelengkap */}
+          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-white/10 bg-white/5 text-asgard-secondary text-xs font-bold uppercase tracking-widest mb-8 backdrop-blur-md">
+            Mulai Perubahan
           </div>
+
+          {/* Typography dengan Gradient Highlight */}
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight mb-8 leading-[1.1]">
+            Ambil Langkah Pertama <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-asgard-secondary to-yellow-200 drop-shadow-sm">
+              Menyelamatkan Masa Depan Siswa
+            </span>
+          </h2>
           
+          <p className="text-white/70 text-lg md:text-xl mb-12 max-w-2xl mx-auto font-light leading-relaxed">
+            ASGARD hadir untuk membantu institusi pendidikan mengidentifikasi risiko putus sekolah lebih awal melalui pendekatan berbasis data dan analitik.
+          </p>
+          
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row justify-center gap-5">
+            <Link 
+              href="/login" 
+              className="group inline-flex items-center justify-center gap-3 bg-asgard-secondary hover:bg-asgard-accent text-asgard-primary px-10 py-5 rounded-2xl font-black text-lg transition-all duration-300 shadow-[0_10px_30px_rgba(255,193,7,0.3)] hover:shadow-[0_20px_40px_rgba(255,193,7,0.4)] hover:-translate-y-1 focus:ring-4 focus:ring-asgard-secondary/50 outline-none"
+            >
+              Masuk ke Dashboard 
+              {/* Ikon Panah Bergeser Saat Di-hover */}
+              <ArrowRight size={20} strokeWidth={3} className="group-hover:translate-x-1.5 transition-transform duration-300" />
+            </Link>
+            
+            <Link 
+              href="/contact" 
+              className="inline-flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 text-white px-10 py-5 rounded-2xl font-bold text-lg transition-all duration-300 border border-white/10 hover:border-white/20 hover:-translate-y-1"
+            >
+              Hubungi Kami
+            </Link>
+          </div>
+
         </div>
       </section>
 
