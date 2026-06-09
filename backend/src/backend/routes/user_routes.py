@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from src.backend.database.engine import get_db
-from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, CounselorCreateDTO
+from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, StaffCreateDTO
 from src.backend.controllers import user_controller
 from src.backend.middlewares.auth import require_role
 from src.backend.models.enums import UserRole
@@ -15,14 +15,14 @@ router = APIRouter(prefix="/api/v1/users", tags=["Users"])
 def register(user_data: UserCreateDTO, db: Session = Depends(get_db)):
     return user_controller.register_user(db=db, user_data=user_data)
 
-# Untuk pendaftaran Konselor (wajib login sbg atmin)
-@router.post("/register-counselor", status_code=status.HTTP_201_CREATED)
-def register_counselor_route(
-    counselor_data: CounselorCreateDTO, 
+# Untuk pendaftaran Konselor/Admin (wajib login sbg atmin)
+@router.post("/staff", status_code=status.HTTP_201_CREATED)
+def create_staff_member(
+    data: StaffCreateDTO,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
-    return user_controller.register_counselor(db=db, counselor_data=counselor_data, admin_user=current_user)
+    return user_controller.create_staff(db, data, current_user)
 
 @router.get("/")
 def get_all_users(

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, UserResponseDTO, CounselorCreateDTO
+from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, UserResponseDTO, StaffCreateDTO, UserResponseDTO
 from src.backend.models.user import User
 from src.backend.services import user_service
 
@@ -12,13 +12,12 @@ def register_user(db: Session, user_data: UserCreateDTO):
         "data": safe_data
     }
 
-def register_counselor(db: Session, counselor_data: CounselorCreateDTO, admin_user: User):
-    new_counselor = user_service.register_new_counselor(db, counselor_data, admin_user)
-    safe_data = UserResponseDTO.model_validate(new_counselor)
+def create_staff(db: Session, data: StaffCreateDTO, current_admin: User):
+    new_staff = user_service.register_staff_member(db, data, current_admin)
     return {
         "status": "success",
-        "message": "Akun konselor berhasil dibuat!",
-        "data": safe_data
+        "message": f"Akun staf ({new_staff.role}) berhasil dibuat.",
+        "data": UserResponseDTO.model_validate(new_staff)
     }
 
 def fetch_all_users(db: Session, current_user: User, skip: int = 0, limit: int = 100):

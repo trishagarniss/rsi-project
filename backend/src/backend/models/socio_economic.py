@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, Integer, BigInteger, Float, String, Boolean, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, BigInteger, Float, String, Boolean, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -11,6 +11,10 @@ def generate_socio_economic_id():
 
 class SocioEconomic(Base):
     __tablename__ = "socio_economics"
+    
+    __table_args__ = (
+        UniqueConstraint('student_id', name='_student_socio_economic_uc'),
+    )
 
     id = Column(String(50), primary_key=True, default=generate_socio_economic_id, index=True)
     student_id = Column(String(50), ForeignKey("students.id", ondelete="CASCADE"), index=True, nullable=False)
