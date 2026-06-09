@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -9,6 +9,10 @@ def generate_attendance_id():
     return f"AT_{uuid.uuid4()}"
 class Attendance(Base):
     __tablename__ = "attendances"
+
+    __table_args__ = (
+        UniqueConstraint('student_id', 'semester', 'academic_year', name='attendance_student_semester_uc'),
+    )
 
     id = Column(String(50), primary_key=True, default=generate_attendance_id, index=True)
     student_id = Column(String(50), ForeignKey("students.id", ondelete="CASCADE"), index=True, nullable=False)
