@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from src.backend.database.engine import get_db
-from src.backend.dto.academic_dto import AcademicCreateDTO
+from src.backend.dto.academic_dto import AcademicCreateDTO, AcademicUpdateDTO
 from src.backend.controllers import academic_controller
 from src.backend.middlewares.auth import require_role
 from src.backend.models.enums import UserRole
