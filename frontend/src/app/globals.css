@@ -6,4 +6,8 @@
   --color-asgard-secondary: #FFC107; /* Golden Yellow (Aksen/Tombol) */
   --color-asgard-accent: #E0A800; /* Darker Yellow (Untuk Hover) */
   --color-asgard-pale: #F8FAFC; /* Slate 50 (Background terang) */
+
+  /* Gray Scale (Untuk Teks & Border)
+  --color-asgard-text-main: #1E293B; /* Slate 800 */
+  --color-asgard-text-muted: #64748B; /* Slate 500 */
 }
