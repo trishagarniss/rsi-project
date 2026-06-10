@@ -51,7 +51,7 @@ export default function ContactPage() {
       <section className="px-6 -mt-20 relative z-20">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           {[
-            { icon: Mail, title: "Email Address", desc: "asgard.project@uns.ac.id" },
+            { icon: Mail, title: "Email Address", desc: "asgardkelompok2@gmail.com" },
             { icon: GraduationCap, title: "Program Studi", desc: "Sains Data" },
             { icon: Building2, title: "Universitas", desc: "Universitas Sebelas Maret" }
           ].map((item, i) => (
