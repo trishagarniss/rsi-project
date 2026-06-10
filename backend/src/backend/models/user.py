@@ -28,3 +28,12 @@ class User(Base):
 
     # Relasi balik ke Tenant
     tenant = relationship("Tenant", back_populates="users")
+    
+
+class Token(Base):
+    __tablename__ = "token"
+
+    email = Column(String(100), index=True, nullable=False)
+    token = Column(String(10), index=True)
+    expired = Column(DateTime(timezone=True))
+    

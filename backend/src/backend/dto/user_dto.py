@@ -43,5 +43,17 @@ class StaffCreateDTO(BaseModel):
     
 # 6. DTO Khusus untuk Ganti Password (Keamanan)
 class UserChangePasswordDTO(BaseModel):
-    old_password: str = Field(..., description="Password lama wajib diisi untuk verifikasi")
+    old_password: str = Field(..., min_length=8, description="Password lama minimal 8 karakter")
+    new_password: str = Field(..., min_length=8, description="Password baru minimal 8 karakter")
+    
+class UserCheckTokenDTO(BaseModel):
+    email: EmailStr
+    token: str = Field(..., min_length=6, max_length=6, description="Token berisi 6 karakter")
+
+class UserGetTokenDTO(BaseModel):
+    email: EmailStr
+    
+class UserChangePasswordByTokenDTO(BaseModel):
+    email: EmailStr
+    token: str = Field(..., min_length=6, max_length=6, description="Token berisi 6 karakter")
     new_password: str = Field(..., min_length=8, description="Password baru minimal 8 karakter")

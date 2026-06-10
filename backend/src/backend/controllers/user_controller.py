@@ -38,3 +38,17 @@ def delete_existing_user(db: Session, user_id: str, current_user: User):
         "status": "success",
         "message": "Akun pengguna berhasil dihapus!"
     }
+    
+def change_password(db: Session, old_pw: str, new_pw: str , current_user: User):
+    user_service.change_password(db,old_pw,new_pw,current_user)
+    return {
+        "status": "success",
+        "message": "Password berhasil diubah!"
+    }
+    
+def forgot_password(db: Session,token: str, new_pw: str ,email : str):
+    user_service.forgot_password(db,token,new_pw,email)
+    return {
+        "status": "success",
+        "message": "Password berhasil diubah!"
+    }

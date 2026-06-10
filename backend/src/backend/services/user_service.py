@@ -97,3 +97,18 @@ def remove_user(db: Session, user_id: str, current_user: User):
             raise HTTPException(status_code=403, detail="Anda tidak memiliki izin untuk menghapus Admin atau Superadmin.")
             
     user_repo.delete_user(db, user_id)
+    
+def change_password(db: Session, old_pw: str, new_pw : str, current_user: User) :
+    if user_repo.CheckOldPassword(db, current_user.id, old_pw) :
+        user_repo.ChangePassword(db,current_user.id,new_pw)
+    else :
+        raise HTTPException(status_code=403, detail="Password Salah")
+    
+def forgot_password(db: Session, token: str, new_pw : str, email: str) :
+    if user_repo.CheckToken(db, email, token) :
+        current_user = user_repo.get_user_by_email(email)
+        if not current_user :
+            raise HTTPException(status_code=404, detail=f"Pengguna dengan enail {email} tidak ditemukan.")
+        user_repo.ChangePassword(db,current_user.id,new_pw)
+    else :
+        raise HTTPException(status_code=403, detail="Token Salah")
