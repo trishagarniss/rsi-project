@@ -133,35 +133,67 @@ def send_reset_token(db: Session, email: str):
     
     html_email = f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="id">
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #F8FAFC; padding: 20px; }}
-            .container {{ max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 24px; border: 4px solid #161D6F; box-shadow: 8px 8px 0px 0px #FFC107; }}
-            .header {{ text-align: center; margin-bottom: 30px; }}
-            h2 {{ color: #161D6F; font-weight: 900; font-size: 24px; margin-bottom: 10px; }}
-            p {{ color: #475569; font-size: 16px; line-height: 1.6; }}
-            .token-box {{ background-color: #EEF2FF; border: 2px dashed #161D6F; padding: 25px; text-align: center; border-radius: 16px; margin: 30px 0; }}
-            .token {{ font-size: 48px; font-weight: 900; color: #161D6F; letter-spacing: 12px; margin: 0; }}
-            .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #94A3B8; }}
+            /* Base Styles (Desktop & Tablet) */
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #F8FAFC; padding: 20px; color: #334155; margin: 0; }}
+            .container {{ max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 16px; border: 3px solid #161D6F; box-shadow: 8px 8px 0px 0px #FFC107; }}
+            .logo-badge {{ display: inline-block; background-color: #161D6F; color: #FFC107; padding: 8px 16px; border-radius: 8px; font-weight: 900; font-size: 14px; letter-spacing: 1.5px; margin-bottom: 25px; border: 2px solid #161D6F; }}
+            .header {{ text-align: left; margin-bottom: 30px; }}
+            h2 {{ color: #161D6F; font-weight: 900; font-size: 24px; margin-bottom: 10px; line-height: 1.3; }}
+            p {{ font-size: 15px; line-height: 1.6; color: #475569; }}
+            .token-wrapper {{ background-color: #FFC107; padding: 6px; border-radius: 12px; margin: 35px 0; border: 3px solid #161D6F; }}
+            .token-box {{ background-color: #ffffff; padding: 25px; text-align: center; border-radius: 6px; border: 2px dashed #161D6F; }}
+            
+            /* Ukuran font & spasi token dikurangi sedikit untuk default */
+            .token {{ font-size: 34px; font-weight: 900; color: #161D6F; letter-spacing: 10px; margin: 0; font-family: 'Courier New', Courier, monospace; text-align: center; }}
+            
+            .alert-box {{ background-color: #FEF08A; border-left: 4px solid #EAB308; padding: 14px 16px; font-size: 14px; color: #854D0E; margin-top: 20px; border-radius: 0 8px 8px 0; }}
+            .footer {{ text-align: center; margin-top: 40px; font-size: 12px; color: #94A3B8; border-top: 2px dashed #E2E8F0; padding-top: 25px; }}
+
+            /* Mobile Responsive Styles */
+            @media only screen and (max-width: 480px) {{
+                body {{ padding: 10px; }}
+                .container {{ padding: 25px 20px; border-width: 2px; box-shadow: 4px 4px 0px 0px #FFC107; border-radius: 12px; }}
+                h2 {{ font-size: 20px; }}
+                p {{ font-size: 14px; }}
+                .logo-badge {{ font-size: 12px; padding: 6px 12px; margin-bottom: 20px; }}
+                .token-wrapper {{ margin: 25px 0; padding: 4px; }}
+                .token-box {{ padding: 20px 10px; }}
+                
+                /* Ukuran token untuk HP (Sangat aman dari patah baris) */
+                .token {{ font-size: 26px; letter-spacing: 6px; }}
+                
+                .alert-box {{ font-size: 13px; padding: 12px; margin-top: 15px; }}
+            }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h2>Halo, Tim ASGARD! 👋</h2>
+                <div class="logo-badge">A.S.G.A.R.D</div>
+                <h2>Permintaan Reset Password</h2>
             </div>
-            <p>Waduh, lupa password ya? Tenang, santai aja. Sistem udah buatin token khusus buat kamu nih biar bisa masuk lagi.</p>
-            <p>Gunakan 6 digit token di bawah ini untuk mereset password kamu. (Tinggal <strong>blok dan copy</strong> aja angkanya):</p>
+            <p>Halo! Sistem mendeteksi adanya permintaan untuk mengatur ulang password akun Anda di portal <strong>Sistem Deteksi Dini Risiko Putus Sekolah</strong>.</p>
+            <p>Silakan gunakan 6 digit kode keamanan di bawah ini untuk melanjutkan proses. <em>(Blok dan copy angka di bawah)</em>:</p>
             
-            <div class="token-box">
-                <p class="token">{token}</p>
+            <div class="token-wrapper">
+                <div class="token-box">
+                    <p class="token">{token}</p>
+                </div>
             </div>
             
-            <p><strong>⚠️ Perhatian:</strong> Token ini cuma berlaku selama <strong>15 menit</strong> ya! Kalau lewat dari itu, tokennya bakal hangus otomatis.</p>
+            <div class="alert-box">
+                <strong>⏳ Perhatian:</strong> Demi keamanan data akademik, token ini hanya berlaku selama <strong>15 menit</strong>.
+            </div>
+            
+            <p style="margin-top: 25px; font-size: 13px; color: #64748B;">Jika Anda tidak pernah meminta reset password, abaikan saja email ini. Keamanan akun Anda tetap terjamin.</p>
             
             <div class="footer">
-                <p>Email ini dikirim otomatis oleh Sistem Deteksi Dini ASGARD.<br>Jangan berikan kode ini ke siapapun!</p>
+                <p>&copy; 2026 ASGARD System &bull; Universitas Sebelas Maret<br>Membangun masa depan pendidikan yang lebih baik.</p>
             </div>
         </div>
     </body>
