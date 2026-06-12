@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from src.backend.models.user import User, Token
+from src.backend.models.user import User
 from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO
 from src.backend.models.enums import UserRole
-from src.backend.middlewares.auth import get_password_hash
+from src.backend.middlewares.auth import get_password_hash, verify_password
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     return db.query(User).filter(User.email == email).first()
@@ -11,8 +11,8 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
 def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
     return db.query(User).filter(User.id == user_id).first()
 
-def get_user_by_email_token(db: Session, user_email: str) -> Optional[Token]:
-    return db.query(Token).filter(Token.email == user_email).first()
+# def get_user_by_email_token(db: Session, user_email: str) -> Optional[Token]:
+#     return db.query(Token).filter(Token.email == user_email).first()
 
 def get_all_users(db: Session, skip: int = 0, limit: int = 100, tenant_id: str = None) -> List[User]:
     query = db.query(User)
@@ -64,24 +64,23 @@ def delete_user(db: Session, user_id: str) -> bool:
         return True
     return False
 
-def CheckOldPassword(db: Session, user_id: str, old_pw : str) -> bool:
+def CheckOldPassword(db: Session, user_id: str, old_pw: str) -> bool:
     db_user = get_user_by_id(db, user_id)
-    old_pw_hash = get_password_hash(old_pw)
-    if db_user.password_hash == old_pw_hash:
-        return True
-    return False
+    if not db_user:
+        return False
+    return verify_password(old_pw, db_user.password_hash)
 
-def CheckToken(db: Session, user_email: str, token : str) -> bool:
-    db_user = get_user_by_email_token(db, user_email)
-    token_hash = get_password_hash(token)
-    if db_user.token == token_hash:
-        return True
-    return False
+# def CheckToken(db: Session, user_email: str, token : str) -> bool:
+#     db_user = get_user_by_email_token(db, user_email)
+#     token_hash = get_password_hash(token)
+#     if db_user.token == token_hash:
+#         return True
+#     return False
 
-def ChangePassword(db: Session, user_id: str, password : str) -> Optional[User]:
+def ChangePassword(db: Session, user_id: str, password: str) -> Optional[User]:
     db_user = get_user_by_id(db, user_id)
-    pw_hash = get_password_hash(password)
     if db_user:
+        pw_hash = get_password_hash(password)
         setattr(db_user, "password_hash", pw_hash)
         db.commit()
         db.refresh(db_user)

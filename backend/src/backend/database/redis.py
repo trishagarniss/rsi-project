@@ -1,7 +1,7 @@
-import redis.asyncio as redis
-from ..config.settings import settings
+import redis
+from src.backend.config.settings import settings
 
 redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
 
-async def get_redis():
+def get_redis_client():
     return redis_client

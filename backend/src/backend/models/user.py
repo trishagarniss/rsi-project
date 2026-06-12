@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, ForeignKey, DateTime, Enum as SQLEnum
+from sqlalchemy import Integer, Column, String, Boolean, ForeignKey, DateTime, Enum as SQLEnum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -30,10 +30,12 @@ class User(Base):
     tenant = relationship("Tenant", back_populates="users")
     
 
-class Token(Base):
-    __tablename__ = "token"
+# class Token(Base):
+#     __tablename__ = "token"
 
-    email = Column(String(100), index=True, nullable=False)
-    token = Column(String(10), index=True)
-    expired = Column(DateTime(timezone=True))
+#     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    
+#     email = Column(String(100), index=True, nullable=False)
+#     token = Column(String(10), index=True)
+#     expired = Column(DateTime(timezone=True))
     

@@ -1,3 +1,8 @@
+import smtplib
+import random
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from typing import List
@@ -8,6 +13,7 @@ from src.backend.models.tenant import Tenant
 from src.backend.repositories import user_repo, tenant_repo
 from src.backend.middlewares.auth import get_password_hash
 from src.backend.models.enums import UserRole
+from src.backend.database.redis import get_redis_client
 
 def register_new_user(db: Session, user_data: UserCreateDTO) -> User:
     # 1. Cari data sekolah berdasarkan registration_code yang diinput user
@@ -102,13 +108,70 @@ def change_password(db: Session, old_pw: str, new_pw : str, current_user: User) 
     if user_repo.CheckOldPassword(db, current_user.id, old_pw) :
         user_repo.ChangePassword(db,current_user.id,new_pw)
     else :
-        raise HTTPException(status_code=403, detail="Password Salah")
+        raise HTTPException(status_code=403, detail="Password Lama Salah")
     
-def forgot_password(db: Session, token: str, new_pw : str, email: str) :
-    if user_repo.CheckToken(db, email, token) :
-        current_user = user_repo.get_user_by_email(email)
-        if not current_user :
-            raise HTTPException(status_code=404, detail=f"Pengguna dengan enail {email} tidak ditemukan.")
-        user_repo.ChangePassword(db,current_user.id,new_pw)
-    else :
-        raise HTTPException(status_code=403, detail="Token Salah")
+def send_reset_token(db: Session, email: str):
+    user = user_repo.get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User dengan email {email} tidak ditemukan.")
+    
+    # Generate Token
+    token = f"{random.randint(0,999999):06d}"
+    redis_client = get_redis_client()
+    
+    # Simpan ke Redis dengan batas waktu 300 detik (5 menit)
+    redis_client.setex(f"pwd_reset:{email}", 300, token)
+    
+    # Kirim Email
+    email_pengirim = "asgardkelompok2@gmail.com"
+    password_pengirim = "ccyd usvm bccm uuhp" 
+    msg = MIMEMultipart()
+    msg['From'] = email_pengirim
+    msg['To'] = email
+    msg['Subject'] = "Token Keamanan Lupa Password A.S.G.A.R.D."
+    
+    isi_email = f"Anda meminta reset password.\n\nKode Token Anda adalah: {token}\n\nToken ini akan kedaluwarsa dalam 5 menit."
+    msg.attach(MIMEText(isi_email, 'plain'))
+
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(email_pengirim, password_pengirim)
+            server.sendmail(email_pengirim, email, msg.as_string())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Sistem gagal mengirim email. Silakan coba lagi.")
+
+def validate_reset_token(email: str, token: str):
+    redis_client = get_redis_client()
+    stored_token = redis_client.get(f"pwd_reset:{email}")
+    
+    if not stored_token:
+        raise HTTPException(status_code=400, detail="Token kedaluwarsa atau email tidak terdaftar.")
+        
+    if stored_token != token:
+        raise HTTPException(status_code=400, detail="Token keamanan yang Anda masukkan salah.")
+        
+    return True
+
+def reset_forgotten_password(db: Session, email: str, token: str, new_pw: str):
+    # 1. Validasi token ke Redis
+    validate_reset_token(email, token)
+    
+    # 2. Update Password di Database
+    user = user_repo.get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Akun tidak ditemukan.")
+        
+    user_repo.ChangePassword(db, user.id, new_pw)
+    
+    # 3. Hapus Token dari Redis agar tidak bisa dipakai 2 kali (Penting untuk keamanan!)
+    redis_client = get_redis_client()
+    redis_client.delete(f"pwd_reset:{email}")
+    
+# def forgot_password(db: Session, token: str, new_pw : str, email: str) :
+#     if user_repo.CheckToken(db, email, token) :
+#         current_user = user_repo.get_user_by_email(email)
+#         if not current_user :
+#             raise HTTPException(status_code=404, detail=f"Pengguna dengan enail {email} tidak ditemukan.")
+#         user_repo.ChangePassword(db,current_user.id,new_pw)
+#     else :
+#         raise HTTPException(status_code=403, detail="Token Salah")
