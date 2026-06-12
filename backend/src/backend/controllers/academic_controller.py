@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from src.backend.dto.academic_dto import AcademicCreateDTO, AcademicResponseDTO
+from src.backend.dto.academic_dto import AcademicCreateDTO, AcademicResponseDTO, AcademicUpdateDTO
 from src.backend.services import academic_service
 from src.backend.models.user import User
 
