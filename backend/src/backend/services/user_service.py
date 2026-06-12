@@ -119,19 +119,56 @@ def send_reset_token(db: Session, email: str):
     token = f"{random.randint(0,999999):06d}"
     redis_client = get_redis_client()
     
-    # Simpan ke Redis dengan batas waktu 300 detik (5 menit)
-    redis_client.setex(f"pwd_reset:{email}", 300, token)
+    # Simpan ke Redis dengan batas waktu 900 detik (15 menit)
+    redis_client.setex(f"pwd_reset:{email}", 900, token)
     
     # Kirim Email
     email_pengirim = "asgardkelompok2@gmail.com"
     password_pengirim = "ccyd usvm bccm uuhp" 
-    msg = MIMEMultipart()
+    
+    msg = MIMEMultipart('alternative') 
     msg['From'] = email_pengirim
     msg['To'] = email
-    msg['Subject'] = "Token Keamanan Lupa Password A.S.G.A.R.D."
+    msg['Subject'] = "🔑 Token Reset Password A.S.G.A.R.D"
     
-    isi_email = f"Anda meminta reset password.\n\nKode Token Anda adalah: {token}\n\nToken ini akan kedaluwarsa dalam 5 menit."
-    msg.attach(MIMEText(isi_email, 'plain'))
+    html_email = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #F8FAFC; padding: 20px; }}
+            .container {{ max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 24px; border: 4px solid #161D6F; box-shadow: 8px 8px 0px 0px #FFC107; }}
+            .header {{ text-align: center; margin-bottom: 30px; }}
+            h2 {{ color: #161D6F; font-weight: 900; font-size: 24px; margin-bottom: 10px; }}
+            p {{ color: #475569; font-size: 16px; line-height: 1.6; }}
+            .token-box {{ background-color: #EEF2FF; border: 2px dashed #161D6F; padding: 25px; text-align: center; border-radius: 16px; margin: 30px 0; }}
+            .token {{ font-size: 48px; font-weight: 900; color: #161D6F; letter-spacing: 12px; margin: 0; }}
+            .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #94A3B8; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>Halo, Tim ASGARD! 👋</h2>
+            </div>
+            <p>Waduh, lupa password ya? Tenang, santai aja. Sistem udah buatin token khusus buat kamu nih biar bisa masuk lagi.</p>
+            <p>Gunakan 6 digit token di bawah ini untuk mereset password kamu. (Tinggal <strong>blok dan copy</strong> aja angkanya):</p>
+            
+            <div class="token-box">
+                <p class="token">{token}</p>
+            </div>
+            
+            <p><strong>⚠️ Perhatian:</strong> Token ini cuma berlaku selama <strong>15 menit</strong> ya! Kalau lewat dari itu, tokennya bakal hangus otomatis.</p>
+            
+            <div class="footer">
+                <p>Email ini dikirim otomatis oleh Sistem Deteksi Dini ASGARD.<br>Jangan berikan kode ini ke siapapun!</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    msg.attach(MIMEText(html_email, 'html'))
 
     try:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
