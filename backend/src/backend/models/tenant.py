@@ -7,8 +7,8 @@ from sqlalchemy.orm import relationship
 from src.backend.database.engine import Base
 from src.backend.models.enums import TenantStatus
 
-def generate_registration_code():
-    return f"REG-{secrets.token_hex(5).upper()}"
+# def generate_registration_code():
+#     return f"REG-{secrets.token_hex(5).upper()}"
 
 def generate_tenant_id():
     return f"T_{uuid.uuid4()}"
@@ -21,7 +21,7 @@ class Tenant(Base):
     address = Column(String(255), nullable=True)
     contact_email = Column(String(100), nullable=True)
     
-    registration_code = Column(String(20), unique=True, index=True, default=generate_registration_code)
+    # registration_code = Column(String(20), unique=True, index=True, default=generate_registration_code)
     status = Column(SQLEnum(TenantStatus), default=TenantStatus.ACTIVE)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())

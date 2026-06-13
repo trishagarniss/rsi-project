@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import AOS from 'aos';
-import 'aos/dist/aos.css';
+// Hapus import AOS dari sini karena sudah di-handle oleh AOSInit di layout.tsx
 import { 
   ShieldCheck, 
   AlertTriangle, 
@@ -14,7 +13,6 @@ import {
   BarChart3, 
   ClipboardPen, 
   ArrowRight,
-  ChevronDown,
   LineChart,
   SearchCheck,
   FileSpreadsheet,
@@ -23,14 +21,7 @@ import {
 } from 'lucide-react';
 
 export default function HomePage() {
-
-  useEffect(() => {
-    AOS.init({
-      duration: 800,
-      once: true,
-      easing: 'ease-out-cubic',
-    });
-  }, []);
+  // useEffect AOS.init() DIHAPUS DARI SINI
 
   return (
     <main className="w-full font-sans antialiased text-slate-800 bg-white overflow-hidden">
@@ -87,7 +78,7 @@ export default function HomePage() {
           {/* --- HERO MOCKUP (KANAN - 40%) --- */}
           <div className="lg:col-span-5 relative w-full aspect-square" data-aos="zoom-out-left" data-aos-duration="1200" data-aos-delay="200">
             
-            {/* Main Glassmorphism Card (Menembus pandang ke foto di belakangnya) */}
+            {/* Main Glassmorphism Card */}
             <div className="absolute inset-4 md:inset-8 bg-[#0B0F3B]/30 backdrop-blur-2xl border border-white/20 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-4 transform rotate-2 hover:rotate-0 transition-transform duration-700">
               
               {/* Fake Window Header */}
@@ -307,7 +298,6 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* PERBAIKAN: Jarak (gap) diperlebar di layar besar (lg:gap-10 xl:gap-12) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-10 xl:gap-12">
             {[
               { num: "01", title: "Input Data", desc: "Upload riwayat akademik dan non-akademik siswa." },
@@ -329,7 +319,6 @@ export default function HomePage() {
                 <h3 className="text-xl font-bold text-slate-800 mb-3 group-hover:text-[#161D6F] transition-colors">{step.title}</h3>
                 <p className="text-slate-500 font-medium leading-relaxed">{step.desc}</p>
 
-                {/* PERBAIKAN: Posisi Panah & Z-Index ditata ulang agar tidak ketutupan */}
                 {i !== 3 && (
                   <div className="hidden lg:flex absolute top-1/2 -right-6 lg:-right-8 xl:-right-10 items-center justify-center z-20 text-white/20 group-hover:text-[#FFC107] transition-colors -translate-y-1/2 pointer-events-none">
                     <ArrowRight size={36} strokeWidth={3} />
@@ -342,7 +331,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ================= 6. DASHBOARD PREVIEW (CLEAN SOLID WIREFRAME) ================= */}
+      {/* ================= 6. DASHBOARD PREVIEW ================= */}
       <section className="py-[120px] px-6 bg-white overflow-hidden border-t border-slate-100">
         <div className="max-w-7xl mx-auto text-center">
           

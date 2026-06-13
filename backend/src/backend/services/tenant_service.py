@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.orm import Session
 from typing import List
 from fastapi import HTTPException
@@ -5,6 +6,7 @@ from fastapi import HTTPException
 from src.backend.repositories import tenant_repo
 from src.backend.dto.tenant_dto import TenantCreateDTO, TenantUpdateDTO
 from src.backend.models.tenant import Tenant
+from src.backend.database.redis import redis_client
 
 def create_new_tenant(db: Session, tenant_data: TenantCreateDTO) -> Tenant:
     """Logika bisnis pendaftaran Sekolah baru"""
@@ -53,3 +55,14 @@ def delete_existing_tenant(db: Session, tenant_id: str):
     if not success:
         raise HTTPException(status_code=500, detail="Gagal menghapus data sekolah.")
     return {"detail": "Sekolah berhasil dihapus"}
+
+def generate_tenant_reg_code(tenant_id: str) -> str:
+    """Membuat kode registrasi Admin 1x pakai via Redis"""
+    # Buat 6 digit kode acak (Misal: REG-A1B2C3)
+    raw_code = str(uuid.uuid4()).replace("-", "")[:6].upper()
+    reg_code = f"REG-{raw_code}"
+    
+    # Simpan ke Redis dengan TTL 24 Jam (86400 detik)
+    redis_client.setex(f"reg_code:{reg_code}", 86400, tenant_id)
+    
+    return reg_code

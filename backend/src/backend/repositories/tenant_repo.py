@@ -13,8 +13,8 @@ def get_tenant_by_name(db: Session, name: str) -> Optional[Tenant]:
 def get_tenant_by_email(db: Session, email: str) -> Optional[Tenant]:
     return db.query(Tenant).filter(Tenant.contact_email == email).first()
 
-def get_tenant_by_code(db: Session, registration_code: str) -> Optional[Tenant]:
-    return db.query(Tenant).filter(Tenant.registration_code == registration_code).first()
+# def get_tenant_by_code(db: Session, registration_code: str) -> Optional[Tenant]:
+#     return db.query(Tenant).filter(Tenant.registration_code == registration_code).first()
 
 def get_all_tenants(db: Session, skip: int = 0, limit: int = 100) -> List[Tenant]:
     return db.query(Tenant).offset(skip).limit(limit).all()

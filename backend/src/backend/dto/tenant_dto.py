@@ -17,7 +17,7 @@ class TenantResponseDTO(BaseModel):
     name: str
     address: Optional[str]
     contact_email: Optional[str]
-    registration_code: str
+    registration_code: Optional[str] = None
     status: TenantStatus
     created_at: datetime
     updated_at: Optional[datetime]

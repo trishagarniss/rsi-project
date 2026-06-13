@@ -3,8 +3,15 @@ from src.backend.dto.tenant_dto import TenantCreateDTO, TenantUpdateDTO, TenantR
 from src.backend.services import tenant_service
 
 def register_tenant(db: Session, tenant_data: TenantCreateDTO):
+    # 1. Buat tenant di PostgreSQL
     new_tenant = tenant_service.create_new_tenant(db, tenant_data)
+    
+    # 2. PANGGIL REDIS: Generate kode registrasi 1x pakai
+    reg_code = tenant_service.generate_tenant_reg_code(new_tenant.id)
+    
+    # 3. Gabungkan data (karena reg_code sudah tidak ada di DB, kita inject manual)
     safe_data = TenantResponseDTO.model_validate(new_tenant)
+    safe_data.registration_code = reg_code # Masukkan kode dari Redis ke response
     
     return {
         "status": "success", 
