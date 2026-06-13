@@ -9,8 +9,24 @@ def save_prediction(db: Session, data: dict, tenant_id: str) -> RiskPrediction:
     db.refresh(new_prediction)
     return new_prediction
 
+def bulk_save_predictions(db: Session, predictions_data: List[dict], tenant_id: str) -> bool:
+    try:
+        # Ubah list of dictionary menjadi list of object SQLAlchemy
+        new_predictions = [
+            RiskPrediction(**data, tenant_id=tenant_id) 
+            for data in predictions_data
+        ]
+        
+        # add_all akan mengirimkan data ke database dalam satu antrean besar (Batch)
+        db.add_all(new_predictions)
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        print(f"Error bulk insert predictions: {e}")
+        return False
+
 def get_latest_prediction_by_student(db: Session, student_id: str, tenant_id: str) -> Optional[RiskPrediction]:
-    """Mengambil hasil prediksi paling baru untuk satu siswa"""
     return db.query(RiskPrediction).filter(
         RiskPrediction.student_id == student_id,
         RiskPrediction.tenant_id == tenant_id

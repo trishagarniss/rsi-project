@@ -19,7 +19,6 @@ def get_active_model(db: Session) -> Optional[MlModel]:
     return db.query(MlModel).filter(MlModel.is_active == True).first()
 
 def deactivate_all_models(db: Session):
-    """Mematikan semua versi model yang ada di sistem"""
     db.query(MlModel).update({"is_active": False})
     db.commit()
 
