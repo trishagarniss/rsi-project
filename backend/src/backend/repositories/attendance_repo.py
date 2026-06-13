@@ -10,14 +10,12 @@ def create_attendance(db: Session, data: dict, tenant_id: str) -> Attendance:
     return new_record
 
 def get_by_student(db: Session, student_id: str, tenant_id: str) -> List[Attendance]:
-    """Mengambil riwayat absen siswa dari semua semester"""
     return db.query(Attendance).filter(
         Attendance.student_id == student_id,
         Attendance.tenant_id == tenant_id
     ).order_by(Attendance.semester.asc()).all()
 
 def get_by_student_and_semester(db: Session, student_id: str, semester: int, academic_year: str, tenant_id: str) -> Optional[Attendance]:
-    """Mengambil absen siswa untuk semester spesifik (Gembok Pengecekan)"""
     return db.query(Attendance).filter(
         Attendance.student_id == student_id,
         Attendance.semester == semester,

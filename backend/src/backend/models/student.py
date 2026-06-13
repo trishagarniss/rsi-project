@@ -17,7 +17,7 @@ class Student(Base):
     )
 
     id = Column(String(50), primary_key=True, default=generate_student_id, index=True)
-    tenant_id = Column(String(50), ForeignKey("tenants.id"), index=True, nullable=False)
+    tenant_id = Column(String(50), ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
 
     nis = Column(String(50), index=True, nullable=False)
     nisn = Column(String(20), index=True, unique=True, nullable=True)
