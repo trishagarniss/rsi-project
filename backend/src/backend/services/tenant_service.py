@@ -57,7 +57,6 @@ def delete_existing_tenant(db: Session, tenant_id: str):
     return {"detail": "Sekolah berhasil dihapus"}
 
 def generate_tenant_reg_code(tenant_id: str) -> str:
-    """Membuat kode registrasi Admin 1x pakai via Redis"""
     # Buat 6 digit kode acak (Misal: REG-A1B2C3)
     raw_code = str(uuid.uuid4()).replace("-", "")[:6].upper()
     reg_code = f"REG-{raw_code}"

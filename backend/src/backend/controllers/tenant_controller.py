@@ -49,3 +49,19 @@ def remove_tenant(db: Session, tenant_id: str):
         "status": "success", 
         "message": "Data sekolah berhasil dihapus"
     }
+    
+def regenerate_tenant_code(db: Session, tenant_id: str):
+    # 1. Validasi apakah sekolahnya (tenant_id) benar-benar ada di database
+    tenant_service.get_tenant_detail(db, tenant_id)
+    
+    # 2. Buat kode baru dan lempar ke Redis (akan langsung mereset waktu 24 jam)
+    new_reg_code = tenant_service.generate_tenant_reg_code(tenant_id)
+    
+    return {
+        "status": "success",
+        "message": "Kode registrasi baru berhasil dibuat (berlaku 24 jam ke depan)",
+        "data": {
+            "tenant_id": tenant_id,
+            "new_registration_code": new_reg_code
+        }
+    }
