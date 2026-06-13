@@ -6,4 +6,23 @@
   --color-asgard-secondary: #FFC107; /* Golden Yellow (Aksen/Tombol) */
   --color-asgard-accent: #E0A800; /* Darker Yellow (Untuk Hover) */
   --color-asgard-pale: #F8FAFC; /* Slate 50 (Background terang) */
+
+  --color-asgard-text-main: #1E293B; /* Slate 800 */
+  --color-asgard-text-muted: #64748B; /* Slate 500 */
+
+  --color-asgard-primary: #161D6F;
+  --color-asgard-secondary: #FFC107;
+  --color-asgard-accent: #E0A800;
+  --color-asgard-pale: #F8FAFC;
+
+  --color-asgard-success: #22C55E;
+  --color-asgard-warning: #F59E0B;
+  --color-asgard-danger: #EF4444;
+
+  --color-asgard-border: #E2E8F0;
+  --color-asgard-surface: #FFFFFF;
+  --color-asgard-surface-soft: #F1F5F9;
+
+  --color-asgard-primary-soft: #EEF2FF;
+  --color-asgard-yellow-soft: #FFF8E1;
 }

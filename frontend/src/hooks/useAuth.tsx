@@ -53,7 +53,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    fetchUser();
+    const timer = setTimeout(() => {
+      fetchUser();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchUser]);
 
   const login = useCallback(

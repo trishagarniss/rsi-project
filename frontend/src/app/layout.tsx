@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
-
-// KITA NONAKTIFKAN SEMENTARA KARENA FILE DEPENDENSINYA BELUM ADA
-// import { AuthProvider } from "@/hooks/useAuth"; 
+import { AuthProvider } from "@/hooks/useAuth";
+import AOSInit from "@/components/AOSInit";
 
 export const metadata: Metadata = {
   title: "A.S.G.A.R.D",
@@ -16,10 +14,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id">
-      <body>
-        {/* KITA LANGSUNG MERENDER CHILDREN TANPA AUTH PROVIDER DULU */}
-        {children}
+    <html lang="id" suppressHydrationWarning={true}>
+      <body suppressHydrationWarning={true}>
+        <AOSInit />
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, UserResponseDTO, StaffCreateDTO, UserResponseDTO
+from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, UserResponseDTO, StaffCreateDTO
 from src.backend.models.user import User
 from src.backend.services import user_service
 
@@ -37,4 +37,32 @@ def delete_existing_user(db: Session, user_id: str, current_user: User):
     return {
         "status": "success",
         "message": "Akun pengguna berhasil dihapus!"
+    }
+    
+def change_password(db: Session, old_pw: str, new_pw: str , current_user: User):
+    user_service.change_password(db, old_pw, new_pw, current_user)
+    return {
+        "status": "success",
+        "message": "Password berhasil diubah!"
+    }
+    
+def request_password_reset_token(db: Session, email: str):
+    user_service.send_reset_token(db, email)
+    return {
+        "status": "success",
+        "message": f"Token keamanan berhasil dikirim ke email {email}"
+    }
+
+def verify_password_reset_token(email: str, token: str):
+    user_service.validate_reset_token(email, token)
+    return {
+        "status": "success",
+        "message": "Token valid!"
+    }
+    
+def forgot_password(db: Session, email: str, token: str, new_pw: str):
+    user_service.reset_forgotten_password(db, email, token, new_pw)
+    return {
+        "status": "success",
+        "message": "Verifikasi berhasil. Password akun Anda telah diubah."
     }
