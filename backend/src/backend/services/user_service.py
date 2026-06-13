@@ -15,40 +15,29 @@ from src.backend.middlewares.auth import get_password_hash
 from src.backend.models.enums import UserRole
 from src.backend.database.redis import get_redis_client
 
-def register_new_user(db: Session, user_data: UserCreateDTO) -> User:
-    # 1. Cari data sekolah berdasarkan registration_code yang diinput user
-    tenant = tenant_repo.get_tenant_by_code(db, user_data.registration_code)
-    if not tenant:
-        raise HTTPException(
-            status_code=404, 
-            detail="Kode registrasi tidak valid atau tidak ditemukan!"
-        )
-        
-    # 2. Cek Single Use Code & Pastikan Belum Ada Admin Utama di Sekolah Ini
-    existing_admin = user_repo.get_admin_by_tenant(db, tenant.id)
-    if existing_admin:
+def create_staff_user(db: Session, staff_data: StaffCreateDTO, current_user: User) -> User:
+    """Fungsi khusus untuk Admin Sekolah membuat akun Guru BK/Konselor"""
+    
+    # 1. Hanya Admin yang boleh bikin akun staf di sekolahnya
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=403, 
-            detail="Kode registrasi sudah hangus! Sekolah ini sudah memiliki Admin Utama. Pendaftaran ditolak."
+            detail="Akses ditolak. Hanya Admin Sekolah yang dapat mendaftarkan staf baru."
         )
         
-    # 3. Cek apakah email sudah dipakai (Validasi standar)
-    existing_email = user_repo.get_user_by_email(db, email=user_data.email)
-    if existing_email:
-        raise HTTPException(status_code=400, detail="Email sudah terdaftar. Silakan gunakan email lain.")
-
-    # 4. Hash Password dan Eksekusi Buat User
-    hashed_pw = get_password_hash(user_data.password)
-
-    return user_repo.create_user(
-        db=db, 
-        fullname=user_data.fullname,
-        email=user_data.email,
-        hashed_password=hashed_pw,
-        tenant_id=tenant.id,
-        role=UserRole.ADMIN
-    )   
+    # 2. Cek apakah email sudah dipakai
+    existing_user = user_repo.get_user_by_email(db, staff_data.email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email sudah terdaftar di sistem.")
+        
+    # 3. Kunci data ke sekolah (tenant) milik Admin yang sedang login
+    user_data_dict = staff_data.model_dump()
+    user_data_dict["tenant_id"] = current_user.tenant_id
+    user_data_dict["role"] = UserRole.COUNSELOR # Paksa role jadi Konselor
     
+    # Eksekusi simpan ke DB
+    return user_repo.create_user(db, user_data_dict)
+
 def register_staff_member(db: Session, staff_data: StaffCreateDTO, current_admin: User) -> User:
     # 1. Pastikan hanya Admin yang boleh menambah staf
     if current_admin.role != UserRole.ADMIN:
