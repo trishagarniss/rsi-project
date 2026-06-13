@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/hooks/useAuth";
+
+
+// KITA NONAKTIFKAN SEMENTARA KARENA FILE DEPENDENSINYA BELUM ADA
+// import { AuthProvider } from "@/hooks/useAuth"; 
+
 export const metadata: Metadata = {
   title: "A.S.G.A.R.D",
   description: "Analisis Sistem Gejala Awal Risiko Dropout",
@@ -14,7 +18,8 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        {/* KITA LANGSUNG MERENDER CHILDREN TANPA AUTH PROVIDER DULU */}
+        {children}
       </body>
     </html>
   );
