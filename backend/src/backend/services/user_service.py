@@ -92,17 +92,28 @@ def get_user_detail(db: Session, user_id: str, current_user: User) -> User:
     return user
 
 def modify_existing_user(db: Session, user_id: str, update_data: UserUpdateDTO, current_user: User) -> User:
-    get_user_detail(db, user_id, current_user)
+    target_user = get_user_detail(db, user_id, current_user)
+    
+    if current_user.role == UserRole.ADMIN:
+        if target_user.role == UserRole.ADMIN and current_user.id != target_user.id:
+            raise HTTPException(status_code=403, detail="Anda tidak diperbolehkan mengubah data sesama Admin.")
+        
+        if target_user.role == UserRole.SUPERADMIN:
+            raise HTTPException(status_code=403, detail="Anda tidak memiliki wewenang mengedit Superadmin.")
+            
     return user_repo.update_user(db, user_id, update_data)
 
 def remove_user(db: Session, user_id: str, current_user: User):
     user_to_delete = get_user_detail(db, user_id, current_user) 
     
+    if current_user.id == user_to_delete.id:
+        raise HTTPException(status_code=400, detail="Anda tidak bisa menghapus akun Anda sendiri.")
+    
     if current_user.role == UserRole.ADMIN:
         if user_to_delete.role in [UserRole.SUPERADMIN, UserRole.ADMIN]:
             raise HTTPException(status_code=403, detail="Anda tidak memiliki izin untuk menghapus Admin atau Superadmin.")
             
-    user_repo.delete_user(db, user_id)
+    return user_repo.delete_user(db, user_id)
     
 def change_password(db: Session, old_pw: str, new_pw : str, current_user: User) :
     if user_repo.CheckOldPassword(db, current_user.id, old_pw) :
