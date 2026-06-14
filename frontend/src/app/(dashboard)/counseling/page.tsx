@@ -17,21 +17,6 @@ export default function CounselingManagement() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      {/* ================= HEADER ================= */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-asgard-primary">Manajemen Konseling</h1>
-          <p className="text-slate-500 font-medium mt-1">Pencatatan intervensi dan tindak lanjut bimbingan siswa</p>
-        </div>
-        
-        {/* Tombol sudah dibungkus Link menuju rute form /new */}
-        <Link href="/counseling/new">
-          <Button variant="primary" className="whitespace-nowrap shadow-md hover:shadow-lg transition-all">
-              + Tambah Catatan Konseling
-          </Button>
-        </Link>
-      </div>
-
       {/* ================= BARIS FILTER & SEARCH ================= */}
       <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="flex-1 w-full flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-asgard-primary focus-within:ring-2 focus-within:ring-asgard-primary/20 transition-all">

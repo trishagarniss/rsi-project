@@ -10,10 +10,10 @@ const menuItems = [
     { name: 'Beranda', path: '/dashboard' },
     { name: 'Daftar Siswa', path: '/student' },
     { name: 'Manajemen Konseling', path: '/counseling' },
-    { name: 'Laporan', path: '/reports' },
+    //{ name: 'Laporan', path: '/reports' },
     { name: 'Import Data', path: '/import' },
     { name: 'Manajemen Akun', path: '/manage-accounts' },
-    { name: 'Pengaturan', path: '/settings' },
+    //{ name: 'Pengaturan', path: '/settings' },
   ];
 
   return (
