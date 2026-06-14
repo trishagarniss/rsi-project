@@ -68,16 +68,20 @@ def register_staff_member(db: Session, staff_data: StaffCreateDTO, current_admin
 def register_staff_member_superadmin(db: Session, staff_data: SuperadminStaffCreateDTO, current_admin: User) -> User:
     
     if current_admin.role != UserRole.SUPERADMIN:
-        raise HTTPException(status_code=403, detail="Lu bukan super admin kocak.")
+        raise HTTPException(status_code=403, detail="Akses ditolak. Hanya Superadmin yang berhak.")
 
     existing_user = user_repo.get_user_by_email(db, email=staff_data.email)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar.")
 
+    tenant = tenant_repo.get_tenant_by_id(db, staff_data.tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=400, detail="Tenant tidak ditemukan.")
+
     # 4. Hash password dan buat akun
     hashed_pw = get_password_hash(staff_data.password)
 
-    # Akun baru otomatis diikat ke tenant_id milik Admin yang membuatnya!
+    # Akun baru diikat ke tenant_id yang dipilih Superadmin dari input
     return user_repo.create_user(
         db=db, 
         fullname=staff_data.fullname,
