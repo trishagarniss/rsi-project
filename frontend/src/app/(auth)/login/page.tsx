@@ -6,8 +6,8 @@ import 'aos/dist/aos.css';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import Cookies from 'js-cookie';
+import { UserRole } from '@/types/user';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Mail, 
   Lock, 
@@ -32,6 +32,7 @@ export default function LoginPage() {
   // 2. State untuk mengatur status loading dan pesan error dari backend
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const { login } = useAuth();
 
   useEffect(() => {
     AOS.init({ duration: 800, once: true });
@@ -44,32 +45,16 @@ export default function LoginPage() {
     setErrorMsg('');
 
     try {
-      // Menembak API FastAPI
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/login`, {
-        email: email,
-        password: password
-      });
+      const userData = await login(email, password);
 
-      // Mengambil token (tergantung format kembalian backend-mu)
-      const token = response.data.access_token || response.data.token || response.data.data?.token;
-      
-      if (token) {
-        // Simpan token di Cookie selama 1 hari
-        Cookies.set('token', token, { expires: 1 });
-        // Pindah halaman ke Dashboard
+      if (userData.role === UserRole.SUPERADMIN) {
+        router.push('/superadmin');
+      } else {
         router.push('/dashboard');
-      } else {
-        console.warn("Login sukses, tapi struktur token berbeda:", response.data);
-        router.push('/dashboard'); 
       }
 
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const message = error.response?.data?.detail || 'Gagal terhubung ke server. Silakan coba lagi.';
-        setErrorMsg(message);
-      } else {
-        setErrorMsg('Terjadi kesalahan yang tidak terduga.');
-      }
+    } catch (error: any) {
+      setErrorMsg(error?.message || 'Terjadi kesalahan yang tidak terduga.');
     } finally {
       setIsLoading(false);
     }

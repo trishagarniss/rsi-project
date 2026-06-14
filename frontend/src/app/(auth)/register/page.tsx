@@ -16,8 +16,6 @@ import {
   ChartNoAxesCombined,
   ArrowRight
 } from 'lucide-react';
-import { authService } from '@/services/auth';
-import { useRouter } from 'next/navigation';
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);

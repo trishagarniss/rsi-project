@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider } from "@/context/AuthContext";
 import AOSInit from "@/components/AOSInit";
 
 export const metadata: Metadata = {
