@@ -3,14 +3,14 @@ from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, UserResponseD
 from src.backend.models.user import User
 from src.backend.services import user_service
 
-def register_user(db: Session, user_data: UserCreateDTO):
-    new_user = user_service.register_new_user(db, user_data)
-    safe_data = UserResponseDTO.model_validate(new_user)
-    return {
-        "status": "success",
-        "message": "Akun admin sekolah berhasil didaftarkan!",
-        "data": safe_data
-    }
+# def register_user(db: Session, user_data: UserCreateDTO):
+#     new_user = user_service.register_new_user(db, user_data)
+#     safe_data = UserResponseDTO.model_validate(new_user)
+#     return {
+#         "status": "success",
+#         "message": "Akun admin sekolah berhasil didaftarkan!",
+#         "data": safe_data
+#     }
 
 def create_staff(db: Session, data: StaffCreateDTO, current_admin: User):
     new_staff = user_service.register_staff_member(db, data, current_admin)

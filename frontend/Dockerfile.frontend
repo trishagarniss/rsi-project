@@ -1,0 +1,21 @@
+# Menggunakan image Node.js versi 20 Alpine (Sangat ringan dan cepat)
+FROM node:20-alpine
+
+# Menyiapkan folder kerja di dalam container
+WORKDIR /app
+
+# Menyalin file konfigurasi package (package.json & package-lock.json jika ada)
+COPY package*.json ./
+
+# Menginstal semua dependencies dari npm
+RUN npm install
+
+# Menyalin seluruh sisa kode frontend ke dalam container
+# (Catatan: Saat jalan di docker-compose, ini akan ditimpa oleh volume ./frontend:/app agar bisa Hot-Reload)
+COPY . .
+
+# Membuka port 3000 untuk diakses dari luar
+EXPOSE 3000
+
+# Menjalankan Next.js dalam mode development
+CMD ["npm", "run", "dev"]

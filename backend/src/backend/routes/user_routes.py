@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from src.backend.database.engine import get_db
-from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, StaffCreateDTO, UserChangePasswordDTO, UserGetTokenDTO, UserCheckTokenDTO, UserChangePasswordByTokenDTO
+from src.backend.dto.user_dto import UserUpdateDTO, StaffCreateDTO, UserChangePasswordDTO, UserGetTokenDTO, UserCheckTokenDTO, UserChangePasswordByTokenDTO
 from src.backend.controllers import user_controller
 from src.backend.middlewares.auth import require_role
 from src.backend.models.enums import UserRole
@@ -18,9 +18,9 @@ from src.backend.models.user import User
 router = APIRouter(prefix="/api/v1/users", tags=["Users"])
 
 # Untuk pendaftaran Admin Sekolah pakai registration code
-@router.post("/register", status_code=status.HTTP_201_CREATED)
-def register(user_data: UserCreateDTO, db: Session = Depends(get_db)):
-    return user_controller.register_user(db=db, user_data=user_data)
+# @router.post("/register", status_code=status.HTTP_201_CREATED)
+# def register(user_data: UserCreateDTO, db: Session = Depends(get_db)):
+    # return user_controller.register_user(db=db, user_data=user_data)
 
 # Untuk pendaftaran Konselor/Admin (wajib login sbg atmin)
 @router.post("/staff", status_code=status.HTTP_201_CREATED)

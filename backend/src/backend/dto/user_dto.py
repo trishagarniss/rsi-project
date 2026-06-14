@@ -5,7 +5,6 @@ from src.backend.models.enums import UserRole
 
 # 1. DTO Register
 class UserCreateDTO(BaseModel):
-    registration_code: str
     fullname: str = Field(..., min_length=3, max_length=150)
     email: EmailStr
     password: str = Field(..., min_length=8, description="Minimal 8 karakter")

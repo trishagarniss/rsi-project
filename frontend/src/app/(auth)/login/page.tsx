@@ -5,6 +5,9 @@ import AOS from 'aos';
 import 'aos/dist/aos.css';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { UserRole } from '@/types/user';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Mail, 
   Lock, 
@@ -14,15 +17,48 @@ import {
   AlertTriangle, 
   CalendarClock, 
   Users,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 
 export default function LoginPage() {
+  const router = useRouter();
+
+  // 1. State untuk menyimpan ketikan input form
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // 2. State untuk mengatur status loading dan pesan error dari backend
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const { login } = useAuth();
 
   useEffect(() => {
     AOS.init({ duration: 800, once: true });
   }, []);
+
+  // 3. Fungsi utama untuk memproses Login
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault(); // Mencegah halaman refresh otomatis
+    setIsLoading(true);
+    setErrorMsg('');
+
+    try {
+      const userData = await login(email, password);
+
+      if (userData.role === UserRole.SUPERADMIN) {
+        router.push('/superadmin');
+      } else {
+        router.push('/dashboard');
+      }
+
+    } catch (error: any) {
+      setErrorMsg(error?.message || 'Terjadi kesalahan yang tidak terduga.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <main className="h-screen w-full grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] bg-linear-to-br from-[#F8FAFC] to-[#EEF2FF] overflow-hidden">
@@ -124,7 +160,16 @@ export default function LoginPage() {
               <p className="text-slate-500 text-xs">Masukkan kredensial akun Anda untuk mengakses dashboard analitik.</p>
             </div>
 
-            <form className="space-y-4">
+            {/* 4. Notifikasi Error Muncul di sini jika login gagal */}
+            {errorMsg && (
+              <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-red-600 text-xs font-bold animate-pulse">
+                <AlertTriangle size={16} />
+                <p>{errorMsg}</p>
+              </div>
+            )}
+
+            {/* 5. Form dihubungkan dengan onSubmit */}
+            <form onSubmit={handleLogin} className="space-y-4">
               
               {/* Email Field */}
               <div className="space-y-1.5">
@@ -133,8 +178,12 @@ export default function LoginPage() {
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#161D6F] transition-colors" size={18} />
                   <input 
                     type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
                     placeholder="admin@sekolah.sch.id" 
-                    className="w-full pl-11 pr-4 h-[48px] rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#FFC107]/20 focus:border-[#161D6F] outline-none transition-all font-medium text-slate-800 text-sm"
+                    className="w-full pl-11 pr-4 h-[48px] rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#FFC107]/20 focus:border-[#161D6F] outline-none transition-all font-medium text-slate-800 text-sm disabled:bg-slate-50 disabled:text-slate-400"
                   />
                 </div>
               </div>
@@ -151,13 +200,18 @@ export default function LoginPage() {
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#161D6F] transition-colors" size={18} />
                   <input 
                     type={showPassword ? "text" : "password"} 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
                     placeholder="••••••••" 
-                    className="w-full pl-11 pr-11 h-[48px] rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#FFC107]/20 focus:border-[#161D6F] outline-none transition-all font-medium text-slate-800 tracking-wider text-sm"
+                    className="w-full pl-11 pr-11 h-[48px] rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#FFC107]/20 focus:border-[#161D6F] outline-none transition-all font-medium text-slate-800 tracking-wider text-sm disabled:bg-slate-50 disabled:text-slate-400"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#161D6F] transition-colors focus:outline-none"
+                    disabled={isLoading}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#161D6F] transition-colors focus:outline-none disabled:opacity-50"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -176,13 +230,25 @@ export default function LoginPage() {
                 </label>
               </div>
 
-              {/* Submit Button */}
+              {/* 6. Submit Button (Otomatis berubah kalau sedang loading) */}
               <button 
                 type="submit" 
-                className="w-full h-[48px] bg-[#FFC107] hover:bg-[#E0A800] text-[#161D6F] rounded-xl font-black text-base shadow-[0_10px_20px_rgba(255,193,7,0.2)] hover:shadow-[0_15px_30px_rgba(255,193,7,0.3)] hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2 group mt-2"
+                disabled={isLoading}
+                className={`w-full h-[48px] text-[#161D6F] rounded-xl font-black text-base transition-all duration-300 flex items-center justify-center gap-2 group mt-2 
+                  ${isLoading 
+                    ? 'bg-[#E0A800] opacity-70 cursor-not-allowed shadow-none' 
+                    : 'bg-[#FFC107] hover:bg-[#E0A800] shadow-[0_10px_20px_rgba(255,193,7,0.2)] hover:shadow-[0_15px_30px_rgba(255,193,7,0.3)] hover:-translate-y-0.5'
+                  }`}
               >
-                Sign In 
-                <ArrowRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+                {isLoading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" /> Mengautentikasi...
+                  </>
+                ) : (
+                  <>
+                    Sign In <ArrowRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
               </button>
             </form>
 
