@@ -22,6 +22,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
+import Bottombar from "@/components/Bottombar";
 import { userService, Tenant } from "@/services/user";
 import { User, UserRole } from "@/types/user";
 
@@ -484,43 +485,13 @@ export default function KelolaAkunPage() {
 
             {/* Pagination Controls Footer */}
             {filteredUsers.length > 0 && (
-              <div className="p-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
-                <span className="text-xs font-bold text-slate-400">
-                  Menampilkan {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredUsers.length)} dari {filteredUsers.length} data
-                </span>
-                
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="px-4 py-2 border border-slate-200 text-xs font-black rounded-xl text-slate-500 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    Sebelumnya
-                  </button>
-                  
-                  {Array.from({ length: totalPages }).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={`px-3 py-2 text-xs font-black rounded-xl transition-all ${
-                        currentPage === i + 1 
-                          ? "bg-asgard-primary text-white" 
-                          : "border border-slate-200 text-slate-500 bg-white hover:bg-slate-50"
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="px-4 py-2 border border-slate-200 text-xs font-black rounded-xl text-slate-500 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    Selanjutnya
-                  </button>
-                </div>
-              </div>
+              <Bottombar
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => setCurrentPage(page)}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredUsers.length}
+              />
             )}
 
           </div>
