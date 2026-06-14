@@ -11,17 +11,16 @@ export default function Sidebar() {
   // Detect if current space is Superadmin based on path or user role
   const isSuperadmin = user?.role === 'superadmin' || 
     pathname.startsWith('/superadmin') || 
-    pathname.startsWith('/monitoring') || 
     pathname.startsWith('/audit') || 
-    pathname.startsWith('/models') || 
-    pathname.startsWith('/tenants');
+    pathname.startsWith('/models');
 
   const menuItems = isSuperadmin
     ? [
         { name: 'Beranda', path: '/superadmin' },
-        { name: 'Kelola Instansi', path: '/tenants' },
+        { name: 'Kelola Tenant', path: '/superadmin/kelola-tenant' },
         { name: 'Kelola Model', path: '/models' },
-        { name: 'Monitoring', path: '/monitoring' },
+        { name: 'Kelola Akun', path: '/superadmin/kelola-akun' },
+        { name: 'Monitoring', path: '/superadmin/monitoring' },
       ]
     : [
         { name: 'Beranda', path: '/dashboard' },
@@ -33,7 +32,7 @@ export default function Sidebar() {
         { name: 'Pengaturan', path: '/settings' },
       ];
 
-  const adminName = user?.full_name || 'Kunto Rossindu';
+  const adminName = user?.fullname || 'Kunto Rossindu';
   const roleLabel = user?.role === 'superadmin' ? 'Super Admin' : user?.role === 'admin' ? 'Admin Sekolah' : 'Guru BK';
   const initials = adminName
     .split(' ')

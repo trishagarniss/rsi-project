@@ -16,7 +16,8 @@ export default function TopBar() {
     
     // Superadmin breadcrumbs
     if (pathname.includes('/monitoring')) return 'Superadmin Portal / Monitoring Server';
-    if (pathname.includes('/tenants')) return 'Superadmin Portal / Kelola Instansi';
+    if (pathname.includes('/kelola-tenant')) return 'Superadmin Portal / Kelola Tenant';
+    if (pathname.includes('/kelola-akun')) return 'Superadmin Portal / Kelola Akun';
     if (pathname.includes('/models')) return 'Superadmin Portal / Kelola Model';
     if (pathname.includes('/audit')) return 'Superadmin Portal / Audit Log';
     if (pathname.includes('/superadmin')) return 'Superadmin Portal / Beranda';
