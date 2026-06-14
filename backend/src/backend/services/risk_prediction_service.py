@@ -15,14 +15,13 @@ from src.backend.repositories import (
 )
 from src.backend.dto.risk_prediction_dto import RiskPredictionCreateDTO
 from src.backend.models.user import User
+from src.backend.models.enums import RiskStatus # <-- Tambahan Baru
 
 def execute_prediction(db: Session, student_id: str, current_user: User):
-    # Validasi kepemilikan data siswa berdasarkan tenant
     student = student_repo.get_student_by_id_and_tenant(db, student_id, current_user.tenant_id)
     if not student:
         raise HTTPException(status_code=404, detail="Data siswa tidak ditemukan di sekolah Anda.")
 
-    # Pengecekan kelengkapan data prasyarat prediksi
     se_data = socio_economic_repo.get_by_student(db, student_id, current_user.tenant_id)
     academic_data = academic_repo.get_by_student(db, student_id, current_user.tenant_id)
     attendance_data = attendance_repo.get_by_student(db, student_id, current_user.tenant_id)
@@ -33,7 +32,6 @@ def execute_prediction(db: Session, student_id: str, current_user: User):
             detail="Data siswa belum lengkap. Pastikan profil Sosio-Ekonomi, Akademik, dan Absensi sudah diisi minimal 1 semester."
         )
 
-    # Cek ketersediaan model ML aktif
     active_model = ml_model_repo.get_active_model(db)
     if not active_model:
         raise HTTPException(
@@ -41,29 +39,36 @@ def execute_prediction(db: Session, student_id: str, current_user: User):
             detail="Sistem belum memiliki Model ML yang aktif. Silakan hubungi Superadmin."
         )
 
-    # Ambil threshold risiko dari pengaturan sekolah (default 0.75)
     tenant = tenant_repo.get_tenant_by_id(db, current_user.tenant_id)
     threshold = getattr(tenant, 'risk_confidence_threshold', 0.75)
 
-    # Ekstraksi fitur dari record terbaru
     latest_academic = sorted(academic_data, key=lambda x: x.semester, reverse=True)[0]
     latest_attendance = sorted(attendance_data, key=lambda x: x.semester, reverse=True)[0]
     
     raw_features = {
-        "average_score": latest_academic.average_score,
-        "failed_subjects_count": latest_academic.failed_subjects_count,
-        "incomplete_assignments_count": latest_academic.incomplete_assignments_count,
+        "average_score": latest_academic.average_score or 0.0,
+        "failed_subjects_count": latest_academic.failed_subjects_count or 0,
+        "incomplete_assignments_count": latest_academic.incomplete_assignments_count or 0,
         "attendance_percentage": latest_attendance.attendance_percentage or 0.0,
-        "unexcused_count": latest_attendance.unexcused_count,
+        "present_count": latest_attendance.present_count or 0,
+        "sick_count": latest_attendance.sick_count or 0,
+        "excused_count": latest_attendance.excused_count or 0,
+        "unexcused_count": latest_attendance.unexcused_count or 0,
         "parents_income": se_data.parents_income or 0,
-        "has_kip_scholarship": int(se_data.has_kip_scholarship),
-        "is_working_student": int(se_data.is_working_student),
-        "distance_to_school_km": se_data.distance_to_school_km or 0.0
+        "monthly_expenses": se_data.monthly_expenses or 0,
+        "parents_education_level": se_data.parents_education_level or "Unknown",
+        "birth_order": se_data.birth_order or 1,
+        "dependents_count": se_data.dependents_count or 0,
+        "distance_to_school_km": se_data.distance_to_school_km or 0.0,
+        "has_kip_scholarship": int(se_data.has_kip_scholarship) if se_data.has_kip_scholarship is not None else 0,
+        "is_working_student": int(se_data.is_working_student) if se_data.is_working_student is not None else 0,
+        "has_internet_access": int(se_data.has_internet_access) if se_data.has_internet_access is not None else 1,
+        "housing_status": se_data.housing_status.value if se_data.housing_status else "Unknown",
+        "gender": student.gender.value if student.gender else "Unknown"
     }
     
     df_features = pd.DataFrame([raw_features])
     
-    # Proses inferensi model ML
     if not os.path.exists(active_model.file_path):
         raise HTTPException(
             status_code=500, 
@@ -84,22 +89,21 @@ def execute_prediction(db: Session, student_id: str, current_user: User):
             detail=f"Terjadi kesalahan saat memproses model ML: {str(e)}"
         )
 
-    # Penentuan status berisiko dan penyimpanan hasil
-    is_at_risk = risk_score >= threshold
+    # Sinkronisasi dengan kolom database yang baru
+    risk_status = RiskStatus.AT_RISK if risk_score >= threshold else RiskStatus.NOT_AT_RISK
 
     pred_data = RiskPredictionCreateDTO(
         student_id=student.id,
-        ml_model_id=active_model.id,
+        model_id=active_model.id,
         risk_score=risk_score,
-        is_at_risk=is_at_risk,
-        factors_summary="Skor anomali terdeteksi dari kombinasi nilai dan absensi terbaru." if is_at_risk else "Data stabil."
+        risk_status=risk_status,
+        features_snapshot=raw_features # Simpan data fitur sebagai bukti historis
     )
 
     return risk_prediction_repo.save_prediction(db, pred_data.model_dump(), current_user.tenant_id)
 
 
 def bulk_execute_prediction(db: Session, student_ids: list[str], current_user: User):
-    # Validasi model ML dan threshold di luar iterasi untuk efisiensi RAM
     active_model = ml_model_repo.get_active_model(db)
     if not active_model or not os.path.exists(active_model.file_path):
         raise HTTPException(status_code=500, detail="Sistem belum memiliki Model ML yang aktif/valid.")
@@ -115,7 +119,6 @@ def bulk_execute_prediction(db: Session, student_ids: list[str], current_user: U
     successful_predictions = []
     skipped_students = []
 
-    # Proses prediksi iteratif dengan fault tolerance (skip jika gagal)
     for student_id in student_ids:
         student = student_repo.get_student_by_id_and_tenant(db, student_id, current_user.tenant_id)
         if not student:
@@ -167,19 +170,18 @@ def bulk_execute_prediction(db: Session, student_ids: list[str], current_user: U
             else:
                 risk_score = float(model.predict(df_features)[0])
                 
-            is_at_risk = risk_score >= threshold
+            risk_status = RiskStatus.AT_RISK if risk_score >= threshold else RiskStatus.NOT_AT_RISK
             
             successful_predictions.append({
                 "student_id": student.id,
-                "ml_model_id": active_model.id,
+                "model_id": active_model.id,
                 "risk_score": risk_score,
-                "is_at_risk": is_at_risk,
-                "factors_summary": "Diprediksi via Bulk CSV" if is_at_risk else "Aman"
+                "risk_status": risk_status,
+                "features_snapshot": raw_features
             })
         except Exception as e:
             skipped_students.append({"student_id": student.id, "name": student.name, "reason": f"Gagal diproses ML: {str(e)}"})
 
-    # Simpan hasil sukses ke database
     if successful_predictions:
         risk_prediction_repo.bulk_save_predictions(db, successful_predictions, current_user.tenant_id)
 
@@ -194,9 +196,7 @@ def bulk_execute_prediction(db: Session, student_ids: list[str], current_user: U
         }
     }
 
-
 def fetch_student_prediction_history(db: Session, student_id: str, current_user: User):
-    # Verifikasi eksistensi data siswa pada sekolah terkait
     if not student_repo.get_student_by_id_and_tenant(db, student_id, current_user.tenant_id):
         raise HTTPException(status_code=404, detail="Siswa tidak ditemukan di sekolah Anda.")
     
