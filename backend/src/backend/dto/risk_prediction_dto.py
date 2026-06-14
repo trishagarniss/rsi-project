@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+from src.backend.models.enums import RiskStatus
 
 class RiskPredictionCreateDTO(BaseModel):
     student_id: str
@@ -13,10 +14,9 @@ class RiskPredictionResponseDTO(BaseModel):
     id: str
     student_id: str
     tenant_id: str
-    ml_model_id: str
+    model_id: str
+    risk_status: RiskStatus
     risk_score: float
-    is_at_risk: bool
-    factors_summary: Optional[str]
     created_at: datetime
 
     class Config:

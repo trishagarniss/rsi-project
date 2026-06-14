@@ -57,3 +57,21 @@ def delete_tenant(
     current_user: User = Depends(require_role([UserRole.SUPERADMIN]))
 ):
     return tenant_controller.remove_tenant(db, tenant_id)
+
+# Cuma SuperAdmin yg bisa bikin ulang kode registrasi kalau kedaluwarsa
+@router.post("/{tenant_id}/regenerate-code")
+def regenerate_code(
+    tenant_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.SUPERADMIN]))
+):
+    return tenant_controller.regenerate_tenant_code(db, tenant_id)
+
+# Cuma SuperAdmin yg bisa bikin ulang kode registrasi kalau kedaluwarsa
+@router.post("/{tenant_id}/regenerate-code")
+def regenerate_code(
+    tenant_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.SUPERADMIN]))
+):
+    return tenant_controller.regenerate_tenant_code(db, tenant_id)

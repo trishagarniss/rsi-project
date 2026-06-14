@@ -6,8 +6,8 @@ import 'aos/dist/aos.css';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import Cookies from 'js-cookie';
+import { UserRole } from '@/types/user';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Mail, 
   Lock, 
@@ -18,7 +18,8 @@ import {
   CalendarClock, 
   Users,
   ArrowRight,
-  Loader2
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -32,6 +33,16 @@ export default function LoginPage() {
   // 2. State untuk mengatur status loading dan pesan error dari backend
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('registered') === 'true') {
+      window.history.replaceState({}, '', '/login');
+      return 'Registrasi berhasil! Silakan login dengan akun yang telah dibuat.';
+    }
+    return '';
+  });
+  const { login } = useAuth();
 
   useEffect(() => {
     AOS.init({ duration: 800, once: true });
@@ -44,31 +55,16 @@ export default function LoginPage() {
     setErrorMsg('');
 
     try {
-      // Menembak API FastAPI
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`, {
-        email: email,
-        password: password
-      });
+      const userData = await login(email, password);
 
-      const token = response.data.data?.access_token || response.data.access_token || response.data.token;
-      
-      if (token) {
-        // Simpan token di Cookie selama 1 hari
-        Cookies.set('token', token, { expires: 1 });
-        // Pindah halaman ke Dashboard
+      if (userData.role === UserRole.SUPERADMIN) {
+        router.push('/superadmin');
+      } else {
         router.push('/dashboard');
-      } else {
-        console.warn("Login sukses, tapi struktur token berbeda:", response.data);
-        router.push('/dashboard'); 
       }
 
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const message = error.response?.data?.detail || 'Gagal terhubung ke server. Silakan coba lagi.';
-        setErrorMsg(message);
-      } else {
-        setErrorMsg('Terjadi kesalahan yang tidak terduga.');
-      }
+    } catch (error: unknown) {
+      setErrorMsg(error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak terduga.');
     } finally {
       setIsLoading(false);
     }
@@ -174,7 +170,15 @@ export default function LoginPage() {
               <p className="text-slate-500 text-xs">Masukkan kredensial akun Anda untuk mengakses dashboard analitik.</p>
             </div>
 
-            {/* 4. Notifikasi Error Muncul di sini jika login gagal */}
+            {/* 4. Notifikasi Sukses (dari redirect register) */}
+            {successMsg && (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center gap-2 text-emerald-700 text-xs font-bold">
+                <CheckCircle2 size={16} />
+                <p>{successMsg}</p>
+              </div>
+            )}
+
+            {/* 5. Notifikasi Error Muncul di sini jika login gagal */}
             {errorMsg && (
               <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-red-600 text-xs font-bold animate-pulse">
                 <AlertTriangle size={16} />
