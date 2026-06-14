@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from typing import List
 
-from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, StaffCreateDTO
+from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, StaffCreateDTO, SuperadminStaffCreateDTO
 from src.backend.models.user import User
 from src.backend.models.tenant import Tenant
 from src.backend.repositories import user_repo, tenant_repo
@@ -62,6 +62,32 @@ def register_staff_member(db: Session, staff_data: StaffCreateDTO, current_admin
         email=staff_data.email,
         hashed_password=hashed_pw,
         tenant_id=current_admin.tenant_id, 
+        role=staff_data.role              
+    )
+    
+def register_staff_member_superadmin(db: Session, staff_data: SuperadminStaffCreateDTO, current_admin: User) -> User:
+    
+    if current_admin.role != UserRole.SUPERADMIN:
+        raise HTTPException(status_code=403, detail="Akses ditolak. Hanya Superadmin yang berhak.")
+
+    existing_user = user_repo.get_user_by_email(db, email=staff_data.email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email sudah terdaftar.")
+
+    tenant = tenant_repo.get_tenant_by_id(db, staff_data.tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=400, detail="Tenant tidak ditemukan.")
+
+    # 4. Hash password dan buat akun
+    hashed_pw = get_password_hash(staff_data.password)
+
+    # Akun baru diikat ke tenant_id yang dipilih Superadmin dari input
+    return user_repo.create_user(
+        db=db, 
+        fullname=staff_data.fullname,
+        email=staff_data.email,
+        hashed_password=hashed_pw,
+        tenant_id=staff_data.tenant_id, 
         role=staff_data.role              
     )
     

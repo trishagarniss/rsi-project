@@ -6,6 +6,10 @@ from src.backend.controllers import auth_controller
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
+@router.get("/check-code/{reg_code}")
+def check_reg_code(reg_code: str):
+    return auth_controller.check_reg_code(reg_code)
+
 @router.post("/login")
 def login(login_data: UserLoginDTO, db: Session = Depends(get_db)):
     return auth_controller.login(db=db, login_data=login_data)

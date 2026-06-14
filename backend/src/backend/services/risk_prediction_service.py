@@ -97,7 +97,6 @@ def execute_prediction(db: Session, student_id: str, current_user: User):
         model_id=active_model.id,
         risk_score=risk_score,
         risk_status=risk_status,
-        features_snapshot=raw_features # Simpan data fitur sebagai bukti historis
     )
 
     return risk_prediction_repo.save_prediction(db, pred_data.model_dump(), current_user.tenant_id)
@@ -177,7 +176,6 @@ def bulk_execute_prediction(db: Session, student_ids: list[str], current_user: U
                 "model_id": active_model.id,
                 "risk_score": risk_score,
                 "risk_status": risk_status,
-                "features_snapshot": raw_features
             })
         except Exception as e:
             skipped_students.append({"student_id": student.id, "name": student.name, "reason": f"Gagal diproses ML: {str(e)}"})

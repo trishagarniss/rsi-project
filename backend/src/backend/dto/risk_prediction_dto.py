@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional
 from datetime import datetime
 from src.backend.models.enums import RiskStatus
 
@@ -17,7 +17,6 @@ class RiskPredictionResponseDTO(BaseModel):
     model_id: str
     risk_status: RiskStatus
     risk_score: float
-    features_snapshot: Dict[str, Any]
     created_at: datetime
 
     class Config:

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from src.backend.database.engine import get_db
-from src.backend.dto.user_dto import UserUpdateDTO, StaffCreateDTO, UserChangePasswordDTO, UserGetTokenDTO, UserCheckTokenDTO, UserChangePasswordByTokenDTO
+from src.backend.dto.user_dto import UserUpdateDTO, StaffCreateDTO, UserChangePasswordDTO, UserGetTokenDTO, UserCheckTokenDTO, UserChangePasswordByTokenDTO, SuperadminStaffCreateDTO
 from src.backend.controllers import user_controller
 from src.backend.middlewares.auth import require_role
 from src.backend.models.enums import UserRole
@@ -30,6 +30,14 @@ def create_staff_member(
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
     return user_controller.create_staff(db, data, current_user)
+
+@router.post("/superadminstaff", status_code=status.HTTP_201_CREATED)
+def create_staff_member_superadmin(
+    data: SuperadminStaffCreateDTO,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.SUPERADMIN]))
+):
+    return user_controller.create_staff_superadmin(db, data, current_user)
 
 @router.get("/")
 def get_all_users(

@@ -21,6 +21,7 @@ import {
 export default function FAQPage() {
     const [openFaq, setOpenFaq] = useState<string | null>("general-0");
     const [activeCategory, setActiveCategory] = useState("Semua");
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
         AOS.init({ duration: 800, once: true });
@@ -66,6 +67,21 @@ export default function FAQPage() {
 
     const categories = ["Semua", "General", "Risk Analysis", "Security", "Data & Counseling"];
 
+    const filteredFaqData = faqData
+        .map(section => ({
+            ...section,
+            items: section.items.filter(faq =>
+                faq.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                faq.a.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+        }))
+        .filter(section =>
+            (activeCategory === "Semua" || section.category === activeCategory) &&
+            section.items.length > 0
+        );
+
+    const hasNoResults = searchQuery && filteredFaqData.length === 0;
+
     return (
         <main className="w-full font-sans antialiased text-slate-800 bg-[#F8FAFC] overflow-hidden">
         
@@ -104,6 +120,8 @@ export default function FAQPage() {
                 <input 
                 type="text" 
                 placeholder="Cari pertanyaan... (misal: Keamanan Data)" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-20 pr-8 py-6 rounded-2xl border-4 border-[#161D6F] shadow-[8px_8px_0px_0px_#FFC107] focus:shadow-[12px_12px_0px_0px_#FFC107] focus:outline-none focus:-translate-y-1 transition-all duration-300 text-lg font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-medium bg-white"
                 />
             </div>
@@ -162,7 +180,13 @@ export default function FAQPage() {
         {/* ================= 5. FAQ ACCORDION ================= */}
         <section className="pb-[120px] px-6">
             <div className="max-w-3xl mx-auto space-y-12">
-            {faqData.filter(section => activeCategory === "Semua" || section.category === activeCategory).map((section, sIdx) => (
+            {hasNoResults ? (
+                <div className="text-center py-20" data-aos="fade-up">
+                    <FileQuestion size={48} className="mx-auto text-slate-300 mb-4" />
+                    <h3 className="text-xl font-bold text-slate-500 mb-2">Pertanyaan tidak ditemukan</h3>
+                    <p className="text-slate-400 font-medium">Coba gunakan kata kunci lain untuk mencari pertanyaan.</p>
+                </div>
+            ) : filteredFaqData.map((section, sIdx) => (
                 <div key={sIdx} data-aos="fade-up">
                 
                 {/* Category Header */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -15,13 +15,45 @@ import {
   Send,
   ArrowRight,
   Code2,
-  Target
+  Target,
+  Loader2,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
+import { contactService } from '@/services/contact';
 
 export default function ContactPage() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
   useEffect(() => {
     AOS.init({ duration: 800, once: true });
   }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      await contactService.send({ name, email, subject, message });
+      setSuccessMsg('Pesan berhasil dikirim! Kami akan segera merespons via Email.');
+      setName('');
+      setEmail('');
+      setSubject('');
+      setMessage('');
+    } catch (error: unknown) {
+      setErrorMsg(error instanceof Error ? error.message : 'Terjadi kesalahan. Silakan coba lagi.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <main className="w-full font-sans antialiased text-slate-800 bg-white overflow-hidden">
@@ -137,30 +169,48 @@ export default function ContactPage() {
             <h3 className="text-2xl font-black text-[#161D6F] mb-2">Kirim Pesan Langsung</h3>
             <p className="text-slate-500 font-medium mb-8 text-sm">Isi form di bawah ini dan tim kami akan segera merespons via Email.</p>
             
-            <form className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-2">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Nama Lengkap</label>
-                  <input type="text" placeholder="John Doe" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-0 focus:border-[#161D6F] transition-all" />
+                  <input type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required disabled={isLoading} className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-0 focus:border-[#161D6F] transition-all disabled:opacity-50" />
                 </div>
                 <div className="space-y-2">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Email Address</label>
-                  <input type="email" placeholder="john@email.com" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-0 focus:border-[#161D6F] transition-all" />
+                  <input type="email" placeholder="john@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-0 focus:border-[#161D6F] transition-all disabled:opacity-50" />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Subjek</label>
-                <input type="text" placeholder="Topik diskusi..." className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-0 focus:border-[#161D6F] transition-all" />
+                <input type="text" placeholder="Topik diskusi..." value={subject} onChange={(e) => setSubject(e.target.value)} required disabled={isLoading} className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-0 focus:border-[#161D6F] transition-all disabled:opacity-50" />
               </div>
 
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Pesan</label>
-                <textarea rows={4} placeholder="Tuliskan detail pertanyaan Anda..." className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-0 focus:border-[#161D6F] resize-none transition-all"></textarea>
+                <textarea rows={4} placeholder="Tuliskan detail pertanyaan Anda..." value={message} onChange={(e) => setMessage(e.target.value)} required disabled={isLoading} className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-0 focus:border-[#161D6F] resize-none transition-all disabled:opacity-50"></textarea>
               </div>
 
-              <button type="button" className="w-full py-4 bg-[#FFC107] hover:bg-[#E0A800] text-[#161D6F] rounded-xl font-black text-lg flex items-center justify-center gap-2 group transition-all mt-4 border-2 border-transparent hover:border-[#161D6F]">
-                Send Message <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              {successMsg && (
+                <div className="p-4 rounded-xl bg-green-50 border border-green-200 flex items-center gap-3 text-green-700 text-sm font-semibold">
+                  <CheckCircle2 size={20} className="shrink-0 text-green-500" />
+                  <p>{successMsg}</p>
+                </div>
+              )}
+
+              {errorMsg && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3 text-red-600 text-sm font-semibold">
+                  <AlertTriangle size={20} className="shrink-0 text-red-500" />
+                  <p>{errorMsg}</p>
+                </div>
+              )}
+
+              <button type="submit" disabled={isLoading} className="w-full py-4 bg-[#FFC107] hover:bg-[#E0A800] text-[#161D6F] rounded-xl font-black text-lg flex items-center justify-center gap-2 group transition-all mt-4 border-2 border-transparent hover:border-[#161D6F] disabled:opacity-50 disabled:cursor-not-allowed">
+                {isLoading ? (
+                  <><Loader2 size={20} className="animate-spin" /> Mengirim...</>
+                ) : (
+                  <>Send Message <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" /></>
+                )}
               </button>
             </form>
           </div>

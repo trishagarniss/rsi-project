@@ -18,7 +18,8 @@ import {
   CalendarClock, 
   Users,
   ArrowRight,
-  Loader2
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -32,6 +33,15 @@ export default function LoginPage() {
   // 2. State untuk mengatur status loading dan pesan error dari backend
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('registered') === 'true') {
+      window.history.replaceState({}, '', '/login');
+      return 'Registrasi berhasil! Silakan login dengan akun yang telah dibuat.';
+    }
+    return '';
+  });
   const { login } = useAuth();
 
   useEffect(() => {
@@ -53,8 +63,8 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
 
-    } catch (error: any) {
-      setErrorMsg(error?.message || 'Terjadi kesalahan yang tidak terduga.');
+    } catch (error: unknown) {
+      setErrorMsg(error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak terduga.');
     } finally {
       setIsLoading(false);
     }
@@ -160,7 +170,15 @@ export default function LoginPage() {
               <p className="text-slate-500 text-xs">Masukkan kredensial akun Anda untuk mengakses dashboard analitik.</p>
             </div>
 
-            {/* 4. Notifikasi Error Muncul di sini jika login gagal */}
+            {/* 4. Notifikasi Sukses (dari redirect register) */}
+            {successMsg && (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center gap-2 text-emerald-700 text-xs font-bold">
+                <CheckCircle2 size={16} />
+                <p>{successMsg}</p>
+              </div>
+            )}
+
+            {/* 5. Notifikasi Error Muncul di sini jika login gagal */}
             {errorMsg && (
               <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-red-600 text-xs font-bold animate-pulse">
                 <AlertTriangle size={16} />
