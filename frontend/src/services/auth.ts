@@ -5,9 +5,17 @@ import {
     RegisterAdminData, 
     ApiError 
 } from '@/types/user';
-import { post } from '@/lib/api-client';
+import { get, post } from '@/lib/api-client';
 
 export const authService = {
+    /**
+     * Cek validitas Registration Code
+     * @param reg_code Kode registrasi dari Superadmin
+     */
+    async checkRegCode(reg_code: string): Promise<{ status: string; message: string; data: { tenant_id: string } }> {
+        return await get(`/auth/check-code/${reg_code}`);
+    },
+
     /**
      * Login user
      * @param data UserLoginDTO (email, password)

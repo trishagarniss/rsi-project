@@ -21,6 +21,16 @@ def login_user(db: Session, login_data: UserLoginDTO):
         "user": {"id": user.id, "fullname": user.fullname, "email": user.email, "role": user.role.value, "tenant_id": user.tenant_id, "is_active": user.is_active, "created_at": user.created_at.isoformat() if user.created_at else None}
     }
 
+def validate_reg_code(reg_code: str):
+    redis_key = f"reg_code:{reg_code}"
+    tenant_id = redis_client.get(redis_key)
+    if not tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Kode registrasi tidak valid atau sudah kadaluarsa."
+        )
+    return {"tenant_id": tenant_id}
+
 def register_admin_with_code(db: Session, reg_code: str, admin_data: UserCreateDTO):
     redis_key = f"reg_code:{reg_code}"
     
