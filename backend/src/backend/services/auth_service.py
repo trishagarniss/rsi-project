@@ -50,13 +50,17 @@ def register_admin_with_code(db: Session, reg_code: str, admin_data: UserCreateD
     if existing_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar.")
         
-    # 3. Proses pendaftaran Admin
-    # Override role dan tenant_id agar sesuai dengan tujuan Registration Code
-    admin_data.role = UserRole.ADMIN
-    admin_data.tenant_id = tenant_id
-    
-    # Eksekusi pembuatan user ke repository
-    new_admin = user_repo.create_user(db, admin_data)
+    # 3. Hash password dan buat akun Admin
+    hashed_pw = get_password_hash(admin_data.password)
+
+    new_admin = user_repo.create_user(
+        db=db,
+        fullname=admin_data.fullname,
+        email=admin_data.email,
+        hashed_password=hashed_pw,
+        tenant_id=tenant_id,
+        role=UserRole.ADMIN
+    )
     
     # 4. Hapus kode dari Redis agar hangus (Single-Use)
     redis_client.delete(redis_key)
