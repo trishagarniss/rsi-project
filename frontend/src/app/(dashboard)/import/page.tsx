@@ -1,16 +1,62 @@
 'use client'; // Kita butuh use client karena ada interaksi tombol upload
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@/components/ui/Button';
+import { fetchAllStudents, type StudentRecord } from '@/lib/dashboard-api';
 
 export default function DataImportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [students, setStudents] = useState<StudentRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchValue, setSearchValue] = useState('');
 
   // Fungsi tiruan untuk memicu klik pada input file tersembunyi
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadStudents() {
+      try {
+        setIsLoading(true);
+        const studentRecords = await fetchAllStudents(100);
+
+        if (isMounted) {
+          setStudents(studentRecords);
+          setError(null);
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setError(loadError instanceof Error ? loadError.message : 'Gagal memuat pratinjau data siswa.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadStudents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredStudents = useMemo(() => {
+    const query = searchValue.trim().toLowerCase();
+
+    return students.filter((student) =>
+      !query ||
+      student.name.toLowerCase().includes(query) ||
+      student.nis.toLowerCase().includes(query) ||
+      student.nisn?.toLowerCase().includes(query)
+    );
+  }, [searchValue, students]);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -31,6 +77,8 @@ export default function DataImportPage() {
               type="text" 
               placeholder="Cari nama siswa..." 
               className="w-full bg-transparent border-none focus:outline-none text-sm font-bold text-slate-700 placeholder-slate-400" 
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
             />
         </div>
         
@@ -52,7 +100,7 @@ export default function DataImportPage() {
       </div>
 
       {/* ================= AREA UPLOAD / EMPTY STATE ================= */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-125">
         
         {/* Header Tabel Tiruan */}
         <div className="h-12 bg-slate-100/50 border-b border-slate-100 w-full" />
@@ -86,6 +134,60 @@ export default function DataImportPage() {
             className="hidden" 
             accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
           />
+        </div>
+
+        <div className="border-t border-slate-100 bg-white px-8 py-6">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-black text-asgard-primary">Pratinjau Data Siswa dari Database</h3>
+              <p className="text-sm font-medium text-slate-500">Data ini membantu memverifikasi isi sebelum file baru diunggah.</p>
+            </div>
+            <span className="text-sm font-bold text-slate-500">{filteredStudents.length} baris</span>
+          </div>
+
+          {isLoading ? (
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-6 text-sm font-bold text-slate-500">
+              Memuat pratinjau data siswa...
+            </div>
+          ) : error ? (
+            <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-sm font-bold text-red-700">
+              {error}
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm font-bold text-slate-500">
+              Tidak ada siswa yang cocok dengan pencarian.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-100">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-400">
+                  <tr>
+                    <th className="px-4 py-3 font-bold">Nama</th>
+                    <th className="px-4 py-3 font-bold">NIS / NISN</th>
+                    <th className="px-4 py-3 font-bold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {filteredStudents.slice(0, 10).map((student) => (
+                    <tr key={student.id}>
+                      <td className="px-4 py-3 text-sm font-bold text-slate-700">{student.name}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        <div className="flex flex-col">
+                          <span>{student.nis}</span>
+                          <span className="text-xs font-medium text-slate-400">{student.nisn ?? '-'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-md border px-3 py-1 text-xs font-bold uppercase tracking-wider ${student.is_active ? 'border-emerald-100 bg-emerald-50 text-emerald-600' : 'border-slate-200 bg-slate-100 text-slate-500'}`}>
+                          {student.is_active ? 'Aktif' : 'Non-Aktif'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Pagination Tiruan (Sesuai Mockup) */}

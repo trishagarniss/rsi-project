@@ -1,21 +1,132 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import RiskBadge from '@/components/ui/RiskBadge';
 import Button from '@/components/ui/Button';
+import {
+  fetchAllStudents,
+  fetchLatestPrediction,
+  formatDateTime,
+  formatRiskLabel,
+  riskScoreToLevel,
+  type RiskPredictionRecord,
+  type StudentRecord,
+} from '@/lib/dashboard-api';
 
-// --- MOCK DATA ---
-const mockCounseling = [
-  { id: 1, tanggal: '12 Mei 2026', nama: 'Budi Santoso', kelas: '12 IPA 1', risiko: 'Tinggi', topik: 'Absensi & Motivasi Belajar', status: 'Menunggu Tindak Lanjut' },
-  { id: 2, tanggal: '10 Mei 2026', nama: 'Rina Melati', kelas: '12 Bahasa', risiko: 'Tinggi', topik: 'Masalah Ekonomi Keluarga', status: 'Selesai' },
-  { id: 3, tanggal: '08 Mei 2026', nama: 'Andi Wijaya', kelas: '10 IPA 3', risiko: 'Sedang', topik: 'Adaptasi Lingkungan', status: 'Dalam Pantauan' },
-  { id: 4, tanggal: '05 Mei 2026', nama: 'Siti Aminah', kelas: '11 IPS 2', risiko: 'Sedang', topik: 'Penurunan Nilai Akademik', status: 'Selesai' },
-];
+type CounselingRow = StudentRecord & {
+  latestPrediction: RiskPredictionRecord;
+  riskLevel: ReturnType<typeof riskScoreToLevel>;
+  topik: string;
+  status: string;
+  tanggal: string;
+};
 
 export default function CounselingManagement() {
+  const [sessions, setSessions] = useState<CounselingRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCounselingQueue() {
+      try {
+        setIsLoading(true);
+        const studentRecords = await fetchAllStudents(100);
+        const predictionPairs = await Promise.all(
+          studentRecords.map(async (student) => ({
+            studentId: student.id,
+            prediction: await fetchLatestPrediction(student.id),
+          }))
+        );
+
+        const rows = predictionPairs
+          .map(({ studentId, prediction }) => {
+            const student = studentRecords.find((item) => item.id === studentId);
+
+            if (!student || !prediction) {
+              return null;
+            }
+
+            return {
+              ...student,
+              latestPrediction: prediction,
+              riskLevel: formatRiskLabel(prediction.risk_score, prediction.is_at_risk),
+              topik: prediction.factors_summary ?? 'Prediksi risiko terbaru',
+              status: prediction.is_at_risk ? 'Menunggu Tindak Lanjut' : 'Selesai',
+              tanggal: formatDateTime(prediction.created_at),
+            };
+          })
+          .filter((row): row is CounselingRow => Boolean(row))
+          .filter((row) => row.latestPrediction.is_at_risk)
+          .sort((left, right) => right.latestPrediction.risk_score - left.latestPrediction.risk_score);
+
+        if (isMounted) {
+          setSessions(rows);
+          setError(null);
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setError(loadError instanceof Error ? loadError.message : 'Gagal memuat antrian counseling.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadCounselingQueue();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const summary = useMemo(
+    () => ({
+      total: sessions.length,
+      waiting: sessions.filter((session) => session.status === 'Menunggu Tindak Lanjut').length,
+      completed: sessions.filter((session) => session.status === 'Selesai').length,
+    }),
+    [sessions]
+  );
+
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm">
+        <p className="text-sm font-bold text-slate-500">Memuat antrian counseling dari prediksi backend...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-red-700 shadow-sm">
+        <h3 className="text-base font-black">Gagal memuat counseling</h3>
+        <p className="mt-2 text-sm font-medium">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Antrian</p>
+          <p className="mt-2 text-3xl font-black text-asgard-primary">{summary.total}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Menunggu Tindak Lanjut</p>
+          <p className="mt-2 text-3xl font-black text-red-500">{summary.waiting}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Selesai</p>
+          <p className="mt-2 text-3xl font-black text-emerald-600">{summary.completed}</p>
+        </div>
+      </div>
       
       {/* ================= BARIS FILTER & SEARCH ================= */}
       <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -46,11 +157,12 @@ export default function CounselingManagement() {
       {/* ================= TABEL DATA KONSELING ================= */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+          <table className="w-full text-left border-collapse min-w-225">
             <thead>
               <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
                 <th className="px-6 py-5 font-black">Tanggal</th>
                 <th className="px-6 py-5 font-black">Nama Siswa</th>
+                <th className="px-6 py-5 font-black">NISN</th>
                 <th className="px-6 py-5 font-black">Tingkat Risiko</th>
                 <th className="px-6 py-5 font-black">Topik Konseling</th>
                 <th className="px-6 py-5 font-black">Status Penanganan</th>
@@ -58,15 +170,18 @@ export default function CounselingManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {mockCounseling.map((sesi) => (
+              {sessions.map((sesi) => (
                 <tr key={sesi.id} className="hover:bg-slate-50/80 transition-colors group">
                   <td className="px-6 py-4 text-sm font-bold text-slate-600">{sesi.tanggal}</td>
                   <td className="px-6 py-4">
-                    <p className="font-bold text-slate-800">{sesi.nama}</p>
-                    <p className="text-xs font-medium text-slate-400 mt-0.5">{sesi.kelas}</p>
+                    <p className="font-bold text-slate-800">{sesi.name}</p>
+                    <p className="text-xs font-medium text-slate-400 mt-0.5">{sesi.nis}</p>
+                  </td>
+                  <td className="px-6 py-4 text-sm font-bold text-slate-600">
+                    {sesi.nisn ?? '-'}
                   </td>
                   <td className="px-6 py-4">
-                    <RiskBadge level={sesi.risiko as any} />
+                    <RiskBadge level={sesi.riskLevel} />
                   </td>
                   <td className="px-6 py-4 text-sm font-bold text-slate-600">{sesi.topik}</td>
                   <td className="px-6 py-4">
@@ -94,7 +209,7 @@ export default function CounselingManagement() {
 
         {/* ================= PAGINATION ================= */}
         <div className="px-8 py-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/30">
-            <span className="text-sm font-bold text-slate-500">Menampilkan 1-4 dari 45 catatan</span>
+            <span className="text-sm font-bold text-slate-500">Menampilkan 1-{sessions.length} dari {sessions.length} catatan risiko</span>
             <div className="flex items-center gap-1">
                 <button className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors">« Prev</button>
                 <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-asgard-primary text-white font-bold shadow-md">1</button>

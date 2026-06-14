@@ -2,9 +2,11 @@
 
 import React, { useState } from 'react';
 import Button from '@/components/ui/Button';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profil');
+    const { user } = useAuth();
 
   return (
     <div className="max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -17,7 +19,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[500px]">
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col md:flex-row min-h-125">
         
         {/* ================= SIDEBAR TABS ================= */}
         <div className="w-full md:w-64 bg-slate-50/50 border-r border-slate-100 p-6 flex flex-col gap-2">
@@ -63,7 +65,7 @@ export default function SettingsPage() {
                     
                     <div className="flex items-center gap-6 pb-6">
                         <div className="w-20 h-20 rounded-full bg-asgard-primary text-white flex items-center justify-center text-2xl font-black shadow-lg">
-                            K
+                            {user?.fullname?.[0]?.toUpperCase() ?? 'A'}
                         </div>
                         <div>
                             <Button variant="outline" size="sm" className="mb-2">Ubah Foto</Button>
@@ -74,11 +76,11 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-sm font-bold text-slate-700">Nama Lengkap</label>
-                            <input type="text" defaultValue="Kunto Rossindu" className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary transition-all" />
+                            <input type="text" value={user?.fullname ?? ''} readOnly className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary transition-all" />
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-bold text-slate-700">Alamat Email</label>
-                            <input type="email" defaultValue="kunto.admin@sman1-asgard.edu" className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary transition-all" />
+                            <input type="email" value={user?.email ?? ''} readOnly className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary transition-all" />
                         </div>
                     </div>
                     
@@ -90,7 +92,7 @@ export default function SettingsPage() {
                     <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50">
                         <div>
                             <p className="text-sm font-bold text-slate-800">Kata Sandi Akun</p>
-                            <p className="text-xs font-medium text-slate-500 mt-1">Terakhir diubah 3 bulan yang lalu</p>
+                            <p className="text-xs font-medium text-slate-500 mt-1">Kelola sandi melalui endpoint backend yang tersedia</p>
                         </div>
                         <Button variant="outline" size="sm">Ganti Sandi</Button>
                     </div>
@@ -105,7 +107,7 @@ export default function SettingsPage() {
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-sm font-bold text-slate-700">Nama Sekolah</label>
-                            <input type="text" defaultValue="SMA Negeri 1 Asgard" className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary transition-all" />
+                            <input type="text" value={user?.tenant_id ?? 'Tenant belum tersedia di profil user'} readOnly className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary transition-all" />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">

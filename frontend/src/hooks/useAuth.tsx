@@ -15,6 +15,9 @@ import {
   setAccessToken,
   setRefreshToken,
   clearTokens,
+  setStoredUser,
+  getStoredUser,
+  clearStoredUser,
   getAccessToken,
   getRefreshToken,
 } from "@/lib/auth";
@@ -35,17 +38,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   const fetchUser = useCallback(async () => {
-    const token = getAccessToken();
-    if (!token) {
+    const storedUser = getStoredUser();
+    if (!storedUser) {
       setIsLoading(false);
       return;
     }
 
     try {
-      const userData = await get<User>("/auth/me");
-      setUser(userData);
+      setUser(storedUser as User);
     } catch {
-      clearTokens();
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -61,12 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const res = await post<LoginResponse>("/auth/login", { email, password });
-      setAccessToken(res.access_token);
-      setRefreshToken(res.refresh_token);
-      setUser(res.user);
+      const res = (await post("/auth/login", { email, password })) as LoginResponse;
+      setAccessToken(res.data.access_token);
+      setRefreshToken(res.data.refresh_token);
+      setUser(res.data.user);
+      setStoredUser(res.data.user);
 
-      if (res.user.role === "superadmin") {
+      if (res.data.user.role === "superadmin") {
         router.push("/superadmin/superadmin");
       } else {
         router.push("/dashboard/dashboard");
@@ -85,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     clearTokens();
+    clearStoredUser();
     setUser(null);
     router.push("/login");
   }, [router]);

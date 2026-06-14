@@ -5,13 +5,15 @@ export enum UserRole {
 }
 
 export interface User {
-  id: number;
+  id: string;
   email: string;
-  full_name: string;
+  fullname: string;
   role: UserRole;
-  tenant_id: number | null;
+  tenant_id: string | null;
   is_active: boolean;
   created_at: string;
+  updated_at?: string | null;
+  last_login_at?: string | null;
 }
 
 export interface LoginRequest {
@@ -20,9 +22,13 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  user: User;
+  status?: string;
+  message?: string;
+  data: {
+    access_token: string;
+    refresh_token: string;
+    user: User;
+  };
 }
 
 export interface RefreshRequest {

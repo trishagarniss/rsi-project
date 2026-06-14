@@ -45,13 +45,12 @@ export default function LoginPage() {
 
     try {
       // Menembak API FastAPI
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/login`, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`, {
         email: email,
         password: password
       });
 
-      // Mengambil token (tergantung format kembalian backend-mu)
-      const token = response.data.access_token || response.data.token || response.data.data?.token;
+      const token = response.data.data?.access_token || response.data.access_token || response.data.token;
       
       if (token) {
         // Simpan token di Cookie selama 1 hari

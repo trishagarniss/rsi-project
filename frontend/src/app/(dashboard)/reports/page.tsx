@@ -1,121 +1,243 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
+import {
+    fetchAllAuditLogs,
+    fetchAllStudents,
+    fetchLatestPrediction,
+    formatDateTime,
+    formatRiskLabel,
+    riskScoreToLevel,
+    type AuditLogRecord,
+    type RiskPredictionRecord,
+    type StudentRecord,
+} from '@/lib/dashboard-api';
+
+type StudentWithPrediction = StudentRecord & {
+    latestPrediction: RiskPredictionRecord | null;
+    riskLevel: ReturnType<typeof riskScoreToLevel>;
+};
 
 export default function ReportsAnalytics() {
-  return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
-      {/* ================= HEADER ================= */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-asgard-primary">Laporan & Analitik</h1>
-          <p className="text-slate-500 font-medium mt-1">Pusat unduh rekapitulasi data akademik dan status risiko siswa.</p>
-        </div>
-        
-        <Button variant="primary" className="whitespace-nowrap shadow-md">
-            <span className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
-                Buat Laporan Kustom
-            </span>
-        </Button>
-      </div>
+    const [students, setStudents] = useState<StudentWithPrediction[]>([]);
+    const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-      {/* ================= FILTER PERIODE ================= */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-wrap gap-4 items-center">
-        <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer transition-all">
-            <option>Tahun Ajaran 2025/2026</option>
-            <option>Tahun Ajaran 2024/2025</option>
-        </select>
-        <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer transition-all">
-            <option>Semester Genap</option>
-            <option>Semester Ganjil</option>
-        </select>
-        <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer transition-all">
-            <option>Semua Kelas</option>
-            <option>Kelas 10</option>
-            <option>Kelas 11</option>
-            <option>Kelas 12</option>
-        </select>
-      </div>
+    useEffect(() => {
+        let isMounted = true;
 
-      {/* ================= METRIK SINGKAT ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Total Siswa Dievaluasi</p>
-            <h2 className="text-4xl font-black text-asgard-primary mt-2">1.908</h2>
-            <p className="text-xs font-bold text-emerald-500 mt-2 bg-emerald-50 w-fit px-2 py-1 rounded-md">Data 100% Lengkap</p>
-        </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Tren Risiko Tinggi</p>
-            <h2 className="text-4xl font-black text-red-500 mt-2">128</h2>
-            <p className="text-xs font-bold text-red-500 mt-2 bg-red-50 w-fit px-2 py-1 rounded-md">Naik 12% dari semester lalu</p>
-        </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Intervensi Selesai</p>
-            <h2 className="text-4xl font-black text-blue-500 mt-2">312</h2>
-            <p className="text-xs font-bold text-slate-400 mt-2">Oleh Tim Konselor BK</p>
-        </div>
-      </div>
+        async function loadReportsData() {
+            try {
+                setIsLoading(true);
 
-      {/* ================= AREA UNDUH LAPORAN ================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Placeholder Grafik Analytics */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-[400px]">
-            <h3 className="text-lg font-black text-asgard-primary mb-4">Distribusi Risiko per Angkatan</h3>
-            <div className="flex-1 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex items-center justify-center">
-                <p className="text-slate-400 font-bold text-sm">Area Grafik Laporan (Recharts/Chart.js)</p>
+                const [studentRecords, logs] = await Promise.all([
+                    fetchAllStudents(100),
+                    fetchAllAuditLogs(100),
+                ]);
+
+                const predictionPairs = await Promise.all(
+                    studentRecords.map(async (student) => ({
+                        studentId: student.id,
+                        prediction: await fetchLatestPrediction(student.id),
+                    }))
+                );
+
+                const predictionMap = new Map(
+                    predictionPairs.map(({ studentId, prediction }) => [studentId, prediction])
+                );
+
+                const nextStudents = studentRecords.map((student) => {
+                    const latestPrediction = predictionMap.get(student.id) ?? null;
+
+                    return {
+                        ...student,
+                        latestPrediction,
+                        riskLevel: latestPrediction
+                            ? formatRiskLabel(latestPrediction.risk_score, latestPrediction.is_at_risk)
+                            : 'Aman',
+                    };
+                });
+
+                if (isMounted) {
+                    setStudents(nextStudents);
+                    setAuditLogs(logs);
+                    setError(null);
+                }
+            } catch (loadError) {
+                if (isMounted) {
+                    setError(loadError instanceof Error ? loadError.message : 'Gagal memuat laporan.');
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        }
+
+        loadReportsData();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const reportStats = useMemo(() => {
+        const totalStudents = students.length;
+        const highRiskStudents = students.filter((student) => student.riskLevel === 'Tinggi').length;
+        const activeLogs = auditLogs.filter((log) => /UPDATE|CREATE|LOGIN|UPLOAD|BULK/.test(log.action.toUpperCase())).length;
+
+        return {
+            totalStudents,
+            highRiskStudents,
+            activeLogs,
+        };
+    }, [auditLogs, students]);
+
+    const reportItems = useMemo(() => {
+        const latestRiskStudent = [...students].sort(
+            (left, right) => (right.latestPrediction?.risk_score ?? 0) - (left.latestPrediction?.risk_score ?? 0)
+        )[0];
+        const latestAuditLog = auditLogs[0];
+
+        return [
+            {
+                type: 'PDF',
+                title: 'Rekapitulasi Siswa Risiko Tinggi',
+                description: latestRiskStudent
+                    ? `${reportStats.highRiskStudents} siswa berisiko tinggi • ${latestRiskStudent.name}`
+                    : 'Belum ada siswa berisiko tinggi yang tercatat.',
+                date: latestRiskStudent?.latestPrediction?.created_at ?? null,
+                accent: 'bg-red-100 text-red-600',
+            },
+            {
+                type: 'CSV',
+                title: 'Data Mentah Prediksi Keseluruhan',
+                description: `${reportStats.totalStudents} siswa dievaluasi • data dari tabel students`,
+                date: null,
+                accent: 'bg-emerald-100 text-emerald-600',
+            },
+            {
+                type: 'LOG',
+                title: 'Laporan Aktivitas Audit Sistem',
+                description: `${auditLogs.length} log aktivitas tersimpan di backend`,
+                date: latestAuditLog?.created_at ?? null,
+                accent: 'bg-blue-100 text-blue-600',
+            },
+        ];
+    }, [auditLogs, reportStats.highRiskStudents, reportStats.totalStudents, students]);
+
+    if (isLoading) {
+        return (
+            <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm">
+                <p className="text-sm font-bold text-slate-500">Memuat laporan dari backend...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-red-700 shadow-sm">
+                <h3 className="text-base font-black">Gagal memuat laporan</h3>
+                <p className="mt-2 text-sm font-medium">{error}</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-black text-asgard-primary">Laporan & Analitik</h1>
+                    <p className="text-slate-500 font-medium mt-1">Ringkasan data yang dihitung langsung dari backend.</p>
+                </div>
+
+                <Button variant="primary" className="whitespace-nowrap shadow-md">
+                        <span className="flex items-center gap-2">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+                                Buat Laporan Kustom
+                        </span>
+                </Button>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-wrap gap-4 items-center">
+                <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer transition-all">
+                        <option>Tahun Ajaran 2025/2026</option>
+                        <option>Tahun Ajaran 2024/2025</option>
+                </select>
+                <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer transition-all">
+                        <option>Semester Genap</option>
+                        <option>Semester Ganjil</option>
+                </select>
+                <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer transition-all">
+                        <option>Semua Kelas</option>
+                        <option>Kelas 10</option>
+                        <option>Kelas 11</option>
+                        <option>Kelas 12</option>
+                </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Total Siswa Dievaluasi</p>
+                        <h2 className="text-4xl font-black text-asgard-primary mt-2">{reportStats.totalStudents}</h2>
+                        <p className="text-xs font-bold text-emerald-500 mt-2 bg-emerald-50 w-fit px-2 py-1 rounded-md">Data diambil dari students</p>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Tren Risiko Tinggi</p>
+                        <h2 className="text-4xl font-black text-red-500 mt-2">{reportStats.highRiskStudents}</h2>
+                        <p className="text-xs font-bold text-red-500 mt-2 bg-red-50 w-fit px-2 py-1 rounded-md">Berdasarkan prediksi terbaru</p>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Log Aktivitas Sistem</p>
+                        <h2 className="text-4xl font-black text-blue-500 mt-2">{reportStats.activeLogs}</h2>
+                        <p className="text-xs font-bold text-slate-400 mt-2">Tercatat di audit log tenant</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-100">
+                        <h3 className="text-lg font-black text-asgard-primary mb-4">Distribusi Risiko per Angkatan</h3>
+                        <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 p-6">
+                                <div className="space-y-4">
+                                    {[
+                                        { label: 'Tinggi', count: reportStats.highRiskStudents, color: 'bg-red-500' },
+                                        { label: 'Aman', count: reportStats.totalStudents - reportStats.highRiskStudents, color: 'bg-emerald-500' },
+                                    ].map((item) => (
+                                        <div key={item.label} className="flex items-center gap-3">
+                                            <span className="w-20 text-xs font-black uppercase tracking-wider text-slate-500">{item.label}</span>
+                                            <div className="h-3 flex-1 rounded-full bg-slate-200 overflow-hidden">
+                                                <div className={`h-full ${item.color}`} style={{ width: `${Math.max((item.count / Math.max(reportStats.totalStudents, 1)) * 100, item.count > 0 ? 6 : 0)}%` }} />
+                                            </div>
+                                            <span className="w-8 text-right text-sm font-bold text-slate-600">{item.count}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                        </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-100">
+                        <h3 className="text-lg font-black text-asgard-primary mb-4">Laporan Tersedia (Bulan Ini)</h3>
+                        <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+                                {reportItems.map((item) => (
+                                    <div key={item.title} className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:border-asgard-primary/30 transition-colors flex items-center justify-between group">
+                                            <div className="flex items-center gap-4">
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-xs ${item.accent}`}>{item.type}</div>
+                                                    <div>
+                                                            <p className="text-sm font-bold text-slate-800">{item.title}</p>
+                                                            <p className="text-xs font-medium text-slate-400 mt-0.5">{item.description}</p>
+                                                    </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                {item.date && <span className="text-xs font-bold text-slate-400">{formatDateTime(item.date)}</span>}
+                                                <Button variant="outline" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">Unduh</Button>
+                                            </div>
+                                    </div>
+                                ))}
+                        </div>
+                </div>
             </div>
         </div>
-
-        {/* Daftar Laporan Tersedia */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-[400px]">
-            <h3 className="text-lg font-black text-asgard-primary mb-4">Laporan Tersedia (Bulan Ini)</h3>
-            <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-                
-                {/* Item Laporan 1 */}
-                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:border-asgard-primary/30 transition-colors flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">PDF</div>
-                        <div>
-                            <p className="text-sm font-bold text-slate-800">Rekapitulasi Siswa Risiko Tinggi</p>
-                            <p className="text-xs font-medium text-slate-400 mt-0.5">Dihasilkan otomatis: 13 Jun 2026</p>
-                        </div>
-                    </div>
-                    <Button variant="outline" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">Unduh</Button>
-                </div>
-
-                {/* Item Laporan 2 */}
-                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:border-asgard-primary/30 transition-colors flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-xs">CSV</div>
-                        <div>
-                            <p className="text-sm font-bold text-slate-800">Data Mentah Prediksi Keseluruhan</p>
-                            <p className="text-xs font-medium text-slate-400 mt-0.5">Seluruh kelas • 1.908 baris</p>
-                        </div>
-                    </div>
-                    <Button variant="outline" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">Unduh</Button>
-                </div>
-
-                {/* Item Laporan 3 */}
-                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:border-asgard-primary/30 transition-colors flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">PDF</div>
-                        <div>
-                            <p className="text-sm font-bold text-slate-800">Laporan Aktivitas Konseling BK</p>
-                            <p className="text-xs font-medium text-slate-400 mt-0.5">Semester Genap 2025/2026</p>
-                        </div>
-                    </div>
-                    <Button variant="outline" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">Unduh</Button>
-                </div>
-
-            </div>
-        </div>
-
-      </div>
-
-    </div>
-  );
+    );
 }

@@ -1,45 +1,102 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
+import { fetchAllAuditLogs, formatDateTime, type AuditLogRecord } from '@/lib/dashboard-api';
 
-// --- MOCK DATA ---
-const mockNotifications = [
-  {
-    id: 1,
-    tipe: 'Kritis',
-    judul: 'Lonjakan Risiko Terdeteksi',
-    pesan: 'Sistem AI mendeteksi 5 siswa di Kelas 11 IPS 2 mengalami penurunan akademik drastis dan peningkatan ketidakhadiran minggu ini.',
-    waktu: '2 jam yang lalu',
-    sudahDibaca: false,
-  },
-  {
-    id: 2,
-    tipe: 'Peringatan',
-    judul: 'Tenggat Waktu Intervensi',
-    pesan: 'Anda belum mencatat hasil tindak lanjut pemanggilan orang tua untuk siswa a.n. Andi Wijaya (Tenggat: 13 Juni 2026).',
-    waktu: 'Kemarin, 14:30',
-    sudahDibaca: false,
-  },
-  {
-    id: 3,
-    tipe: 'Info',
-    judul: 'Pembaruan Data Berhasil',
-    pesan: 'Berkas "Nilai_UAS_Semester_Genap.csv" berhasil diunggah dan diproses. 320 profil siswa telah diperbarui.',
-    waktu: '10 Jun 2026, 09:15',
-    sudahDibaca: true,
-  },
-  {
-    id: 4,
-    tipe: 'Peringatan',
-    judul: 'Laporan Semesteran',
-    pesan: 'Bulan ini adalah akhir semester. Jangan lupa untuk mengunduh laporan rekapitulasi penanganan BK.',
-    waktu: '08 Jun 2026, 08:00',
-    sudahDibaca: true,
-  },
-];
+type NotificationType = 'Kritis' | 'Peringatan' | 'Info';
+
+type NotificationItem = AuditLogRecord & {
+  tipe: NotificationType;
+  judul: string;
+  pesan: string;
+  waktu: string;
+};
 
 export default function NotificationCenter() {
+  const [logs, setLogs] = useState<NotificationItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<NotificationType | 'Semua'>('Semua');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLogs() {
+      try {
+        setIsLoading(true);
+        const auditLogs = await fetchAllAuditLogs(100);
+
+        const nextLogs = auditLogs.map((log) => {
+          const action = log.action.toUpperCase();
+          const tipe: NotificationType =
+            /DELETE|REMOVE|ARCHIVE/.test(action)
+              ? 'Kritis'
+              : /UPDATE|CREATE|UPLOAD|BULK/.test(action)
+                ? 'Peringatan'
+                : 'Info';
+          const detailsSummary = log.details ? Object.entries(log.details).slice(0, 2).map(([key, value]) => `${key}: ${String(value)}`).join(' • ') : 'Tidak ada detail tambahan';
+
+          return {
+            ...log,
+            tipe,
+            judul: `${log.action} ${log.entity_name}`.replaceAll('_', ' '),
+            pesan: detailsSummary,
+            waktu: formatDateTime(log.created_at),
+          };
+        });
+
+        if (isMounted) {
+          setLogs(nextLogs);
+          setError(null);
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setError(loadError instanceof Error ? loadError.message : 'Gagal memuat notifikasi.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadLogs();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const visibleLogs = useMemo(
+    () => logs.filter((log) => activeFilter === 'Semua' || log.tipe === activeFilter),
+    [logs, activeFilter]
+  );
+
+  const counts = {
+    total: logs.length,
+    kritis: logs.filter((log) => log.tipe === 'Kritis').length,
+    peringatan: logs.filter((log) => log.tipe === 'Peringatan').length,
+    info: logs.filter((log) => log.tipe === 'Info').length,
+  };
+
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm">
+        <p className="text-sm font-bold text-slate-500">Memuat notifikasi dari audit log backend...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-red-700 shadow-sm">
+        <h3 className="text-base font-black">Gagal memuat notifikasi</h3>
+        <p className="mt-2 text-sm font-medium">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
@@ -47,7 +104,7 @@ export default function NotificationCenter() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-asgard-primary">Pusat Pemberitahuan</h1>
-          <p className="text-slate-500 font-medium mt-1">Pantau peringatan sistem, jadwal intervensi, dan pembaruan data.</p>
+          <p className="text-slate-500 font-medium mt-1">Pantau aktivitas sistem berdasarkan audit log real-time.</p>
         </div>
         
         <div className="flex gap-3">
@@ -62,25 +119,30 @@ export default function NotificationCenter() {
 
       {/* ================= KONTROL FILTER ================= */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-4">
-        <button className="px-4 py-2 text-sm font-bold bg-asgard-primary text-white rounded-full transition-colors">
-            Semua (4)
+        <button onClick={() => setActiveFilter('Semua')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors ${activeFilter === 'Semua' ? 'bg-asgard-primary text-white' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>
+          Semua ({counts.total})
         </button>
-        <button className="px-4 py-2 text-sm font-bold bg-white text-slate-500 hover:bg-slate-100 border border-slate-200 rounded-full transition-colors">
-            Belum Dibaca (2)
+        <button onClick={() => setActiveFilter('Info')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors ${activeFilter === 'Info' ? 'bg-asgard-primary text-white' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>
+          Info ({counts.info})
         </button>
-        <button className="px-4 py-2 text-sm font-bold bg-white text-red-500 hover:bg-red-50 border border-slate-200 rounded-full transition-colors">
-            Kritis
+        <button onClick={() => setActiveFilter('Peringatan')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors ${activeFilter === 'Peringatan' ? 'bg-amber-500 text-white' : 'bg-white text-amber-600 hover:bg-amber-50 border border-slate-200'}`}>
+          Peringatan ({counts.peringatan})
+        </button>
+        <button onClick={() => setActiveFilter('Kritis')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors ${activeFilter === 'Kritis' ? 'bg-red-500 text-white' : 'bg-white text-red-500 hover:bg-red-50 border border-slate-200'}`}>
+          Kritis ({counts.kritis})
         </button>
       </div>
 
       {/* ================= DAFTAR NOTIFIKASI ================= */}
       <div className="space-y-4">
-        {mockNotifications.map((notif) => (
+        {visibleLogs.map((notif) => (
           <div 
             key={notif.id} 
             className={`p-6 rounded-2xl border transition-all duration-300 flex flex-col sm:flex-row gap-5 ${
-                notif.sudahDibaca 
-                ? 'bg-transparent border-slate-200 opacity-70' 
+                notif.tipe === 'Kritis'
+                ? 'bg-red-50 border-red-100 shadow-sm hover:shadow-md'
+                : notif.tipe === 'Peringatan'
+                ? 'bg-amber-50 border-amber-100 shadow-sm hover:shadow-md'
                 : 'bg-white border-slate-100 shadow-sm hover:shadow-md'
             }`}
           >
@@ -108,32 +170,34 @@ export default function NotificationCenter() {
             <div className="flex-1">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-3">
-                        <h3 className={`text-base font-black ${notif.sudahDibaca ? 'text-slate-600' : 'text-slate-900'}`}>
+                        <h3 className={`text-base font-black ${notif.tipe === 'Info' ? 'text-slate-800' : 'text-slate-900'}`}>
                             {notif.judul}
                         </h3>
-                        {/* Dot indicator untuk belum dibaca */}
-                        {!notif.sudahDibaca && <span className="w-2 h-2 rounded-full bg-asgard-primary"></span>}
                     </div>
                     <span className="text-xs font-bold text-slate-400 whitespace-nowrap">
                         {notif.waktu}
                     </span>
                 </div>
-                <p className={`text-sm leading-relaxed mb-4 ${notif.sudahDibaca ? 'text-slate-500' : 'text-slate-600 font-medium'}`}>
+                <p className={`text-sm leading-relaxed mb-4 ${notif.tipe === 'Info' ? 'text-slate-500' : 'text-slate-700 font-medium'}`}>
                     {notif.pesan}
                 </p>
                 
                 {/* Tombol Aksi Kontekstual */}
-                {!notif.sudahDibaca && (
-                    <div className="flex items-center gap-3">
-                        {notif.tipe === 'Kritis' && <Button variant="danger" size="sm" className="text-xs">Lihat Daftar Siswa</Button>}
-                        {notif.tipe === 'Peringatan' && <Button variant="secondary" size="sm" className="text-xs">Buka Modul Konseling</Button>}
-                        {notif.tipe === 'Info' && <Button variant="outline" size="sm" className="text-xs">Lihat Detail</Button>}
-                    </div>
-                )}
+                <div className="flex items-center gap-3">
+                    {notif.tipe === 'Kritis' && <Button variant="danger" size="sm" className="text-xs">Lihat Daftar Siswa</Button>}
+                    {notif.tipe === 'Peringatan' && <Button variant="secondary" size="sm" className="text-xs">Buka Modul Konseling</Button>}
+                    {notif.tipe === 'Info' && <Button variant="outline" size="sm" className="text-xs">Lihat Detail</Button>}
+                </div>
             </div>
 
           </div>
         ))}
+
+        {visibleLogs.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-500">
+            Tidak ada notifikasi untuk filter yang dipilih.
+          </div>
+        )}
       </div>
 
     </div>

@@ -1,16 +1,87 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
+import { fetchAllUsers, formatDateTime, type UserRecord } from '@/lib/dashboard-api';
 
-// --- MOCK DATA ---
-const mockAccounts = [
-  { id: 1, nama: 'Kepala IT Sekolah', email: 'admin@sman1-asgard.edu', role: 'Admin', status: 'Aktif', lastLogin: '12 Jun 2026, 08:30' },
-  { id: 2, nama: 'Dra. Rini Susanti', email: 'rini.bk@sman1-asgard.edu', role: 'Konselor (BK)', status: 'Aktif', lastLogin: '11 Jun 2026, 14:15' },
-  { id: 3, nama: 'Budi Operator', email: 'tu@sman1-asgard.edu', role: 'Admin TU', status: 'Aktif', lastLogin: '12 Jun 2026, 07:05' },
-];
+const roleLabelMap: Record<UserRecord['role'], string> = {
+  superadmin: 'Super Admin',
+  admin: 'Admin',
+  counselor: 'Konselor (BK)',
+};
 
 export default function ManageAccounts() {
+  const [accounts, setAccounts] = useState<UserRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchValue, setSearchValue] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | UserRecord['role']>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadAccounts() {
+      try {
+        setIsLoading(true);
+        const userRecords = await fetchAllUsers(100);
+
+        if (isMounted) {
+          setAccounts(userRecords);
+          setError(null);
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setError(loadError instanceof Error ? loadError.message : 'Gagal memuat akun pengguna.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadAccounts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredAccounts = useMemo(() => {
+    const query = searchValue.trim().toLowerCase();
+
+    return accounts.filter((account) => {
+      const matchesSearch =
+        !query ||
+        account.fullname.toLowerCase().includes(query) ||
+        account.email.toLowerCase().includes(query);
+      const matchesRole = roleFilter === 'all' || account.role === roleFilter;
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' ? account.is_active : !account.is_active);
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [accounts, roleFilter, searchValue, statusFilter]);
+
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm">
+        <p className="text-sm font-bold text-slate-500">Memuat akun pengguna dari backend...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-red-700 shadow-sm">
+        <h3 className="text-base font-black">Gagal memuat akun</h3>
+        <p className="mt-2 text-sm font-medium">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
@@ -18,7 +89,7 @@ export default function ManageAccounts() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-asgard-primary">Manajemen Akses Sekolah</h1>
-          <p className="text-slate-500 font-medium mt-1">Portal eksklusif Admin untuk membuat dan mengelola akun staf TU serta Guru BK.</p>
+          <p className="text-slate-500 font-medium mt-1">Daftar akun ditarik langsung dari tabel users backend.</p>
         </div>
         
         <Button variant="primary" className="whitespace-nowrap shadow-md hover:shadow-lg transition-all">
@@ -34,20 +105,30 @@ export default function ManageAccounts() {
               type="text" 
               placeholder="Cari nama staf atau email..." 
               className="w-full bg-transparent border-none focus:outline-none text-sm font-bold text-slate-700 placeholder-slate-400" 
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
             />
         </div>
         
         <div className="flex gap-3 w-full md:w-auto">
-            <select className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors">
-                <option>Semua Jabatan</option>
-                <option>Admin</option>
-                <option>Konselor (BK)</option>
-                <option>Admin TU</option>
+            <select
+              value={roleFilter}
+              onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}
+              className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors"
+            >
+                <option value="all">Semua Jabatan</option>
+                <option value="superadmin">Super Admin</option>
+                <option value="admin">Admin</option>
+                <option value="counselor">Konselor (BK)</option>
             </select>
-            <select className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors">
-                <option>Semua Status</option>
-                <option>Aktif</option>
-                <option>Non-Aktif</option>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+              className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors"
+            >
+                <option value="all">Semua Status</option>
+                <option value="active">Aktif</option>
+                <option value="inactive">Non-Aktif</option>
             </select>
         </div>
       </div>
@@ -66,30 +147,30 @@ export default function ManageAccounts() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {mockAccounts.map((akun) => (
+              {filteredAccounts.map((akun) => (
                 <tr key={akun.id} className="hover:bg-slate-50/80 transition-colors group">
                   <td className="px-6 py-4">
-                    <p className="font-bold text-slate-800">{akun.nama}</p>
+                    <p className="font-bold text-slate-800">{akun.fullname}</p>
                     <p className="text-xs font-medium text-slate-400 mt-0.5">{akun.email}</p>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md ${
-                        akun.role === 'Admin' 
+                        akun.role === 'admin' 
                             ? 'bg-purple-50 text-purple-600 border border-purple-100' 
-                            : akun.role === 'Konselor (BK)'
+                            : akun.role === 'counselor'
                             ? 'bg-blue-50 text-blue-600 border border-blue-100'
                             : 'bg-slate-100 text-slate-600 border border-slate-200'
                     }`}>
-                        {akun.role}
+                        {roleLabelMap[akun.role]}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${akun.status === 'Aktif' ? 'bg-emerald-500' : 'bg-red-400'}`}></span>
-                        <span className="text-sm font-bold text-slate-600">{akun.status}</span>
+                        <span className={`w-2 h-2 rounded-full ${akun.is_active ? 'bg-emerald-500' : 'bg-red-400'}`}></span>
+                        <span className="text-sm font-bold text-slate-600">{akun.is_active ? 'Aktif' : 'Non-Aktif'}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-slate-500">{akun.lastLogin}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-slate-500">{formatDateTime(akun.created_at)}</td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
                         <Button variant="outline" size="sm" className="text-xs px-3 py-1.5 h-auto">Ubah Akses</Button>
@@ -101,6 +182,12 @@ export default function ManageAccounts() {
             </tbody>
           </table>
         </div>
+
+        {filteredAccounts.length === 0 && (
+          <div className="border-t border-slate-100 bg-slate-50/30 px-8 py-6 text-sm font-medium text-slate-500">
+            Tidak ada akun yang cocok dengan filter saat ini.
+          </div>
+        )}
       </div>
 
     </div>
