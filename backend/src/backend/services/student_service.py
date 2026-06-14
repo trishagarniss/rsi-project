@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from fastapi import HTTPException
-from src.backend.dto.student_dto import StudentCreateDTO
+from src.backend.dto.student_dto import StudentCreateDTO, StudentUpdateDTO
 from src.backend.repositories import student_repo
 from src.backend.models.user import User
 
@@ -21,11 +21,13 @@ def get_student_detail(db: Session, student_id: str, current_user: User):
         raise HTTPException(status_code=404, detail="Data siswa tidak ditemukan.")
     return student
 
-def update_student(db: Session, student_id: str, student_data: StudentCreateDTO, current_user: User):
+def update_student(db: Session, student_id: str, student_data: StudentUpdateDTO, current_user: User):
     db_student = get_student_detail(db, student_id, current_user)
     
-    for key, value in student_data.model_dump().items():
+    update_dict = student_data.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
         setattr(db_student, key, value)
+        
     db.commit()
     db.refresh(db_student)
     return db_student
