@@ -18,7 +18,7 @@ def login_user(db: Session, login_data: UserLoginDTO):
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": {"id": user.id, "fullname": user.fullname, "role": user.role.value, "tenant_id": user.tenant_id}
+        "user": {"id": user.id, "fullname": user.fullname, "email": user.email, "role": user.role.value, "tenant_id": user.tenant_id, "is_active": user.is_active, "created_at": user.created_at.isoformat() if user.created_at else None}
     }
 
 def register_admin_with_code(db: Session, reg_code: str, admin_data: UserCreateDTO):
