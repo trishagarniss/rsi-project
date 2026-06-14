@@ -42,8 +42,8 @@ def register_admin_with_code(db: Session, reg_code: str, admin_data: UserCreateD
             detail="Kode registrasi tidak valid, sudah digunakan, atau kadaluarsa."
         )
     
-    # Konversi data bytes Redis jadi string
-    tenant_id = tenant_id_bytes.decode('utf-8')
+    # Konversi data Redis jadi string (decode_responses=True sudah auto string)
+    tenant_id = str(tenant_id_bytes) if not isinstance(tenant_id_bytes, str) else tenant_id_bytes
     
     # 2. Cek apakah email sudah terdaftar di database
     existing_user = user_repo.get_user_by_email(db, admin_data.email)
