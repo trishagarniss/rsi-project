@@ -203,3 +203,11 @@ def fetch_student_prediction_history(db: Session, student_id: str, current_user:
         raise HTTPException(status_code=404, detail="Siswa ini belum pernah diprediksi risikonya.")
         
     return prediction
+
+def fetch_all_predictions(db: Session, current_user: User, risk_status: str = None):
+    predictions = risk_prediction_repo.get_all_predictions(
+        db=db, 
+        tenant_id=current_user.tenant_id, 
+        risk_status=risk_status
+    )
+    return predictions
