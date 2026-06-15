@@ -113,7 +113,7 @@ export default function ContactPage() {
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             {[
-              { num: "5+", label: "Team Members", icon: Users },
+              { num: "5", label: "Team Members", icon: Users },
               { num: "3", label: "User Roles", icon: ShieldCheck },
               { num: "1", label: "Prediction Engine", icon: BrainCircuit },
               { num: "100%", label: "Data Driven", icon: Database }

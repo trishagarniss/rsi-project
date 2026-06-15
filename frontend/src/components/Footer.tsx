@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { ShieldCheck, ChevronRight, Mail, MapPin } from 'lucide-react';
+import { ChevronRight, Mail, MapPin } from 'lucide-react';
+import Image from 'next/image';
 
 export default function Footer() {
     const team = [
@@ -19,13 +20,14 @@ export default function Footer() {
             
             {/* Column 1: Brand */}
             <div data-aos="fade-up" data-aos-delay="100">
-                <Link href="/" className="flex items-center gap-2.5 mb-6">
-                <div className="text-asgard-secondary">
-                    <ShieldCheck size={32} strokeWidth={2.5} />
-                </div>
-                <span className="text-2xl font-extrabold text-white tracking-tight">
-                    ASGARD
-                </span>
+                <Link href="/" className="flex items-center mb-6">
+                <Image
+                    src="/Logo-ASGARD.png"
+                    alt="ASGARD Logo"
+                    width={180}
+                    height={60}
+                    className="object-contain"
+                />
                 </Link>
                 <p className="text-sm leading-relaxed text-white/70">
                 Sistem Informasi Deteksi Dini Risiko Putus Sekolah berbasis data sosial-ekonomi dan akademik untuk membantu sekolah melakukan intervensi lebih awal.
