@@ -4,29 +4,29 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import RiskBadge from '@/components/ui/RiskBadge';
 import Button from '@/components/ui/Button';
-import {
-  fetchAllStudents,
-  fetchLatestPrediction,
-  formatDateTime,
-  formatRiskLabel,
-  riskScoreToLevel,
-  type RiskPredictionRecord,
-  type StudentRecord,
-} from '@/lib/dashboard-api';
+import { get } from '@/lib/api-client';
 
-type StudentWithPrediction = StudentRecord & {
-  latestPrediction: RiskPredictionRecord | null;
-  riskLevel: ReturnType<typeof riskScoreToLevel>;
-};
+// --- TIPE DATA SESUAI JSON BACKEND SAAT INI ---
+interface StudentRecord {
+  id: string; // Biasanya backend tetap mengirimkan ID, atau kita pakai NIS sebagai key
+  name: string;
+  nis: string;
+  nisn: string | null;
+  gender: 'male' | 'female';
+  is_active: boolean;
+  riskLevel: 'Tinggi' | 'Sedang' | 'Rendah' | 'Aman';
+}
 
 export default function StudentList() {
-  const [students, setStudents] = useState<StudentWithPrediction[]>([]);
+  const [students, setStudents] = useState<StudentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // States Filter
   const [searchValue, setSearchValue] = useState('');
-  const [riskFilter, setRiskFilter] = useState<'all' | 'Tinggi' | 'Sedang' | 'Rendah' | 'Aman'>('all');
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
 
@@ -36,43 +36,39 @@ export default function StudentList() {
     async function loadStudents() {
       try {
         setIsLoading(true);
+        
+// ==============================================================
+        // FETCH DATA MENTAH DARI DATABASE POSTGRESQL BACKEND
+        // ==============================================================
+        const data = await get('/api/v1/students/?skip=0&limit=100'); 
+        
+        // --- BARIS DETEKTIF BARU ---
+        // Jika data berupa array langsung, pakai data. Jika dibungkus object, cari array-nya di .items atau .data
+        const studentArray = Array.isArray(data) ? data : (data.items || data.data || data.students || []);
 
-        const studentRecords = await fetchAllStudents(100);
-        const predictionPairs = await Promise.all(
-          studentRecords.map(async (student) => ({
-            studentId: student.id,
-            prediction: await fetchLatestPrediction(student.id),
-          }))
-        );
-
-        const predictionMap = new Map(
-          predictionPairs.map(({ studentId, prediction }) => [studentId, prediction])
-        );
-
-        const nextStudents = studentRecords.map((student) => {
-          const latestPrediction = predictionMap.get(student.id) ?? null;
-
-          return {
-            ...student,
-            latestPrediction,
-            riskLevel: latestPrediction
-              ? formatRiskLabel(latestPrediction.risk_score, latestPrediction.is_at_risk)
-              : 'Aman',
-          };
-        });
+        // Mapping JSON flat dari backend ke state Frontend menggunakan studentArray
+        const formattedStudents = studentArray.map((student: any, index: number) => ({
+          id: student.id || `temp-id-${index}`, 
+          name: student.name || 'Nama Tidak Diketahui',
+          nis: student.nis || '-',
+          nisn: student.nisn || '-',
+          gender: student.gender || 'male',
+          is_active: true, 
+          riskLevel: 'Aman' 
+        }));
 
         if (isMounted) {
-          setStudents(nextStudents);
+          setStudents(formattedStudents);
           setError(null);
         }
+
       } catch (loadError) {
         if (isMounted) {
+          console.error("Gagal menarik data asli:", loadError);
           setError(loadError instanceof Error ? loadError.message : 'Gagal memuat data siswa.');
         }
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     }
 
@@ -83,10 +79,12 @@ export default function StudentList() {
     };
   }, []);
 
+  // Reset pagination saat filter berubah
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchValue, riskFilter, genderFilter, statusFilter]);
+  }, [searchValue, genderFilter]);
 
+  // Logika Filter (Hanya untuk Search & Gender karena Risiko belum jalan)
   const filteredStudents = useMemo(() => {
     const query = searchValue.trim().toLowerCase();
 
@@ -95,17 +93,15 @@ export default function StudentList() {
         !query ||
         student.name.toLowerCase().includes(query) ||
         student.nis.toLowerCase().includes(query) ||
-        student.nisn?.toLowerCase().includes(query);
-      const matchesRisk = riskFilter === 'all' || student.riskLevel === riskFilter;
+        (student.nisn && student.nisn.toLowerCase().includes(query));
+      
       const matchesGender = genderFilter === 'all' || student.gender === genderFilter;
-      const matchesStatus =
-        statusFilter === 'all' ||
-        (statusFilter === 'active' ? student.is_active : !student.is_active);
 
-      return matchesSearch && matchesRisk && matchesGender && matchesStatus;
+      return matchesSearch && matchesGender;
     });
-  }, [students, searchValue, riskFilter, genderFilter, statusFilter]);
+  }, [students, searchValue, genderFilter]);
 
+  // Kalkulasi Pagination
   const totalPages = Math.max(Math.ceil(filteredStudents.length / pageSize), 1);
   const paginatedStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const firstItemIndex = filteredStudents.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -116,25 +112,18 @@ export default function StudentList() {
     Math.min(totalPages, currentPage + 2)
   );
 
-  const riskCounts = {
-    tinggi: students.filter((student) => student.riskLevel === 'Tinggi').length,
-    sedang: students.filter((student) => student.riskLevel === 'Sedang').length,
-    rendah: students.filter((student) => student.riskLevel === 'Rendah').length,
-    aman: students.filter((student) => student.riskLevel === 'Aman').length,
-  };
-
   if (isLoading) {
     return (
       <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm">
-        <p className="text-sm font-bold text-slate-500">Memuat daftar siswa dari backend...</p>
+        <p className="text-sm font-bold text-slate-500">Memuat ratusan data siswa asli dari server...</p>
       </div>
     );
   }
 
-  if (error) {
+  if (error && students.length === 0) {
     return (
       <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-red-700 shadow-sm">
-        <h3 className="text-base font-black">Gagal memuat daftar siswa</h3>
+        <h3 className="text-base font-black">Koneksi Database Gagal</h3>
         <p className="mt-2 text-sm font-medium">{error}</p>
       </div>
     );
@@ -143,80 +132,47 @@ export default function StudentList() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      {/* ================= HEADER & LEGEND ================= */}
+      {/* ================= HEADER ================= */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-asgard-primary">Daftar Siswa</h1>
-          <p className="text-slate-500 font-medium mt-1">Data seluruh siswa ditarik langsung dari database backend</p>
-        </div>
-        
-        {/* Legend Informasi Risiko (Sesuai Mockup) */}
-        <div className="bg-white px-5 py-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-4 text-xs font-bold text-slate-600">
-            <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></span> Risiko Tinggi ({riskCounts.tinggi})</span>
-            <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span> Risiko Sedang ({riskCounts.sedang})</span>
-            <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span> Risiko Rendah ({riskCounts.rendah + riskCounts.aman})</span>
+          <p className="text-slate-500 font-medium mt-1">Data ditarik langsung dari tabel <code className="bg-slate-100 text-pink-600 px-1 rounded">students</code> PostgreSQL</p>
         </div>
       </div>
 
       {/* ================= BARIS FILTER & SEARCH ================= */}
       <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
-        
-        {/* Search Input */}
         <div className="flex-1 w-full flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-asgard-primary focus-within:ring-2 focus-within:ring-asgard-primary/20 transition-all">
             <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             <input 
               type="text" 
-              placeholder="Cari nama siswa atau NISN..." 
+              placeholder="Cari nama siswa atau NIS/NISN..." 
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
               className="w-full bg-transparent border-none focus:outline-none text-sm font-bold text-slate-700 placeholder-slate-400" 
             />
         </div>
         
-        {/* Dropdowns & Action Button */}
         <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
             <select
               value={genderFilter}
-              onChange={(event) => setGenderFilter(event.target.value as typeof genderFilter)}
-              className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors"
+              onChange={(e) => setGenderFilter(e.target.value as any)}
+              className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50"
             >
                 <option value="all">Semua Gender</option>
                 <option value="male">Laki-laki</option>
                 <option value="female">Perempuan</option>
             </select>
-            <select
-              value={riskFilter}
-              onChange={(event) => setRiskFilter(event.target.value as typeof riskFilter)}
-              className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors"
-            >
-                <option value="all">Semua Risiko</option>
-                <option value="Tinggi">Tinggi</option>
-                <option value="Sedang">Sedang</option>
-                <option value="Rendah">Rendah</option>
-                <option value="Aman">Aman</option>
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-              className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors"
-            >
-                <option value="all">Semua Status</option>
-                <option value="active">Aktif</option>
-                <option value="inactive">Non-Aktif</option>
-            </select>
             
-            {/* Tombol Jembatan Menuju Halaman Import */}
             <Link href="/import">
               <Button variant="outline" className="whitespace-nowrap border-asgard-primary text-asgard-primary hover:bg-asgard-primary/5">
-                  Import Data Baru
+                  Import Data
               </Button>
             </Link>
-
-            <Button variant="secondary" className="whitespace-nowrap">
-                Unduh .csv
-            </Button>
         </div>
       </div>
 
-      {/* ================= TABEL DATA SISWA ================= */}
+      {/* ================= TABEL DATA SISWA ASLI ================= */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-200">
@@ -227,7 +183,6 @@ export default function StudentList() {
                 <th className="px-6 py-5 font-black">NIS / NISN</th>
                 <th className="px-6 py-5 font-black">Gender</th>
                 <th className="px-6 py-5 font-black">Tingkat Risiko</th>
-                <th className="px-6 py-5 font-black">Prediksi Terakhir</th>
                 <th className="px-6 py-5 font-black">Status</th>
                 <th className="px-6 py-5 font-black text-center">Aksi</th>
               </tr>
@@ -236,7 +191,7 @@ export default function StudentList() {
               {paginatedStudents.map((siswa, index) => (
                 <tr key={siswa.id} className="hover:bg-slate-50/80 transition-colors group">
                   <td className="px-6 py-4 text-sm font-bold text-slate-400">{firstItemIndex + index}</td>
-                  <td className="px-6 py-4 font-bold text-slate-800">{siswa.name}</td>
+                  <td className="px-6 py-4 font-bold text-slate-800 uppercase">{siswa.name}</td>
                   <td className="px-6 py-4 text-sm font-bold text-slate-600">
                     <div className="flex flex-col">
                       <span>{siswa.nis}</span>
@@ -247,71 +202,70 @@ export default function StudentList() {
                     {siswa.gender === 'male' ? 'Laki-laki' : 'Perempuan'}
                   </td>
                   <td className="px-6 py-4">
-                    <RiskBadge level={siswa.riskLevel} />
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium text-slate-500">
-                    {formatDateTime(siswa.latestPrediction?.created_at)}
+                    {/* Karena ML belum aktif, kita pasang abu-abu dulu */}
+                    <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md bg-slate-100 text-slate-500 border border-slate-200">
+                      Belum Dievaluasi
+                    </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-md ${
-                        siswa.is_active 
-                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                            : 'bg-slate-100 text-slate-500 border border-slate-200'
-                    }`}>
-                        {siswa.is_active ? 'Aktif' : 'Non-Aktif'}
+                    <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">
+                      Aktif
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {/* Bungkus Button dengan Link yang mengarah ke ID spesifik */}
-                    <Link href={`/student/${siswa.id}`}>
-                      <Button variant="outline" size="sm" className="text-xs px-4 py-2 h-auto opacity-0 group-hover:opacity-100 transition-all duration-300">
-                          Detail
-                      </Button>
-                    </Link>
+                    <Button variant="outline" size="sm" className="text-xs px-4 py-2 h-auto opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        Detail
+                    </Button>
                   </td>
                 </tr>
               ))}
+              
+              {paginatedStudents.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center font-bold text-slate-400">
+                    Tidak ada data siswa yang ditemukan.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* ================= PAGINATION ================= */}
-        {/* Navigasi Pagination sesuai dokumen NFR NFR-02 yang membatasi 15 item per page */}
-        <div className="px-8 py-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/30">
-            <span className="text-sm font-bold text-slate-500">
-              Menampilkan {firstItemIndex}-{lastItemIndex} dari {filteredStudents.length} siswa
-            </span>
-            
-            <div className="flex items-center gap-1">
+      {/* ================= PAGINATION ================= */}
+      <div className="px-8 py-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/30">
+          <span className="text-sm font-bold text-slate-500">
+            Menampilkan {firstItemIndex}-{lastItemIndex} dari {filteredStudents.length} siswa (Database Nyata)
+          </span>
+          <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50"
+              >
+                « Prev
+              </button>
+              {pageNumbers.map((page) => (
                 <button
-                  onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold transition-colors ${
+                    page === currentPage
+                      ? 'bg-asgard-primary text-white shadow-md'
+                      : 'text-slate-600 hover:text-asgard-primary hover:bg-slate-100'
+                  }`}
                 >
-                  « Prev
+                  {page}
                 </button>
-                {pageNumbers.map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold transition-colors ${
-                      page === currentPage
-                        ? 'bg-asgard-primary text-white shadow-md'
-                        : 'text-slate-600 hover:text-asgard-primary hover:bg-slate-100'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 rounded-lg text-slate-600 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
-                >
-                  Next »
-                </button>
-            </div>
-        </div>
+              ))}
+              <button
+                onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-lg text-slate-600 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50"
+              >
+                Next »
+              </button>
+          </div>
       </div>
 
     </div>
