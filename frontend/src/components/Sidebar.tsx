@@ -35,16 +35,30 @@ const adminMenu = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('sidebar_collapsed') === 'true';
-    }
-    return false;
-  });
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('sidebar_collapsed', collapsed ? 'true' : 'false');
-  }, [collapsed]);
+    const saved = localStorage.getItem('sidebar_collapsed');
+    if (saved !== null) {
+      const isCollapsed = saved === 'true';
+      setTimeout(() => {
+        setCollapsed(isCollapsed);
+      }, 0);
+    }
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('sidebar_collapsed', next ? 'true' : 'false');
+      return next;
+    });
+  };
+
+  const openSidebar = () => {
+    setCollapsed(false);
+    localStorage.setItem('sidebar_collapsed', 'false');
+  };
 
   const isSuperadmin = user?.role === 'superadmin' ||
     pathname.startsWith('/superadmin') ||
@@ -66,7 +80,7 @@ export default function Sidebar() {
           </div>
         )}
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={toggleCollapsed}
           className={`text-white/40 hover:text-white transition-colors ${collapsed ? 'hidden' : ''}`}
           title={collapsed ? 'Buka' : 'Tutup'}
         >
@@ -109,7 +123,7 @@ export default function Sidebar() {
       {/* Floating toggle when collapsed */}
       {collapsed && (
         <button
-          onClick={() => setCollapsed(false)}
+          onClick={openSidebar}
           className="absolute -right-3 top-[38px] w-6 h-6 rounded-full bg-asgard-primary border-2 border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:border-white/40 transition-all cursor-pointer"
           title="Buka Sidebar"
         >

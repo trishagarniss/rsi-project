@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -20,9 +20,10 @@ interface CounselingRow {
 
 // Fungsi pembantu klasifikasi risiko
 const getRiskLevel = (score: number) => {
-  if (score >= 80) return 'Tinggi';
-  if (score >= 60) return 'Sedang';
-  if (score >= 40) return 'Rendah';
+  const scaled = score <= 1.0 ? score * 100 : score;
+  if (scaled >= 80) return 'Tinggi';
+  if (scaled >= 60) return 'Sedang';
+  if (scaled >= 40) return 'Rendah';
   return 'Aman';
 };
 
