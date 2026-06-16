@@ -50,16 +50,22 @@ export const authService = {
      * Meminta token reset password
      */
     async requestForgotPassword(email: string) {
-        return await post('/users/forgot-password/request', { email });
+        return await post('/users/get_token', { email });
+    },
+
+    /**
+     * Verifikasi token reset password
+     */
+    async verifyResetToken(email: string, token: string) {
+        return await post('/users/check_token', { email, token });
     },
 
     /**
      * Reset password menggunakan token
      */
-    async resetPassword(token: string, newPassword: string) {
-        return await post('/users/forgot-password/reset', { 
-        token, 
-        new_password: newPassword 
+    async resetPassword(email: string, token: string, newPassword: string) {
+        return await post('/users/forgot_password', { 
+        email, token, new_password: newPassword 
         });
     },
 
