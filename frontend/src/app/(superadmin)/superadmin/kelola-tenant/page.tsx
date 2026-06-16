@@ -63,9 +63,12 @@ export default function KelolaTenantPage() {
  setErrorMsg("");
  try {
   const res = await tenantService.getAll();
-  if (res.status === "success") {
-  setTenants(res.data);
-  }
+    if (res.status === "success") {
+    const sorted = [...res.data].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    setTenants(sorted);
+    }
  } catch (err: unknown) {
   setErrorMsg(err instanceof Error ? err.message : "Gagal memuat data tenant.");
  } finally {

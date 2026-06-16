@@ -43,7 +43,7 @@ export default function NotificationCenter() {
             /UPDATE|CREATE|UPLOAD|BULK/.test(action) ? 'Peringatan' : 'Info';
 
           const detailsSummary = log.details
-            ? Object.entries(log.details).slice(0, 2).map(([key, value]) => key + ': ' + String(value)).join(' • ')
+            ? Object.entries(log.details).slice(0, 2).map(([key, value]) => key + ': ' + String(value)).join(' â€¢ ')
             : 'Tidak ada detail tambahan';
 
           return {

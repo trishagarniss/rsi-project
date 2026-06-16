@@ -138,7 +138,7 @@ export default function StudentDetail() {
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-black text-asgard-primary">{student.name}</h1>
-            <p className="text-slate-500 font-medium mt-1">NIS: {student.nis} • NISN: {student.nisn ?? '-'} • {genderLabel}</p>
+            <p className="text-slate-500 font-medium mt-1">NIS: {student.nis} â€¢ NISN: {student.nisn ?? '-'} â€¢ {genderLabel}</p>
           </div>
           <div className="flex gap-3">
             <Button variant="outline" className="border-slate-200">Unduh Laporan PDF</Button>
@@ -296,7 +296,7 @@ export default function StudentDetail() {
                         <span className="text-sm font-bold text-amber-700">{formatDateTime(latestPrediction.created_at)}</span>
                       </div>
                       <p className="text-sm text-amber-900 font-medium leading-relaxed">
-                        Skor risiko: {Math.round(latestPrediction.risk_score * 100)}% — Status: {latestPrediction.risk_status === 'at_risk' ? 'Berisiko' : 'Aman'}
+                        Skor risiko: {Math.round(latestPrediction.risk_score * 100)}% â€” Status: {latestPrediction.risk_status === 'at_risk' ? 'Berisiko' : 'Aman'}
                       </p>
                     </div>
 
