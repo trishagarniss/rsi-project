@@ -6,13 +6,23 @@ import { User } from "@/types/user";
 import { getAccessToken, setAccessToken, clearTokens } from "@/lib/auth";
 
 const USER_KEY = "asgard_user";
+const REMEMBERED_EMAILS_KEY = "asgard_remembered_emails";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string, remember?: boolean) => Promise<User>;
   logout: () => void;
   refreshUser: (updated: User) => void;
+}
+
+function saveRememberedEmail(email: string) {
+  if (typeof window === "undefined") return;
+  const raw = localStorage.getItem(REMEMBERED_EMAILS_KEY);
+  const list: string[] = raw ? JSON.parse(raw) : [];
+  const filtered = list.filter(e => e !== email);
+  filtered.unshift(email);
+  localStorage.setItem(REMEMBERED_EMAILS_KEY, JSON.stringify(filtered.slice(0, 5)));
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,13 +45,14 @@ function getInitialUser(): User | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(getInitialUser);
 
-  const login = async (email: string, password: string): Promise<User> => {
+  const login = async (email: string, password: string, remember?: boolean): Promise<User> => {
     const response = await authService.login({ email, password });
     const { access_token, user: userData } = response.data;
 
     setAccessToken(access_token);
     localStorage.setItem(USER_KEY, JSON.stringify(userData));
     setUser(userData as User);
+    if (remember !== false) saveRememberedEmail(email);
 
     return userData as User;
   };

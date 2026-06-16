@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { 
   Users, 
   Search, 
@@ -16,7 +16,8 @@ import {
   Mail,
   UserCheck,
   Lock,
-  Clock
+  Clock,
+  ChevronDown
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/Sidebar";
@@ -45,16 +46,20 @@ export default function KelolaAkunPage() {
  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
  const [selectedUser, setSelectedUser] = useState<User | null>(null);
- const [formData, setFormData] = useState({
- fullname: "",
- email: "",
- password: "",
- role: "admin",
- tenant_id: "",
- is_active: true
- });
+  const [formData, setFormData] = useState({
+  fullname: "",
+  email: "",
+  password: "",
+  role: "admin",
+  tenant_id: "",
+  is_active: true
+  });
 
- const loadData = async () => {
+  const [searchText, setSearchText] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const loadData = async () => {
  setLoading(true);
  setErrorMsg("");
  try {
@@ -90,9 +95,32 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
   const timer = setTimeout(() => setErrorMsg(""), 7000);
   return () => clearTimeout(timer);
  }
- }, [errorMsg]);
+  }, [errorMsg]);
 
- const resetForm = () => {
+  useEffect(() => {
+    if (formData.tenant_id) {
+      const t = tenants.find(t => t.id === formData.tenant_id);
+      if (t) setSearchText(t.name);
+    } else {
+      setSearchText("");
+    }
+  }, [formData.tenant_id, tenants]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredTenants = tenants.filter(t =>
+    t.name.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const resetForm = () => {
  setFormData({
   fullname: "",
   email: "",
@@ -104,18 +132,25 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
  setSelectedUser(null);
  };
 
-  const openAddModal = () => {
-  setFormData({
-   fullname: "",
-   email: "",
-   password: "",
-   role: "admin",
-   tenant_id: tenants.length > 0 ? tenants[0].id : "",
-   is_active: true
-  });
-  setSelectedUser(null);
-  setIsAddModalOpen(true);
-  };
+   const openAddModal = (prefillTenantId?: string) => {
+   const tid = prefillTenantId || (tenants.length > 0 ? tenants[0].id : "");
+   setFormData({
+    fullname: "",
+    email: "",
+    password: "",
+    role: "admin",
+    tenant_id: tid,
+    is_active: true
+   });
+   if (tid) {
+    const t = tenants.find(t => t.id === tid);
+    setSearchText(t?.name || "");
+   } else {
+    setSearchText("");
+   }
+   setSelectedUser(null);
+   setIsAddModalOpen(true);
+   };
 
  const openEditModal = (user: User) => {
  setSelectedUser(user);
@@ -272,7 +307,7 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
    </div>
    
    <button
-    onClick={openAddModal}
+    onClick={() => openAddModal()}
     className="inline-flex items-center gap-2 px-6 py-3.5 bg-asgard-secondary hover:bg-asgard-accent text-asgard-primary font-black rounded-2xl text-sm transition-all duration-300 border-2 border-asgard-accent hover:border-asgard-secondary hover:-translate-y-0.5"
    >
     <Plus size={18} strokeWidth={3} />
@@ -521,24 +556,57 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
     </p>
     </div>
 
-    {formData.role !== "superadmin" && (
     <div className="space-y-1.5">
     <label className="block text-xs font-extrabold text-slate-700">Instansi / Sekolah</label>
     <div className="relative">
      <School className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-     <select
-     value={formData.tenant_id}
-     onChange={(e) => setFormData(prev => ({ ...prev, tenant_id: e.target.value }))}
-      className="w-full pl-11 pr-4 h-[46px] rounded-xl border-2 border-slate-200 focus:ring-0 focus:border-asgard-primary outline-none transition-all text-sm font-extrabold text-slate-800 bg-white"
-     >
-     <option value="">-- Pilih Instansi --</option>
-     {tenants.map(t => (
-      <option key={t.id} value={t.id}>{t.name}</option>
-     ))}
-     </select>
+     {formData.role === "superadmin" ? (
+      <div className="w-full pl-11 pr-4 h-[46px] rounded-xl border-2 border-slate-200 bg-slate-100 flex items-center text-sm font-bold text-slate-400">
+       Tidak terikat instansi
+      </div>
+     ) : (
+      <div className="relative" ref={searchRef}>
+       <input
+        type="text"
+        placeholder="Ketik untuk mencari instansi..."
+        value={searchText}
+        onChange={(e) => {
+         setSearchText(e.target.value);
+         setFormData(prev => ({ ...prev, tenant_id: "" }));
+         setIsDropdownOpen(true);
+        }}
+        onFocus={() => setIsDropdownOpen(true)}
+        className="w-full pl-11 pr-10 h-[46px] rounded-xl border-2 border-slate-200 focus:ring-0 focus:border-asgard-primary outline-none transition-all text-sm font-bold text-slate-800"
+       />
+       <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+       {isDropdownOpen && (
+        <div className="absolute z-50 mt-1 w-full bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+         {filteredTenants.length === 0 ? (
+          <div className="px-4 py-3 text-sm text-slate-400 font-bold">Tidak ada instansi ditemukan</div>
+         ) : (
+          filteredTenants.map(t => (
+           <button
+            key={t.id}
+            type="button"
+            onClick={() => {
+             setFormData(prev => ({ ...prev, tenant_id: t.id }));
+             setSearchText(t.name);
+             setIsDropdownOpen(false);
+            }}
+            className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors hover:bg-asgard-primary/5 ${
+             formData.tenant_id === t.id ? "bg-asgard-primary/10 text-asgard-primary" : "text-slate-800"
+            }`}
+           >
+            {t.name}
+           </button>
+          ))
+         )}
+        </div>
+       )}
+      </div>
+     )}
     </div>
     </div>
-    )}
 
     <div className="space-y-1.5">
     <label className="block text-xs font-extrabold text-slate-700">Nama Lengkap</label>

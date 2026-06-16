@@ -64,7 +64,8 @@ export default function KelolaTenantPage() {
  try {
   const res = await tenantService.getAll();
   if (res.status === "success") {
-  setTenants(res.data);
+  const sorted = [...res.data].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  setTenants(sorted);
   }
  } catch (err: unknown) {
   setErrorMsg(err instanceof Error ? err.message : "Gagal memuat data tenant.");
@@ -496,12 +497,14 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
      Generate
      </button>
     </div>
-    {regCode && (
-     <div className="flex items-center gap-2 p-3 bg-white rounded-xl border-2 border-asgard-primary/20">
-     <Key size={16} className="text-asgard-primary shrink-0" />
-     <code className="text-sm font-black text-asgard-primary tracking-widest">{regCode}</code>
-     </div>
-    )}
+     {regCode ? (
+      <div className="flex items-center gap-2 p-3 bg-white rounded-xl border-2 border-asgard-primary/20">
+      <Key size={16} className="text-asgard-primary shrink-0" />
+      <code className="text-sm font-black text-asgard-primary tracking-widest">{regCode}</code>
+      </div>
+     ) : (
+      <p className="text-xs font-bold text-slate-400">Belum ada kode registrasi. Klik Generate untuk membuat kode baru.</p>
+     )}
     </div>
 
     <div className="pt-4 border-t-2 border-slate-100 flex items-center justify-end gap-3">

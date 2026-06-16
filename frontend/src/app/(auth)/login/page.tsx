@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import Image from 'next/image';
@@ -19,7 +19,9 @@ import {
   Users,
   ArrowRight,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  X,
+  ChevronDown
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -48,14 +50,54 @@ export default function LoginPage() {
     AOS.init({ duration: 800, once: true });
   }, []);
 
-  // 3. Fungsi utama untuk memproses Login
+  // 3. State untuk saran email
+  const [isFocused, setIsFocused] = useState(false);
+  const [rememberedEmails, setRememberedEmails] = useState<string[]>([]);
+  const [rememberMe, setRememberMe] = useState(false);
+  const emailWrapperRef = useRef<HTMLDivElement>(null);
+
+  const REMEMBERED_EMAILS_KEY = "asgard_remembered_emails";
+
+  useEffect(() => {
+    const raw = localStorage.getItem(REMEMBERED_EMAILS_KEY);
+    if (raw) {
+      try { setRememberedEmails(JSON.parse(raw)); } catch { /* ignore */ }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (emailWrapperRef.current && !emailWrapperRef.current.contains(e.target as Node)) {
+        setIsFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredEmails = rememberedEmails.filter(e =>
+    e.toLowerCase().includes(email.toLowerCase())
+  );
+
+  const selectEmail = (val: string) => {
+    setEmail(val);
+    setIsFocused(false);
+  };
+
+  const removeEmail = (val: string) => {
+    const updated = rememberedEmails.filter(e => e !== val);
+    setRememberedEmails(updated);
+    localStorage.setItem(REMEMBERED_EMAILS_KEY, JSON.stringify(updated));
+  };
+
+  // 4. Fungsi utama untuk memproses Login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault(); // Mencegah halaman refresh otomatis
     setIsLoading(true);
     setErrorMsg('');
 
     try {
-      const userData = await login(email, password);
+      const userData = await login(email, password, rememberMe);
 
       if (userData.role === UserRole.SUPERADMIN) {
         router.push('/superadmin');
@@ -192,19 +234,43 @@ export default function LoginPage() {
               {/* Email Field */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700">Email Address</label>
-                <div className="relative group">
+                <div className="relative group" ref={emailWrapperRef}>
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#161D6F] transition-colors" size={18} />
                   <input 
                     type="email" 
                     name="email"
                     autoComplete="username"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setIsFocused(true); }}
+                    onFocus={() => setIsFocused(true)}
                     required
                     disabled={isLoading}
                     placeholder="admin@sekolah.sch.id" 
                     className="w-full pl-11 pr-4 h-[48px] rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#FFC107]/20 focus:border-[#161D6F] outline-none transition-all font-medium text-slate-800 text-sm disabled:bg-slate-50 disabled:text-slate-400"
                   />
+                  {isFocused && filteredEmails.length > 0 && (
+                    <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      {filteredEmails.map(val => (
+                        <div key={val} className="flex items-center group/item">
+                          <button
+                            type="button"
+                            onClick={() => selectEmail(val)}
+                            className="flex-1 text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-[#FFC107]/10 hover:text-[#161D6F] transition-colors truncate"
+                          >
+                            {val}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeEmail(val)}
+                            className="p-3 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover/item:opacity-100"
+                            title="Hapus dari saran"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -245,6 +311,8 @@ export default function LoginPage() {
                 <input 
                   type="checkbox" 
                   id="remember" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="w-4 h-4 rounded-md border-slate-300 text-[#161D6F] focus:ring-[#161D6F] transition-colors cursor-pointer"
                 />
                 <label htmlFor="remember" className="text-xs font-medium text-slate-600 cursor-pointer select-none">

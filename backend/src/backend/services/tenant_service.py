@@ -69,4 +69,4 @@ def generate_tenant_reg_code(tenant_id: str) -> str:
 
 def get_reg_code_from_redis(tenant_id: str) -> str | None:
     code = redis_client.get(f"tenant_reg_code:{tenant_id}")
-    return code.decode() if code else None
+    return code if code else None
