@@ -1,9 +1,19 @@
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from src.backend.models.risk_prediction import RiskPredictionLog
-from src.backend.models.enums import RiskStatus
 
 def save_prediction(db: Session, data: dict, tenant_id: str) -> RiskPredictionLog:
+    new_prediction = RiskPredictionLog(**data, tenant_id=tenant_id)
+    db.add(new_prediction)
+    db.commit()
+    db.refresh(new_prediction)
+    return new_prediction
+
+def replace_prediction(db: Session, data: dict, tenant_id: str) -> RiskPredictionLog:
+    db.query(RiskPredictionLog).filter(
+        RiskPredictionLog.student_id == data["student_id"],
+        RiskPredictionLog.tenant_id == tenant_id
+    ).delete(synchronize_session=False)
     new_prediction = RiskPredictionLog(**data, tenant_id=tenant_id)
     db.add(new_prediction)
     db.commit()
@@ -33,13 +43,19 @@ def get_latest_prediction_by_student(db: Session, student_id: str, tenant_id: st
         RiskPredictionLog.tenant_id == tenant_id
     ).order_by(RiskPredictionLog.created_at.desc()).first()
 
+def get_predicted_student_ids(db: Session, tenant_id: str) -> set[str]:
+    results = db.query(RiskPredictionLog.student_id).filter(
+        RiskPredictionLog.tenant_id == tenant_id
+    ).all()
+    return {r[0] for r in results}
+
 def get_all_risky_students(db: Session, tenant_id: str) -> List[RiskPredictionLog]:
     return db.query(RiskPredictionLog).options(joinedload(RiskPredictionLog.student)).filter(
         RiskPredictionLog.tenant_id == tenant_id,
-        RiskPredictionLog.risk_status == RiskStatus.AT_RISK  # Diperbaiki di sini
+        RiskPredictionLog.risk_status == 1
     ).order_by(RiskPredictionLog.risk_score.desc()).all()
     
-def get_all_predictions(db: Session, tenant_id: str, risk_status: Optional[str] = None) -> List[RiskPredictionLog]:
+def get_all_predictions(db: Session, tenant_id: str, risk_status: int | None = None) -> List[RiskPredictionLog]:
     query = db.query(RiskPredictionLog).options(joinedload(RiskPredictionLog.student)).filter(
         RiskPredictionLog.tenant_id == tenant_id
     )

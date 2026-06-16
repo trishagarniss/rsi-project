@@ -16,5 +16,8 @@ RUN uv pip install --system -e .
 # Menyalin seluruh sisa kode backend
 COPY . .
 
+# Membuat direktori untuk penyimpanan model
+RUN mkdir -p storage/models
+
 # Membuka port 8000 untuk FastAPI
 EXPOSE 8000

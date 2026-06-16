@@ -26,6 +26,13 @@ def trigger_bulk_prediction(
 ):
     return risk_prediction_controller.predict_bulk_students(db, request_data, current_user)
 
+@router.post("/all", status_code=status.HTTP_201_CREATED)
+def trigger_predict_all(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
+):
+    return risk_prediction_controller.predict_all_students(db, current_user)
+
 @router.get("/student/{student_id}")
 def get_student_latest_prediction(
     student_id: str,
@@ -38,7 +45,7 @@ def get_student_latest_prediction(
 def get_all_student_predictions(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR])),
-    risk_status: str = None  # Opsional: Untuk filter hanya yang "AT_RISK"
+    risk_status: int | None = None  # Optional: filter by 0 (not_at_risk) or 1 (at_risk)
 ):
     # Panggil controller untuk mengambil daftar seluruh prediksi di tenant ini
     return risk_prediction_controller.get_all_predictions(db, current_user, risk_status)

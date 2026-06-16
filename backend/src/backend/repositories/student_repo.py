@@ -41,6 +41,12 @@ def count_total_students_by_tenant(db: Session, tenant_id: str) -> int:
         Student.tenant_id == tenant_id
     ).count()
     
+def get_all_active_students_by_tenant(db: Session, tenant_id: str):
+    return db.query(Student).filter(
+        Student.tenant_id == tenant_id,
+        Student.is_active == True
+    ).all()
+
 def get_student_by_id_and_tenant(db: Session, student_id: str, tenant_id: str):
     return db.query(Student).filter(
         Student.id == student_id, 

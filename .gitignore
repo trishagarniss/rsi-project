@@ -94,5 +94,6 @@ secrets/
 
 # Docker
 *.log
+docker-compose.override.yml
 
 *.txt

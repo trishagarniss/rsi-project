@@ -1,10 +1,9 @@
 import uuid
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
 from src.backend.database.engine import Base
-from src.backend.models.enums import RiskStatus
 
 def generate_risk_prediction_id():
     return f"RP_{uuid.uuid4()}"
@@ -17,7 +16,7 @@ class RiskPredictionLog(Base):
     tenant_id = Column(String(50), ForeignKey("tenants.id"), index=True, nullable=False)
     model_id = Column(String(50), ForeignKey("ml_models.id"), index=True, nullable=False)
     
-    risk_status = Column(SQLEnum(RiskStatus), nullable=False)
+    risk_status = Column(Integer, nullable=False)  # 1 = at_risk, 0 = not_at_risk
     risk_score = Column(Float, nullable=False) # Nilai probabilitas 0.0 - 1.0
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -9,7 +9,7 @@ import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import Bottombar from "@/components/Bottombar";
 import { mlModelService } from "@/services/ml-model";
-import { MlModel, MlModelCreateDTO, MlModelUpdateDTO } from "@/types/ml-model";
+import { MlModel, MlModelUpdateDTO } from "@/types/ml-model";
 
 export default function ModelsPage() {
  const [models, setModels] = useState<MlModel[]>([]);
@@ -25,14 +25,14 @@ export default function ModelsPage() {
  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
- const [selectedModel, setSelectedModel] = useState<MlModel | null>(null);
- const [formData, setFormData] = useState({
- version: "",
- algorithm: "",
- file_path: "",
- accuracy_score: "",
- is_active: false,
- });
+  const [selectedModel, setSelectedModel] = useState<MlModel | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [formData, setFormData] = useState({
+  version: "",
+  algorithm: "",
+  accuracy_score: "",
+  is_active: false,
+  });
 
  const loadData = async () => {
  setLoading(true);
@@ -52,47 +52,52 @@ export default function ModelsPage() {
  useEffect(() => { if (successMsg) { const t = setTimeout(() => setSuccessMsg(""), 5000); return () => clearTimeout(t); } }, [successMsg]);
  useEffect(() => { if (errorMsg) { const t = setTimeout(() => setErrorMsg(""), 7000); return () => clearTimeout(t); } }, [errorMsg]);
 
- const resetForm = () => setFormData({ version: "", algorithm: "", file_path: "", accuracy_score: "", is_active: false });
+  const resetForm = () => {
+    setFormData({ version: "", algorithm: "", accuracy_score: "", is_active: false });
+    setSelectedFile(null);
+  };
 
  const openAddModal = () => { resetForm(); setIsAddModalOpen(true); };
 
- const openEditModal = (m: MlModel) => {
- setSelectedModel(m);
- setFormData({
-  version: m.version,
-  algorithm: m.algorithm,
-  file_path: m.file_path,
-  accuracy_score: m.accuracy_score?.toString() || "",
-  is_active: m.is_active,
- });
- setIsEditModalOpen(true);
- };
+  const openEditModal = (m: MlModel) => {
+  setSelectedModel(m);
+  setFormData({
+   version: m.version,
+   algorithm: m.algorithm,
+   accuracy_score: m.accuracy_score?.toString() || "",
+   is_active: m.is_active,
+  });
+  setIsEditModalOpen(true);
+  };
 
  const openDeleteModal = (m: MlModel) => { setSelectedModel(m); setIsDeleteModalOpen(true); };
 
- const handleCreate = async (e: React.FormEvent) => {
- e.preventDefault();
- setActionLoading(true);
- setErrorMsg("");
- try {
-  const data: MlModelCreateDTO = {
-  version: formData.version,
-  algorithm: formData.algorithm,
-  file_path: formData.file_path,
-  accuracy_score: formData.accuracy_score ? parseFloat(formData.accuracy_score) : undefined,
-  is_active: formData.is_active,
+  const handleCreate = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!selectedFile) {
+   setErrorMsg("Harap pilih file model (.pkl).");
+   return;
+  }
+  setActionLoading(true);
+  setErrorMsg("");
+  try {
+   const fd = new FormData();
+   fd.append("file", selectedFile);
+   fd.append("version", formData.version);
+   fd.append("algorithm", formData.algorithm);
+   if (formData.accuracy_score) fd.append("accuracy_score", formData.accuracy_score);
+   fd.append("is_active", String(formData.is_active));
+   await mlModelService.create(fd);
+   setSuccessMsg(`Model ${formData.version} berhasil ditambahkan!`);
+   setIsAddModalOpen(false);
+   resetForm();
+   loadData();
+  } catch (err: unknown) {
+   setErrorMsg(err instanceof Error ? err.message : "Gagal menambahkan model.");
+  } finally {
+   setActionLoading(false);
+  }
   };
-  await mlModelService.create(data);
-  setSuccessMsg(`Model ${data.version} berhasil ditambahkan!`);
-  setIsAddModalOpen(false);
-  resetForm();
-  loadData();
- } catch (err: unknown) {
-  setErrorMsg(err instanceof Error ? err.message : "Gagal menambahkan model.");
- } finally {
-  setActionLoading(false);
- }
- };
 
  const handleUpdate = async (e: React.FormEvent) => {
  e.preventDefault();
@@ -290,10 +295,11 @@ export default function ModelsPage() {
      <label className="block text-xs font-bold text-slate-700">Algoritma <span className="text-red-500">*</span></label>
      <input type="text" required placeholder="Random Forest" value={formData.algorithm} onChange={(e) => setFormData(p => ({ ...p, algorithm: e.target.value }))} className="w-full px-4 h-[46px] rounded-xl border-2 border-slate-200 focus:border-asgard-primary focus:ring-0 outline-none transition-all text-sm font-bold text-slate-800" />
      </div>
-     <div className="space-y-1.5">
-     <label className="block text-xs font-bold text-slate-700">File Path (.pkl) <span className="text-red-500">*</span></label>
-     <input type="text" required placeholder="models/v1_0_0.pkl" value={formData.file_path} onChange={(e) => setFormData(p => ({ ...p, file_path: e.target.value }))} className="w-full px-4 h-[46px] rounded-xl border-2 border-slate-200 focus:border-asgard-primary focus:ring-0 outline-none transition-all text-sm font-bold text-slate-800" />
-     </div>
+      <div className="space-y-1.5">
+      <label className="block text-xs font-bold text-slate-700">File Model (.pkl) <span className="text-red-500">*</span></label>
+      <input type="file" accept=".pkl" required onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-asgard-primary focus:ring-0 outline-none transition-all text-sm font-bold text-slate-800 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-asgard-primary file:text-white file:text-xs file:font-black hover:file:bg-[#2434B5] file:cursor-pointer" />
+      <p className="text-[10px] text-slate-400 font-bold mt-1">File yang dipilih: {selectedFile?.name || "-"}</p>
+      </div>
      <div className="space-y-1.5">
      <label className="block text-xs font-bold text-slate-700">Accuracy Score (0.0 - 1.0)</label>
      <input type="number" step="0.01" min="0" max="1" placeholder="0.95" value={formData.accuracy_score} onChange={(e) => setFormData(p => ({ ...p, accuracy_score: e.target.value }))} className="w-full px-4 h-[46px] rounded-xl border-2 border-slate-200 focus:border-asgard-primary focus:ring-0 outline-none transition-all text-sm font-bold text-slate-800" />

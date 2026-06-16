@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-asgard123}
       POSTGRES_DB: ${POSTGRES_DB:-asgard}
     volumes:
-      - D:/AsgardDatabase:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
@@ -46,11 +46,6 @@ services:
       - backend_venv:/app/.venv
     ports:
       - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
       - asgard_network
     command: uvicorn src.backend.main:app --host 0.0.0.0 --port 8000 --reload
@@ -68,8 +63,6 @@ services:
       - /app/.next
     ports:
       - "3000:3000"
-    depends_on:
-      - backend
     networks:
       - asgard_network
     command: npm run dev
@@ -83,9 +76,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    depends_on:
-      - frontend
-      - backend
     networks:
       - asgard_network
 

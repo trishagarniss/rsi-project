@@ -1,3 +1,4 @@
+import os
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from src.backend.repositories import ml_model_repo
@@ -45,5 +46,8 @@ def remove_model(db: Session, model_id: str, current_user: User):
     
     if record.is_active:
         raise HTTPException(status_code=400, detail="Tidak dapat menghapus model yang sedang aktif. Matikan terlebih dahulu.")
-        
+
+    if record.file_path and os.path.exists(record.file_path):
+        os.remove(record.file_path)
+
     return ml_model_repo.delete_model(db, record)

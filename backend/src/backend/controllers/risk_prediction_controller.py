@@ -24,6 +24,10 @@ def predict_bulk_students(db: Session, request_data: BulkPredictRequestDTO, curr
     
     return result
 
+def predict_all_students(db: Session, current_user: User):
+    return risk_prediction_service.predict_all_unpredicted_students(db, current_user)
+
+
 def get_prediction_history(db: Session, student_id: str, current_user: User):
     prediction = risk_prediction_service.fetch_student_prediction_history(db, student_id, current_user)
     
@@ -32,7 +36,7 @@ def get_prediction_history(db: Session, student_id: str, current_user: User):
         "data": RiskPredictionResponseDTO.model_validate(prediction)
     }
     
-def get_all_predictions(db: Session, current_user: User, risk_status: str = None):
+def get_all_predictions(db: Session, current_user: User, risk_status: int | None = None):
     predictions = risk_prediction_service.fetch_all_predictions(db, current_user, risk_status)
     
     return {
