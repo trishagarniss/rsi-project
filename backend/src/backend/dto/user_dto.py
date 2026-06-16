@@ -48,7 +48,7 @@ class SuperadminStaffCreateDTO(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     role: UserRole = Field(..., description="Pilih SUPERADMIN, ADMIN, atau COUNSELOR")
-    tenant_id: str
+    tenant_id: Optional[str] = Field(None, description="Kosongkan jika role SUPERADMIN")
     
 # 6. DTO Khusus untuk Ganti Password (Keamanan)
 class UserChangePasswordDTO(BaseModel):

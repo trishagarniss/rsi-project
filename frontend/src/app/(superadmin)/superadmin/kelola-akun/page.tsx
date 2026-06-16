@@ -104,13 +104,18 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
  setSelectedUser(null);
  };
 
- const openAddModal = () => {
- resetForm();
- if (tenants.length > 0) {
-  setFormData(prev => ({ ...prev, tenant_id: tenants[0].id }));
- }
- setIsAddModalOpen(true);
- };
+  const openAddModal = () => {
+  setFormData({
+   fullname: "",
+   email: "",
+   password: "",
+   role: "admin",
+   tenant_id: tenants.length > 0 ? tenants[0].id : "",
+   is_active: true
+  });
+  setSelectedUser(null);
+  setIsAddModalOpen(true);
+  };
 
  const openEditModal = (user: User) => {
  setSelectedUser(user);
@@ -135,12 +140,12 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
  setActionLoading(true);
  setErrorMsg("");
 
-     try {
-      if (!formData.tenant_id) {
-   throw new Error("Pilihlah salah satu instansi/sekolah.");
-   }
+      try {
+       if (formData.role !== "superadmin" && !formData.tenant_id) {
+    throw new Error("Pilihlah salah satu instansi/sekolah.");
+    }
 
-   const roleLabel = formData.role === "superadmin" ? "Super Admin" : formData.role === "admin" ? "Admin Sekolah" : "Guru BK / Konselor";
+    const roleLabel = formData.role === "superadmin" ? "Super Admin" : formData.role === "admin" ? "Admin Sekolah" : "Guru BK / Konselor";
 
    const payload: SuperadminStaffCreateDTO = {
    fullname: formData.fullname,
@@ -502,20 +507,21 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
     
     <div className="space-y-1.5">
     <label className="block text-xs font-extrabold text-slate-700">Peran / Role</label>
-    <select
-     value={formData.role}
-     onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-     className="w-full px-4 h-[46px] rounded-xl border-2 border-slate-200 focus:ring-0 focus:border-asgard-primary outline-none transition-all text-sm font-extrabold text-slate-800 bg-white"
-    >
-     <option value="admin">Admin Sekolah</option>
-     <option value="superadmin">Super Admin</option>
-    </select>
+     <select
+      value={formData.role}
+      onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value, tenant_id: e.target.value === "superadmin" ? "" : prev.tenant_id }))}
+      className="w-full px-4 h-[46px] rounded-xl border-2 border-slate-200 focus:ring-0 focus:border-asgard-primary outline-none transition-all text-sm font-extrabold text-slate-800 bg-white"
+     >
+      <option value="admin">Admin Sekolah</option>
+      <option value="superadmin">Super Admin</option>
+     </select>
     <p className="text-[11px] text-amber-600 font-bold leading-relaxed mt-1 flex items-start gap-1">
      <ShieldAlert size={14} className="shrink-0 mt-0.5" />
      <span>Superadmin dapat membuat akun Super Admin atau Admin Sekolah. Konselor/Guru BK didaftarkan langsung oleh Admin Sekolah masing-masing.</span>
     </p>
     </div>
 
+    {formData.role !== "superadmin" && (
     <div className="space-y-1.5">
     <label className="block text-xs font-extrabold text-slate-700">Instansi / Sekolah</label>
     <div className="relative">
@@ -525,12 +531,14 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
      onChange={(e) => setFormData(prev => ({ ...prev, tenant_id: e.target.value }))}
       className="w-full pl-11 pr-4 h-[46px] rounded-xl border-2 border-slate-200 focus:ring-0 focus:border-asgard-primary outline-none transition-all text-sm font-extrabold text-slate-800 bg-white"
      >
+     <option value="">-- Pilih Instansi --</option>
      {tenants.map(t => (
       <option key={t.id} value={t.id}>{t.name}</option>
      ))}
      </select>
     </div>
     </div>
+    )}
 
     <div className="space-y-1.5">
     <label className="block text-xs font-extrabold text-slate-700">Nama Lengkap</label>

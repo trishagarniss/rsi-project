@@ -74,9 +74,16 @@ def register_staff_member_superadmin(db: Session, staff_data: SuperadminStaffCre
     if existing_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar.")
 
-    tenant = tenant_repo.get_tenant_by_id(db, staff_data.tenant_id)
-    if not tenant:
-        raise HTTPException(status_code=400, detail="Tenant tidak ditemukan.")
+    # SUPERADMIN tidak perlu tenant_id, yang lain wajib
+    tenant_id = staff_data.tenant_id
+    if staff_data.role != UserRole.SUPERADMIN:
+        if not tenant_id:
+            raise HTTPException(status_code=400, detail="Admin dan Konselor harus dipilihkan instansi.")
+        tenant = tenant_repo.get_tenant_by_id(db, tenant_id)
+        if not tenant:
+            raise HTTPException(status_code=400, detail="Tenant tidak ditemukan.")
+    else:
+        tenant_id = None
 
     # 4. Hash password dan buat akun
     hashed_pw = get_password_hash(staff_data.password)
@@ -87,7 +94,7 @@ def register_staff_member_superadmin(db: Session, staff_data: SuperadminStaffCre
         fullname=staff_data.fullname,
         email=staff_data.email,
         hashed_password=hashed_pw,
-        tenant_id=staff_data.tenant_id, 
+        tenant_id=tenant_id, 
         role=staff_data.role              
     )
     
