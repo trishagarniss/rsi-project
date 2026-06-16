@@ -53,7 +53,7 @@ export default function NotificationPage() {
     setLoading(true);
     setErrorMsg("");
     try {
-      const res = await notificationService.getAll(0, 500);
+      const res = await notificationService.getAll(0, 100);
       if (res.status === "success") {
         setNotifs(res.data);
         setUnreadCount(res.unread_count);
