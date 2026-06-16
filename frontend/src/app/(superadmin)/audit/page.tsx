@@ -217,7 +217,6 @@ export default function AuditLogPage() {
                           {/* Top row: action badge + entity */}
                           <div className="flex items-center gap-3 flex-wrap">
                             {actionBadge(log.action)}
-                            <span className="font-bold text-slate-800 text-sm">{log.entity_name}</span>
                             {log.entity_id && (
                               <code className="text-[10px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
                                 ID: {log.entity_id}
@@ -225,13 +224,10 @@ export default function AuditLogPage() {
                             )}
                           </div>
 
-                          {/* Who — role badge + user_id */}
+                          {/* Who — role badge only */}
                           <div className="flex items-center gap-2 mt-2.5">
                             <UserCircle size={14} className="text-slate-400 shrink-0" />
                             {roleBadge(log.user_role)}
-                            <span className="text-[11px] font-mono font-medium text-slate-400">
-                              {log.user_id.substring(0, 8)}...{log.user_id.substring(log.user_id.length - 4)}
-                            </span>
                           </div>
 
                           {/* When + Where */}
