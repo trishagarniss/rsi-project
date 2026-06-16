@@ -205,3 +205,9 @@ def fetch_student_prediction_history(db: Session, student_id: str, current_user:
         raise HTTPException(status_code=404, detail="Siswa ini belum pernah diprediksi risikonya.")
         
     return prediction
+
+def fetch_student_prediction_history_all(db: Session, current_user: User):
+    prediction = risk_prediction_repo.get_latest_prediction_by_tenant_all(db, current_user.tenant_id)
+    if not prediction:
+        raise HTTPException(status_code=404, detail="Tidak ada data prediksi di sekolah anda, Silahkan melengkapi data siswa terlebih dahulu.")
+    return prediction

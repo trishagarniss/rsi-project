@@ -33,3 +33,10 @@ def get_student_latest_prediction(
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
 ):
     return risk_prediction_controller.get_prediction_history(db, student_id, current_user)
+
+@router.get("/student/all")
+def get_student_latest_prediction(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
+):
+    return risk_prediction_controller.get_prediction_history_all(db, current_user)

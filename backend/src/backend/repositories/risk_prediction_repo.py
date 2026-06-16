@@ -40,3 +40,8 @@ def get_all_risky_students(db: Session, tenant_id: str) -> List[RiskPredictionLo
         RiskPredictionLog.tenant_id == tenant_id,
         RiskPredictionLog.is_at_risk == True
     ).order_by(RiskPredictionLog.risk_score.desc()).all()
+    
+def get_latest_prediction_by_tenant_all(db: Session,tenant_id: str) -> Optional[RiskPredictionLog]:
+    return db.query(RiskPredictionLog).filter(
+        RiskPredictionLog.tenant_id == tenant_id
+    ).order_by(RiskPredictionLog.created_at.desc()).all()
