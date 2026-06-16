@@ -8,17 +8,20 @@ class AuditLogCreateDTO(BaseModel):
     action: str = Field(..., description="Contoh: CREATE, UPDATE, DELETE, LOGIN")
     entity_name: str = Field(..., description="Tabel yang diubah, misal: students, attendances")
     entity_id: Optional[str] = Field(None, description="ID dari baris yang diubah")
+    ip_address: Optional[str] = Field(None, description="IP address client")
     details: Optional[Dict[str, Any]] = Field(None, description="Simpan perubahan data dalam format JSON")
 
 class AuditLogResponseDTO(BaseModel):
     id: str
-    user_id: str
-    tenant_id: str
+    user_id: Optional[str]
+    tenant_id: Optional[str]
     action: str
     entity_name: str
     entity_id: Optional[str]
     details: Optional[Dict[str, Any]]
+    ip_address: Optional[str] = None
     created_at: datetime
+    user_role: Optional[str] = None
 
     class Config:
         from_attributes = True

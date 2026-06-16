@@ -3,7 +3,7 @@ from src.backend.dto.audit_log_dto import AuditLogCreateDTO
 from src.backend.repositories import audit_log_repo
 from src.backend.models.user import User
 
-def record_activity(db: Session, action: str, entity_name: str, current_user: User, entity_id: str = None, details: dict = None):
+def record_activity(db: Session, action: str, entity_name: str, current_user: User, entity_id: str = None, details: dict = None, ip_address: str = None):
     """
     Fungsi ini tidak dipanggil langsung oleh route, 
     melainkan disisipkan di dalam service lain (seperti saat sukses create student).
@@ -14,6 +14,7 @@ def record_activity(db: Session, action: str, entity_name: str, current_user: Us
         action=action,
         entity_name=entity_name,
         entity_id=entity_id,
+        ip_address=ip_address,
         details=details
     )
     return audit_log_repo.create_log(db, log_data)

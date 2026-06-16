@@ -4,6 +4,7 @@ import {
     LoginResponse, 
     RegisterAdminData 
 } from '@/types/user';
+import { AuditLog } from '@/types/audit-log';
 import { get, post } from '@/lib/api-client';
 
 export const authService = {
@@ -50,16 +51,22 @@ export const authService = {
      * Meminta token reset password
      */
     async requestForgotPassword(email: string) {
-        return await post('/users/forgot-password/request', { email });
+        return await post('/users/get_token', { email });
+    },
+
+    /**
+     * Verifikasi token reset password
+     */
+    async verifyResetToken(email: string, token: string) {
+        return await post('/users/check_token', { email, token });
     },
 
     /**
      * Reset password menggunakan token
      */
-    async resetPassword(token: string, newPassword: string) {
-        return await post('/users/forgot-password/reset', { 
-        token, 
-        new_password: newPassword 
+    async resetPassword(email: string, token: string, newPassword: string) {
+        return await post('/users/forgot_password', { 
+        email, token, new_password: newPassword 
         });
     },
 
@@ -69,5 +76,19 @@ export const authService = {
      */
     async logout(refresh_token: string) {
         return await post('/auth/logout', { refresh_token });
+    },
+
+    /**
+     * Riwayat login user saat ini
+     */
+    async getLoginHistory(): Promise<{ status: string; data: AuditLog[] }> {
+        return get<{ status: string; data: AuditLog[] }>('/auth/login-history');
+    },
+
+    /**
+     * Logout dari semua perangkat
+     */
+    async logoutAllDevices(): Promise<{ status: string; message: string }> {
+        return post<{ status: string; message: string }>('/auth/logout-all');
     }
 };

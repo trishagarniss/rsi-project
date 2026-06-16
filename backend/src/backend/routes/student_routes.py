@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/v1/students", tags=["Students"])
 def create_student(
     student_data: StudentCreateDTO,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
     return student_controller.register_student(db, student_data, current_user)
 
@@ -53,6 +53,6 @@ def update_student(
     student_id: str,
     student_data: StudentCreateDTO,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
     return student_controller.update_student(db, student_id, student_data, current_user)

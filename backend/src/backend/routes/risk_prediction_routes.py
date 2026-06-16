@@ -41,11 +41,24 @@ def get_student_latest_prediction(
 ):
     return risk_prediction_controller.get_prediction_history(db, student_id, current_user)
 
+@router.get("/student/all")
+def get_student_latest_prediction(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
+):
+    return risk_prediction_controller.get_prediction_history_all(db, current_user)
+
+@router.get("/count")
+def get_prediction_count(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.COUNSELOR])),
+):
+    return risk_prediction_controller.get_prediction_count(db, current_user)
+
 @router.get("/")
 def get_all_student_predictions(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR])),
     risk_status: int | None = None  # Optional: filter by 0 (not_at_risk) or 1 (at_risk)
 ):
-    # Panggil controller untuk mengambil daftar seluruh prediksi di tenant ini
     return risk_prediction_controller.get_all_predictions(db, current_user, risk_status)
