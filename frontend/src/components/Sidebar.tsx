@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from 'next/link'; // <--- TAMBAHKAN BARIS INI
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
@@ -27,10 +27,10 @@ const adminMenu = [
   { name: 'Beranda', path: '/dashboard', icon: LayoutDashboard },
   { name: 'Daftar Siswa', path: '/student', icon: GraduationCap },
   { name: 'Manajemen Konseling', path: '/counseling', icon: MessageSquareMore },
-  { name: 'Laporan', path: '/reports', icon: BarChart3 },
+  // { name: 'Laporan', path: '/reports', icon: BarChart3 }, <-- DINONAKTIFKAN UNTUK MVP
   { name: 'Import Data', path: '/import', icon: Upload },
   { name: 'Manajemen Akun', path: '/manage-accounts', icon: UserCog },
-  { name: 'Pengaturan', path: '/settings', icon: Settings2 },
+  // { name: 'Pengaturan', path: '/settings', icon: Settings2 }, <-- DINONAKTIFKAN UNTUK MVP
 ];
 
 export default function Sidebar() {
