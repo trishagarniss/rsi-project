@@ -26,8 +26,18 @@ export default function SuperadminLayout({
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (user) {
-      if (user.role === "superadmin") {
+    const effectiveUser = user || (() => {
+      if (typeof window === "undefined") return null;
+      try {
+        const stored = localStorage.getItem("asgard_user");
+        return stored ? JSON.parse(stored) : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    if (effectiveUser) {
+      if (effectiveUser.role === "superadmin") {
         setIsAuthorized(true); // eslint-disable-line react-hooks/set-state-in-effect
       } else {
         setIsAuthorized(false);
