@@ -5,19 +5,16 @@ from src.backend.models.tenant import Tenant
 from src.backend.dto.tenant_dto import TenantCreateDTO, TenantUpdateDTO
 
 def get_tenant_by_id(db: Session, tenant_id: str) -> Optional[Tenant]:
-    return db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    return db.query(Tenant).filter(Tenant.id == tenant_id, Tenant.deleted_at == None).first()
 
 def get_tenant_by_name(db: Session, name: str) -> Optional[Tenant]:
-    return db.query(Tenant).filter(Tenant.name.ilike(name)).first()
+    return db.query(Tenant).filter(Tenant.name.ilike(name), Tenant.deleted_at == None).first()
 
 def get_tenant_by_email(db: Session, email: str) -> Optional[Tenant]:
-    return db.query(Tenant).filter(Tenant.contact_email == email).first()
-
-# def get_tenant_by_code(db: Session, registration_code: str) -> Optional[Tenant]:
-#     return db.query(Tenant).filter(Tenant.registration_code == registration_code).first()
+    return db.query(Tenant).filter(Tenant.contact_email == email, Tenant.deleted_at == None).first()
 
 def get_all_tenants(db: Session, skip: int = 0, limit: int = 100) -> List[Tenant]:
-    return db.query(Tenant).offset(skip).limit(limit).all()
+    return db.query(Tenant).filter(Tenant.deleted_at == None).offset(skip).limit(limit).all()
 
 def create_tenant(db: Session, tenant_data: TenantCreateDTO) -> Tenant:
     db_tenant = Tenant(**tenant_data.model_dump())
@@ -39,7 +36,8 @@ def update_tenant(db: Session, tenant_id: str, tenant_data: TenantUpdateDTO) -> 
 def delete_tenant(db: Session, tenant_id: str) -> bool:
     db_tenant = get_tenant_by_id(db, tenant_id)
     if db_tenant:
-        db.delete(db_tenant)
+        from sqlalchemy.sql import func
+        db_tenant.deleted_at = func.now()
         db.commit()
         return True
     return False

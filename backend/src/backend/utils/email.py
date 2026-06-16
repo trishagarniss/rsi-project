@@ -10,7 +10,7 @@ SMTP_PORT = settings.SMTP_PORT
 
 def send_email(to_email: str, subject: str, html_body: str):
     if not EMAIL_PENGIRIM or not PASSWORD_PENGIRIM:
-        return
+        raise Exception("Konfigurasi email SMTP belum diatur.")
     msg = MIMEMultipart('alternative')
     msg['From'] = EMAIL_PENGIRIM
     msg['To'] = to_email

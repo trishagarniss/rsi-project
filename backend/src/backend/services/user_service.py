@@ -158,6 +158,13 @@ def send_reset_token(db: Session, email: str):
     if not user:
         raise HTTPException(status_code=404, detail=f"User dengan email {email} tidak ditemukan.")
     
+    # Cek konfigurasi email
+    if not settings.EMAIL_SENDER or not settings.EMAIL_PASSWORD:
+        raise HTTPException(
+            status_code=500,
+            detail="Konfigurasi email SMTP belum diatur. Hubungi Superadmin."
+        )
+    
     # Generate Token
     token = f"{random.randint(0,999999):06d}"
     redis_client = get_redis_client()

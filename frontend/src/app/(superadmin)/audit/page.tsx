@@ -163,7 +163,7 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
       <div className="flex items-center gap-3 mt-2 text-xs font-medium text-slate-400">
        <span className="flex items-center gap-1">
        <User size={12} />
-       User: {log.user_id.substring(0, 8)}...
+       User: {log.user_id.substring(0, 8)}... {log.user_role && `(${log.user_role})`}
        </span>
        <span className="flex items-center gap-1">
        <Clock size={12} />

@@ -652,6 +652,7 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
      <input
      type="checkbox"
      checked={formData.is_active}
+     disabled={selectedUser?.id === currentUser?.id}
      onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
      className="sr-only peer"
      />
