@@ -36,15 +36,18 @@ def get_latest_prediction_by_student(db: Session, student_id: str, tenant_id: st
 def get_all_risky_students(db: Session, tenant_id: str) -> List[RiskPredictionLog]:
     return db.query(RiskPredictionLog).options(joinedload(RiskPredictionLog.student)).filter(
         RiskPredictionLog.tenant_id == tenant_id,
-        RiskPredictionLog.risk_status == RiskStatus.AT_RISK  # Diperbaiki di sini
+        RiskPredictionLog.is_at_risk == True
     ).order_by(RiskPredictionLog.risk_score.desc()).all()
     
+def get_latest_prediction_by_tenant_all(db: Session,tenant_id: str) -> Optional[RiskPredictionLog]:
+    return db.query(RiskPredictionLog).filter(
+        RiskPredictionLog.tenant_id == tenant_id
+    ).order_by(RiskPredictionLog.created_at.desc()).all()
+
 def get_all_predictions(db: Session, tenant_id: str, risk_status: Optional[str] = None) -> List[RiskPredictionLog]:
     query = db.query(RiskPredictionLog).options(joinedload(RiskPredictionLog.student)).filter(
         RiskPredictionLog.tenant_id == tenant_id
     )
-    
     if risk_status:
         query = query.filter(RiskPredictionLog.risk_status == risk_status)
-        
     return query.order_by(RiskPredictionLog.created_at.desc()).all()

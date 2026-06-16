@@ -32,6 +32,13 @@ def get_prediction_history(db: Session, student_id: str, current_user: User):
         "data": RiskPredictionResponseDTO.model_validate(prediction)
     }
     
+def get_prediction_history_all(db: Session, current_user: User):
+    prediction = risk_prediction_service.fetch_student_prediction_history_all(db, current_user)
+    return {
+        "status": "success",
+        "data": [RiskPredictionResponseDTO.model_validate(u) for u in prediction]
+    }
+    
 def get_all_predictions(db: Session, current_user: User, risk_status: str = None):
     predictions = risk_prediction_service.fetch_all_predictions(db, current_user, risk_status)
     
