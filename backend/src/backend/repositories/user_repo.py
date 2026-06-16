@@ -67,6 +67,26 @@ def delete_user(db: Session, user_id: str) -> bool:
         return True
     return False
 
+def soft_delete_user_sp(db: Session, user_id: str, deleted_by: str) -> str:
+    """
+    Executes the PostgreSQL stored procedure 'sp_delete_account'
+    to deactivate a user account and insert an audit log.
+    Returns the OUT parameter string: 'SUCCESS', 'USER_NOT_FOUND', 'CANNOT_DELETE_SELF', etc.
+    """
+    from sqlalchemy import text
+    try:
+        stmt = text("CALL sp_delete_account(:user_id, :deleted_by, :p_result)")
+        result = db.execute(stmt, {"user_id": user_id, "deleted_by": deleted_by, "p_result": None})
+        row = result.fetchone()
+        db.commit()
+        if row:
+            return row[0]
+        return "DELETE_FAILED"
+    except Exception as e:
+        db.rollback()
+        print(f"Error calling sp_delete_account: {e}")
+        return "DELETE_FAILED"
+
 def CheckOldPassword(db: Session, user_id: str, old_pw: str) -> bool:
     db_user = get_user_by_id(db, user_id)
     if not db_user:

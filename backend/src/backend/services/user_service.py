@@ -134,7 +134,18 @@ def remove_user(db: Session, user_id: str, current_user: User):
         if user_to_delete.role in [UserRole.SUPERADMIN, UserRole.ADMIN]:
             raise HTTPException(status_code=403, detail="Anda tidak memiliki izin untuk menghapus Admin atau Superadmin.")
             
-    return user_repo.delete_user(db, user_id)
+    result = user_repo.soft_delete_user_sp(db, user_id, current_user.id)
+    
+    if result == "USER_NOT_FOUND":
+        raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan.")
+    elif result == "CANNOT_DELETE_SELF":
+        raise HTTPException(status_code=400, detail="Anda tidak bisa menghapus akun Anda sendiri.")
+    elif result == "CANNOT_DELETE_SUPERADMIN":
+        raise HTTPException(status_code=403, detail="Anda tidak diperbolehkan menghapus Superadmin.")
+    elif result == "DELETE_FAILED":
+        raise HTTPException(status_code=500, detail="Gagal menonaktifkan akun pengguna.")
+        
+    return True
     
 def change_password(db: Session, old_pw: str, new_pw : str, current_user: User) :
     if user_repo.CheckOldPassword(db, current_user.id, old_pw) :
