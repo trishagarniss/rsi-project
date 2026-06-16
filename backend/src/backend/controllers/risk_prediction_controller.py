@@ -39,6 +39,10 @@ def get_prediction_history_all(db: Session, current_user: User):
         "data": [RiskPredictionResponseDTO.model_validate(u) for u in prediction]
     }
     
+def get_prediction_count(db: Session, current_user: User):
+    count = risk_prediction_service.count_predicted_students(db, current_user)
+    return {"status": "success", "count": count}
+
 def get_all_predictions(db: Session, current_user: User, risk_status: str = None):
     predictions = risk_prediction_service.fetch_all_predictions(db, current_user, risk_status)
     

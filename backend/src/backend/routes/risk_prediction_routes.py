@@ -41,6 +41,13 @@ def get_student_latest_prediction(
 ):
     return risk_prediction_controller.get_prediction_history_all(db, current_user)
 
+@router.get("/count")
+def get_prediction_count(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.COUNSELOR])),
+):
+    return risk_prediction_controller.get_prediction_count(db, current_user)
+
 @router.get("/")
 def get_all_student_predictions(
     db: Session = Depends(get_db),

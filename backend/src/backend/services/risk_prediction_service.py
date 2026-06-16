@@ -15,7 +15,7 @@ from src.backend.repositories import (
 )
 from src.backend.dto.risk_prediction_dto import RiskPredictionCreateDTO
 from src.backend.models.user import User
-from src.backend.models.enums import RiskStatus # <-- Tambahan Baru
+from src.backend.models.enums import RiskStatus, UserRole
 
 def execute_prediction(db: Session, student_id: str, current_user: User):
     student = student_repo.get_student_by_id_and_tenant(db, student_id, current_user.tenant_id)
@@ -209,6 +209,11 @@ def fetch_student_prediction_history_all(db: Session, current_user: User):
     if not prediction:
         raise HTTPException(status_code=404, detail="Tidak ada data prediksi di sekolah anda, Silahkan melengkapi data siswa terlebih dahulu.")
     return prediction
+
+def count_predicted_students(db: Session, current_user: User) -> int:
+    if current_user.role == UserRole.SUPERADMIN:
+        return risk_prediction_repo.count_predicted_students(db)
+    return risk_prediction_repo.count_predicted_students(db, current_user.tenant_id)
 
 def fetch_all_predictions(db: Session, current_user: User, risk_status: str = None):
     predictions = risk_prediction_repo.get_all_predictions(

@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from typing import List, Optional
 from src.backend.models.risk_prediction import RiskPredictionLog
 from src.backend.models.enums import RiskStatus
@@ -51,3 +52,9 @@ def get_all_predictions(db: Session, tenant_id: str, risk_status: Optional[str] 
     if risk_status:
         query = query.filter(RiskPredictionLog.risk_status == risk_status)
     return query.order_by(RiskPredictionLog.created_at.desc()).all()
+
+def count_predicted_students(db: Session, tenant_id: Optional[str] = None) -> int:
+    query = db.query(func.count(RiskPredictionLog.student_id.distinct()))
+    if tenant_id:
+        query = query.filter(RiskPredictionLog.tenant_id == tenant_id)
+    return query.scalar() or 0

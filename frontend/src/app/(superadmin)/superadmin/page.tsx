@@ -3,8 +3,8 @@
 import React, { useRef } from "react";
 import Link from "next/link";
 import {
-  Building2, Users, Brain, GraduationCap, ChevronRight,
-  TrendingUp, ShieldCheck, Activity,
+  Building2, Users, Brain, Activity, ChevronRight,
+  TrendingUp, ShieldCheck,
   Database, BarChart3, RefreshCw
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +13,7 @@ import TopBar from "@/components/TopBar";
 import { tenantService } from "@/services/tenant";
 import { mlModelService } from "@/services/ml-model";
 import { userService } from "@/services/user";
-import { studentService } from "@/services/student";
+import { predictionService } from "@/services/prediction";
 
 function useCounter(target: number, durationMs: number, enabled: boolean): number {
   const [value, setValue] = React.useState(0);
@@ -62,30 +62,29 @@ export default function SuperadminDashboard() {
   });
 
   const {
-    data: students = { active: 0, total: 0 },
-    isSuccess: studentsLoaded,
+    data: predicted = 0,
+    isSuccess: predictedLoaded,
   } = useQuery({
-    queryKey: ["dashboard", "students"],
+    queryKey: ["dashboard", "predicted"],
     queryFn: async () => {
-      const r = await studentService.count();
-      if (r.status === "success" && r.data) {
-        return { active: r.data.total_active, total: r.data.total_all };
+      const r = await predictionService.getCount();
+      if (r.status === "success") {
+        return r.count;
       }
-      return { active: 0, total: 0 };
+      return 0;
     },
   });
 
   const displayTenants = useCounter(tenants, 800, tenantsLoaded);
   const displayUsers = useCounter(users, 800, usersLoaded);
   const displayModels = useCounter(models, 800, modelsLoaded);
-  const displayStudentsActive = useCounter(students.active, 800, studentsLoaded);
-  const displayStudentsTotal = useCounter(students.total, 800, studentsLoaded);
+  const displayPredicted = useCounter(predicted, 800, predictedLoaded);
 
   const statCards = [
     { icon: Building2, label: "Total Tenant", value: displayTenants, loaded: tenantsLoaded, color: "from-asgard-primary to-blue-700", link: "/superadmin/kelola-tenant" },
     { icon: Users, label: "Total Pengguna", value: displayUsers, loaded: usersLoaded, color: "from-indigo-600 to-blue-600", link: "/superadmin/kelola-akun" },
     { icon: Brain, label: "Model Aktif", value: displayModels, loaded: modelsLoaded, color: "from-amber-500 to-yellow-500", link: "/models" },
-    { icon: GraduationCap, label: "Total Siswa", value: displayStudentsActive, loaded: studentsLoaded, total: displayStudentsTotal, color: "from-emerald-500 to-green-600", link: "/superadmin/kelola-tenant" },
+    { icon: Activity, label: "Siswa Terprediksi", value: displayPredicted, loaded: predictedLoaded, color: "from-emerald-500 to-green-600", link: "/superadmin/kelola-tenant" },
   ];
 
   const quickLinks = [
