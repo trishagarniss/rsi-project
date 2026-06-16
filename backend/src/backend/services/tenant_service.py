@@ -57,11 +57,16 @@ def delete_existing_tenant(db: Session, tenant_id: str):
     return {"detail": "Sekolah berhasil dihapus"}
 
 def generate_tenant_reg_code(tenant_id: str) -> str:
-    # Buat 6 digit kode acak (Misal: REG-A1B2C3)
     raw_code = str(uuid.uuid4()).replace("-", "")[:6].upper()
     reg_code = f"REG-{raw_code}"
     
     # Simpan ke Redis dengan TTL 24 Jam (86400 detik)
     redis_client.setex(f"reg_code:{reg_code}", 86400, tenant_id)
+    # Reverse mapping: biar bisa cari kode dari tenant_id
+    redis_client.setex(f"tenant_reg_code:{tenant_id}", 86400, reg_code)
     
     return reg_code
+
+def get_reg_code_from_redis(tenant_id: str) -> str | None:
+    code = redis_client.get(f"tenant_reg_code:{tenant_id}")
+    return code.decode() if code else None

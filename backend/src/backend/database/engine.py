@@ -1,6 +1,7 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from src.backend.config.settings import settings
 
 # Mengambil URL Database dari environment variables
 # Jika gagal, akan jatuh ke nilai default untuk keperluan testing lokal
@@ -12,7 +13,7 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
 # Membuat engine SQLAlchemy
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    echo=True
+    echo=settings.DEBUG
 )
 
 # Membuat pabrik sesi database

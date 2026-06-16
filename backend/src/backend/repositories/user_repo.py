@@ -14,17 +14,20 @@ def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
 # def get_user_by_email_token(db: Session, user_email: str) -> Optional[Token]:
 #     return db.query(Token).filter(Token.email == user_email).first()
 
-def get_all_users(db: Session, skip: int = 0, limit: int = 100, tenant_id: str = None) -> List[User]:
+def get_all_users(db: Session, skip: int = 0, limit: int = 10000, tenant_id: str = None) -> List[User]:
     query = db.query(User)
     if tenant_id:
         query = query.filter(User.tenant_id == tenant_id)
-    return query.offset(skip).limit(limit).all()
+    return query.order_by(User.last_login_at.desc().nullslast(), User.created_at.desc()).offset(skip).limit(limit).all()
 
 def get_admin_by_tenant(db: Session, tenant_id: str):
     return db.query(User).filter(
         User.tenant_id == tenant_id,
         User.role == UserRole.ADMIN
     ).first()
+
+def get_all_superadmins(db: Session) -> List[User]:
+    return db.query(User).filter(User.role == UserRole.SUPERADMIN).all()
 
 def create_user(
     db: Session, 

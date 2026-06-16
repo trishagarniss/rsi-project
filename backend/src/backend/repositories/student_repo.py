@@ -13,11 +13,33 @@ def create_student(db: Session, student_data: StudentCreateDTO, tenant_id: str) 
     db.refresh(new_student)
     return new_student
 
+def get_all_students(db: Session, skip: int, limit: int):
+    return db.query(Student).filter(
+        Student.is_active == True
+    ).offset(skip).limit(limit).all()
+
 def get_students_by_tenant(db: Session, tenant_id: str, skip: int, limit: int):
     return db.query(Student).filter(
         Student.tenant_id == tenant_id, 
         Student.is_active == True
     ).offset(skip).limit(limit).all()
+
+def count_all_students(db: Session) -> int:
+    return db.query(Student).filter(Student.is_active == True).count()
+
+def count_total_students(db: Session) -> int:
+    return db.query(Student).count()
+
+def count_students_by_tenant(db: Session, tenant_id: str) -> int:
+    return db.query(Student).filter(
+        Student.tenant_id == tenant_id,
+        Student.is_active == True
+    ).count()
+
+def count_total_students_by_tenant(db: Session, tenant_id: str) -> int:
+    return db.query(Student).filter(
+        Student.tenant_id == tenant_id
+    ).count()
     
 def get_student_by_id_and_tenant(db: Session, student_id: str, tenant_id: str):
     return db.query(Student).filter(

@@ -15,7 +15,9 @@ class AuditLog(Base):
     tenant_id = Column(String(50), ForeignKey("tenants.id"), index=True, nullable=True)
     user_id = Column(String(50), ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
 
-    action = Column(String(100), nullable=False) # Contoh: 'UPDATE_STUDENT', 'BULK_UPLOAD'
+    action = Column(String(100), nullable=False) # Contoh: 'CREATE', 'UPDATE', 'DELETE', 'LOGIN'
+    entity_name = Column(String(100), nullable=True) # 'tenant', 'user', 'student', 'model'
+    entity_id = Column(String(50), nullable=True)
     details = Column(JSONB, nullable=True) # Payload perubahan
     ip_address = Column(String(45), nullable=True) # 45 karakter cukup untuk IPv6
     

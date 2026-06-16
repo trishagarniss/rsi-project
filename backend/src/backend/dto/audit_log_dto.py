@@ -4,7 +4,7 @@ from datetime import datetime
 
 class AuditLogCreateDTO(BaseModel):
     user_id: str
-    tenant_id: str
+    tenant_id: Optional[str] = None
     action: str = Field(..., description="Contoh: CREATE, UPDATE, DELETE, LOGIN")
     entity_name: str = Field(..., description="Tabel yang diubah, misal: students, attendances")
     entity_id: Optional[str] = Field(None, description="ID dari baris yang diubah")

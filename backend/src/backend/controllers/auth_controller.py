@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from src.backend.dto.user_dto import UserLoginDTO, UserCreateDTO
 from src.backend.services import auth_service
+from src.backend.services.audit_log_service import record_activity
 
 def check_reg_code(reg_code: str):
     result = auth_service.validate_reg_code(reg_code)
@@ -12,6 +13,10 @@ def check_reg_code(reg_code: str):
 
 def login(db: Session, login_data: UserLoginDTO):
     result = auth_service.login_user(db, login_data)
+    from src.backend.repositories import user_repo
+    user = user_repo.get_user_by_email(db, login_data.email)
+    if user:
+        record_activity(db, "LOGIN", "User", user, details={"email": login_data.email})
     return {
         "status": "success", 
         "message": "Login berhasil!", 

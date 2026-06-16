@@ -61,7 +61,7 @@ services:
       dockerfile: Dockerfile.frontend
     container_name: asgard_frontend
     environment:
-      - NEXT_PUBLIC_API_URL=http://100.126.164.53:8000
+      - NEXT_PUBLIC_API_URL=http://100.126.164.53
     volumes:
       - ./frontend:/app
       - /app/node_modules

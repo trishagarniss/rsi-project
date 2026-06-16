@@ -8,12 +8,14 @@ from fastapi import HTTPException
 from typing import List
 
 from src.backend.dto.user_dto import UserCreateDTO, UserUpdateDTO, StaffCreateDTO, SuperadminStaffCreateDTO
+from pydantic import EmailStr
 from src.backend.models.user import User
 from src.backend.models.tenant import Tenant
 from src.backend.repositories import user_repo, tenant_repo
 from src.backend.middlewares.auth import get_password_hash
 from src.backend.models.enums import UserRole
 from src.backend.database.redis import get_redis_client
+from src.backend.config.settings import settings
 
 def create_staff_user(db: Session, staff_data: StaffCreateDTO, current_user: User) -> User:
     """Fungsi khusus untuk Admin Sekolah membuat akun Guru BK/Konselor"""
@@ -115,6 +117,12 @@ def modify_existing_user(db: Session, user_id: str, update_data: UserUpdateDTO, 
         
         if target_user.role == UserRole.SUPERADMIN:
             raise HTTPException(status_code=403, detail="Anda tidak memiliki wewenang mengedit Superadmin.")
+    
+    # Validasi bentrok email jika email diubah
+    if update_data.email and update_data.email != target_user.email:
+        existing = user_repo.get_user_by_email(db, update_data.email)
+        if existing:
+            raise HTTPException(status_code=400, detail="Email sudah digunakan oleh pengguna lain.")
             
     return user_repo.update_user(db, user_id, update_data)
 
@@ -149,8 +157,8 @@ def send_reset_token(db: Session, email: str):
     redis_client.setex(f"pwd_reset:{email}", 900, token)
     
     # Kirim Email
-    email_pengirim = "asgardkelompok2@gmail.com"
-    password_pengirim = "ccyd usvm bccm uuhp" 
+    email_pengirim = settings.EMAIL_SENDER
+    password_pengirim = settings.EMAIL_PASSWORD
     
     msg = MIMEMultipart('alternative') 
     msg['From'] = email_pengirim
@@ -229,7 +237,7 @@ def send_reset_token(db: Session, email: str):
     msg.attach(MIMEText(html_email, 'html'))
 
     try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
             server.login(email_pengirim, password_pengirim)
             server.sendmail(email_pengirim, email, msg.as_string())
     except Exception as e:

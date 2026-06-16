@@ -21,9 +21,16 @@ def create_student(
 def get_students(
     skip: int = 0, limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
+    current_user: User = Depends(require_role([UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.COUNSELOR]))
 ):
     return student_controller.fetch_students(db, current_user, skip, limit)
+
+@router.get("/count")
+def get_student_count(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.COUNSELOR]))
+):
+    return student_controller.count_students(db, current_user)
 
 @router.get("/{student_id}")
 def get_student(

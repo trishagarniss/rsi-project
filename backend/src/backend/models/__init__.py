@@ -14,6 +14,7 @@ from src.backend.models.socio_economic import SocioEconomic
 from src.backend.models.attendance import Attendance
 from src.backend.models.risk_prediction import RiskPredictionLog
 from src.backend.models.audit_log import AuditLog
+from src.backend.models.notification import Notification
 
 __all__ = [
     "Base",
@@ -27,5 +28,6 @@ __all__ = [
     "SocioEconomic",
     "Attendance",
     "RiskPredictionLog",
-    "AuditLog"
+    "AuditLog",
+    "Notification",
 ]
