@@ -15,3 +15,9 @@ def get_logs_by_tenant(db: Session, tenant_id: str, skip: int = 0, limit: int = 
     if tenant_id:
         query = query.filter(AuditLog.tenant_id == tenant_id)
     return query.order_by(AuditLog.created_at.desc()).offset(skip).limit(limit).all()
+
+def get_login_history_by_user(db: Session, user_id: str, limit: int = 10) -> List[AuditLog]:
+    return db.query(AuditLog).filter(
+        AuditLog.user_id == user_id,
+        AuditLog.action == "LOGIN"
+    ).order_by(AuditLog.created_at.desc()).limit(limit).all()

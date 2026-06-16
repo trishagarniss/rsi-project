@@ -2,7 +2,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Bell, ChevronDown, User, Settings, BookOpen, LogOut, Info, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { Bell, ChevronDown, User, BookOpen, LogOut, Info, CheckCircle, AlertTriangle, XCircle, Lock, ShieldAlert } from 'lucide-react';
 import { notificationService } from '@/services/notification';
 import { Notification } from '@/types/notification';
 
@@ -90,7 +90,8 @@ export default function TopBar() {
 
   const menuItems = [
     { label: 'Profil Saya', icon: User, href: '/superadmin/profile' },
-    { label: 'Pengaturan', icon: Settings, href: '/superadmin/settings' },
+    { label: 'Ganti Password', icon: Lock, href: '/superadmin/profile?modal=password' },
+    { label: 'Keamanan Sesi', icon: ShieldAlert, href: '/superadmin/profile?modal=session' },
     { label: 'Panduan', icon: BookOpen, href: '/superadmin/guide' },
   ];
 

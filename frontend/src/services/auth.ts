@@ -4,6 +4,7 @@ import {
     LoginResponse, 
     RegisterAdminData 
 } from '@/types/user';
+import { AuditLog } from '@/types/audit-log';
 import { get, post } from '@/lib/api-client';
 
 export const authService = {
@@ -75,5 +76,19 @@ export const authService = {
      */
     async logout(refresh_token: string) {
         return await post('/auth/logout', { refresh_token });
+    },
+
+    /**
+     * Riwayat login user saat ini
+     */
+    async getLoginHistory(): Promise<{ status: string; data: AuditLog[] }> {
+        return get<{ status: string; data: AuditLog[] }>('/auth/login-history');
+    },
+
+    /**
+     * Logout dari semua perangkat
+     */
+    async logoutAllDevices(): Promise<{ status: string; message: string }> {
+        return post<{ status: string; message: string }>('/auth/logout-all');
     }
 };

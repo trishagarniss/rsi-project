@@ -6,6 +6,7 @@ export interface AuditLog {
   entity_name: string;
   entity_id?: string;
   details?: Record<string, unknown>;
+  ip_address?: string;
   created_at: string;
   user_role?: string;
 }

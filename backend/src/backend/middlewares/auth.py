@@ -26,8 +26,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(seconds=ACCESS_TOKEN_TTL))
-    to_encode.update({"exp": expire})
+    now = datetime.now(timezone.utc)
+    expire = now + (expires_delta or timedelta(seconds=ACCESS_TOKEN_TTL))
+    to_encode.update({"exp": expire, "iat": now})
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 def get_current_user(
@@ -47,6 +48,14 @@ def get_current_user(
     user = db.query(User).filter(User.id == user_id).first()
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="User tidak ditemukan atau tidak aktif")
+
+    # Validasi sesi: jika user.updated_at lebih baru dari iat token, token dianggap kadaluarsa
+    token_iat = payload.get("iat")
+    if token_iat and user.updated_at:
+        token_time = datetime.fromtimestamp(token_iat, tz=timezone.utc)
+        user_updated = user.updated_at.astimezone(timezone.utc) if user.updated_at.tzinfo else user.updated_at.replace(tzinfo=timezone.utc)
+        if token_time < user_updated:
+            raise HTTPException(status_code=401, detail="Sesi telah berakhir, silakan login ulang")
 
     tenant_id = str(user.tenant_id) if user.tenant_id else ""
     db.execute(text("SELECT set_config('app.tenant_id', :tid, true)"), {"tid": tenant_id})

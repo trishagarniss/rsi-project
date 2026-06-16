@@ -20,7 +20,6 @@ const superadminMenu = [
   { name: 'Audit Log', path: '/audit', icon: ClipboardList },
   { name: 'Monitoring', path: '/superadmin/monitoring', icon: Activity },
   { name: 'Panduan', path: '/superadmin/guide', icon: BookOpen },
-  { name: 'Pengaturan', path: '/superadmin/settings', icon: Settings2 },
 ];
 
 const adminMenu = [

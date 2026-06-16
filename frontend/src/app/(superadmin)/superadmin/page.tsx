@@ -80,7 +80,10 @@ export default function SuperadminDashboard() {
   const displayModels = useCounter(models, 800, modelsLoaded);
   const displayPredicted = useCounter(predicted, 800, predictedLoaded);
 
-  const statCards = [
+  const statCards: Array<{
+    icon: React.ElementType; label: string; value: number;
+    loaded: boolean; color: string; link: string; total?: number;
+  }> = [
     { icon: Building2, label: "Total Tenant", value: displayTenants, loaded: tenantsLoaded, color: "from-asgard-primary to-blue-700", link: "/superadmin/kelola-tenant" },
     { icon: Users, label: "Total Pengguna", value: displayUsers, loaded: usersLoaded, color: "from-indigo-600 to-blue-600", link: "/superadmin/kelola-akun" },
     { icon: Brain, label: "Model Aktif", value: displayModels, loaded: modelsLoaded, color: "from-amber-500 to-yellow-500", link: "/models" },
@@ -93,7 +96,7 @@ export default function SuperadminDashboard() {
     { name: "Kelola Model", path: "/models", desc: "Unggah & kelola ML model", icon: Brain },
     { name: "Monitoring", path: "/superadmin/monitoring", desc: "Pantau server infrastruktur", icon: Activity },
     { name: "Audit Log", path: "/audit", desc: "Lihat aktivitas sistem", icon: Database },
-    { name: "Pengaturan", path: "/superadmin/settings", desc: "Atur profil & password", icon: BarChart3 },
+    { name: "Profil", path: "/superadmin/profile", desc: "Atur profil & password", icon: BarChart3 },
   ];
 
   return (
