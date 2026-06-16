@@ -13,7 +13,7 @@ from src.backend.database.engine import get_db
 from src.backend.config.settings import settings
 
 security = HTTPBearer()
-ACCESS_TOKEN_TTL = 900
+ACCESS_TOKEN_TTL = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
 def get_password_hash(password: str) -> str:
     pwd_bytes = password.encode('utf-8')

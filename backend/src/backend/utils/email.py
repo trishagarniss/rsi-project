@@ -1,13 +1,16 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from src.backend.config.settings import settings
 
-EMAIL_PENGIRIM = "asgardkelompok2@gmail.com"
-PASSWORD_PENGIRIM = "ccyd usvm bccm uuhp"
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 465
+EMAIL_PENGIRIM = settings.EMAIL_SENDER
+PASSWORD_PENGIRIM = settings.EMAIL_PASSWORD
+SMTP_SERVER = settings.SMTP_HOST
+SMTP_PORT = settings.SMTP_PORT
 
 def send_email(to_email: str, subject: str, html_body: str):
+    if not EMAIL_PENGIRIM or not PASSWORD_PENGIRIM:
+        return
     msg = MIMEMultipart('alternative')
     msg['From'] = EMAIL_PENGIRIM
     msg['To'] = to_email

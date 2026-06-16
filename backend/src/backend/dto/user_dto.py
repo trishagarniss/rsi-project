@@ -22,15 +22,17 @@ class UserResponseDTO(BaseModel):
     email: EmailStr
     role: UserRole
     is_active: bool
+    last_login_at: Optional[datetime]
     created_at: datetime
     updated_at: Optional[datetime]
 
     class Config:
         from_attributes = True 
 
-# 4. DTO Update Profil (Untuk ubah nama / role / status aktif)
+# 4. DTO Update Profil (Untuk ubah nama, email, status aktif)
 class UserUpdateDTO(BaseModel):
     fullname: Optional[str] = Field(None, min_length=3, max_length=150)
+    email: Optional[EmailStr] = Field(None)
     is_active: Optional[bool] = Field(None)
     
 # 5. DTO Tambah Staf (Admin bisa tambah Admin atau Counselor baru) - mirip dengan UserCreateDTO tapi tanpa registration_code

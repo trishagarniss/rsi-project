@@ -18,13 +18,13 @@ def create_tenant(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.SUPERADMIN]))
 ):
-    return tenant_controller.register_tenant(db, tenant_data)
+    return tenant_controller.register_tenant(db, tenant_data, current_user)
 
 # Cuma SuperAdmin yg bisa lihat semua tenant
 @router.get("/")
 def get_all_tenants(
     skip: int = 0, 
-    limit: int = 100, 
+    limit: int = 10000, 
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.SUPERADMIN]))
 ):
@@ -47,7 +47,7 @@ def update_tenant(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.SUPERADMIN]))
 ):
-    return tenant_controller.modify_tenant(db, tenant_id, tenant_data)
+    return tenant_controller.modify_tenant(db, tenant_id, tenant_data, current_user)
 
 # Cuma SuperAdmin yg bisa hapus tenant
 @router.delete("/{tenant_id}")
@@ -56,7 +56,16 @@ def delete_tenant(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.SUPERADMIN]))
 ):
-    return tenant_controller.remove_tenant(db, tenant_id)
+    return tenant_controller.remove_tenant(db, tenant_id, current_user)
+
+# Cuma SuperAdmin yg bisa lihat kode registrasi
+@router.get("/{tenant_id}/registration-code")
+def get_registration_code(
+    tenant_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.SUPERADMIN]))
+):
+    return tenant_controller.fetch_registration_code(db, tenant_id)
 
 # Cuma SuperAdmin yg bisa bikin ulang kode registrasi kalau kedaluwarsa
 @router.post("/{tenant_id}/regenerate-code")
@@ -65,13 +74,4 @@ def regenerate_code(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.SUPERADMIN]))
 ):
-    return tenant_controller.regenerate_tenant_code(db, tenant_id)
-
-# Cuma SuperAdmin yg bisa bikin ulang kode registrasi kalau kedaluwarsa
-@router.post("/{tenant_id}/regenerate-code")
-def regenerate_code(
-    tenant_id: str, 
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.SUPERADMIN]))
-):
-    return tenant_controller.regenerate_tenant_code(db, tenant_id)
+    return tenant_controller.regenerate_tenant_code(db, tenant_id, current_user)

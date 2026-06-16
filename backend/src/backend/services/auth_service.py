@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from src.backend.repositories import user_repo
@@ -14,11 +15,20 @@ def login_user(db: Session, login_data: UserLoginDTO):
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Akun dinonaktifkan")
 
+    user.last_login_at = datetime.now(timezone.utc)
+    db.commit()
+
     access_token = create_access_token(data={"sub": user.id})
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": {"id": user.id, "fullname": user.fullname, "email": user.email, "role": user.role.value, "tenant_id": user.tenant_id, "is_active": user.is_active, "created_at": user.created_at.isoformat() if user.created_at else None}
+        "user": {
+            "id": user.id, "fullname": user.fullname, "email": user.email,
+            "role": user.role.value, "tenant_id": user.tenant_id,
+            "is_active": user.is_active,
+            "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
+            "created_at": user.created_at.isoformat() if user.created_at else None
+        }
     }
 
 def validate_reg_code(reg_code: str):

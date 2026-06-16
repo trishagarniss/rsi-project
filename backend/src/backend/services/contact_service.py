@@ -1,7 +1,8 @@
 from fastapi import HTTPException
 from src.backend.utils.email import send_email
+from src.backend.config.settings import settings
 
-TARGET_EMAIL = "asgardkelompok2@gmail.com"
+TARGET_EMAIL = settings.TARGET_EMAIL
 
 NOTIF_HTML = """\
 <!DOCTYPE html>

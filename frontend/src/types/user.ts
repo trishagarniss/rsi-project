@@ -13,6 +13,7 @@ export interface User {
   email: string;
   role: UserRole;
   is_active: boolean;
+  last_login_at?: string | null;
   created_at: string;
   updated_at?: string;
 }
@@ -50,7 +51,16 @@ export interface StaffCreateDTO {
 // 5. Profil Update
 export interface UserUpdateDTO {
   fullname?: string;
+  email?: string;
   is_active?: boolean;
+}
+
+export interface SuperadminStaffCreateDTO {
+  fullname: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  tenant_id: string;
 }
 
 // 6. Password & Token
