@@ -48,10 +48,9 @@ def update_user_profile(db: Session, user_id: str, update_data: UserUpdateDTO, c
     
 def delete_existing_user(db: Session, user_id: str, current_user: User):
     user_service.remove_user(db, user_id, current_user)
-    record_activity(db, "DELETE", "user", current_user, entity_id=user_id)
     return {
         "status": "success",
-        "message": "Akun pengguna berhasil dihapus!"
+        "message": "Akun pengguna berhasil dinonaktifkan!"
     }
     
 def change_password(db: Session, old_pw: str, new_pw: str , current_user: User):
