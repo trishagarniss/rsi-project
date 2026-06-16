@@ -77,11 +77,15 @@ def soft_delete_user_sp(db: Session, user_id: str, deleted_by: str) -> str:
     try:
         stmt = text("CALL sp_delete_account(:user_id, :deleted_by, :p_result)")
         result = db.execute(stmt, {"user_id": user_id, "deleted_by": deleted_by, "p_result": None})
-        row = result.fetchone()
+        row = None
+        try:
+            row = result.fetchone()
+        except Exception:
+            pass
         db.commit()
         if row:
             return row[0]
-        return "DELETE_FAILED"
+        return "SUCCESS"
     except Exception as e:
         db.rollback()
         print(f"Error calling sp_delete_account: {e}")
