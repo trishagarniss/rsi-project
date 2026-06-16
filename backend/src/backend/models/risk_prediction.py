@@ -1,7 +1,6 @@
 import uuid
 from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from src.backend.database.engine import Base
@@ -20,8 +19,6 @@ class RiskPredictionLog(Base):
     
     risk_status = Column(SQLEnum(RiskStatus), nullable=False)
     risk_score = Column(Float, nullable=False) # Nilai probabilitas 0.0 - 1.0
-    
-    features_snapshot = Column(JSONB, nullable=False) 
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

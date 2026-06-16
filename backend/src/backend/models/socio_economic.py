@@ -35,6 +35,7 @@ class SocioEconomic(Base):
     housing_status = Column(SQLEnum(HousingStatus), nullable=True)
     transportation_mode = Column(String(50), nullable=True)
     
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

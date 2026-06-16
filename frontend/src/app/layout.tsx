@@ -6,6 +6,9 @@ import AOSInit from "@/components/AOSInit";
 export const metadata: Metadata = {
   title: "A.S.G.A.R.D",
   description: "Analisis Sistem Gejala Awal Risiko Dropout",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({

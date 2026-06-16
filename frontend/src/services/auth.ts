@@ -2,8 +2,7 @@
 import { 
     UserLoginDTO, 
     LoginResponse, 
-    RegisterAdminData, 
-    ApiError 
+    RegisterAdminData 
 } from '@/types/user';
 import { get, post } from '@/lib/api-client';
 

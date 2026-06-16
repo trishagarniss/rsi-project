@@ -16,5 +16,6 @@ class MlModel(Base):
     file_path = Column(String(255), nullable=False) # lokasi file
     accuracy_score = Column(Float, nullable=True)
     is_active = Column(Boolean, default=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

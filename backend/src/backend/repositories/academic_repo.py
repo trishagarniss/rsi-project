@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from src.backend.models.academic import Academic
 
 def create_academic(db: Session, data: dict, tenant_id: str):
@@ -11,13 +12,15 @@ def create_academic(db: Session, data: dict, tenant_id: str):
 def get_by_student(db: Session, student_id: str, tenant_id: str):
     return db.query(Academic).filter(
         Academic.student_id == student_id, 
-        Academic.tenant_id == tenant_id
+        Academic.tenant_id == tenant_id,
+        Academic.deleted_at == None
     ).all()
     
 def get_academic_by_id(db: Session, academic_id: str, tenant_id: str):
     return db.query(Academic).filter(
         Academic.id == academic_id,
-        Academic.tenant_id == tenant_id
+        Academic.tenant_id == tenant_id,
+        Academic.deleted_at == None
     ).first()
 
 def get_duplicate_check(db: Session, student_id: str, semester: int, academic_year: str, tenant_id: str):
@@ -25,7 +28,8 @@ def get_duplicate_check(db: Session, student_id: str, semester: int, academic_ye
         Academic.student_id == student_id,
         Academic.semester == semester,
         Academic.academic_year == academic_year,
-        Academic.tenant_id == tenant_id
+        Academic.tenant_id == tenant_id,
+        Academic.deleted_at == None
     ).first()
     
 def update_academic(db: Session, db_obj: Academic, update_data: dict):
@@ -36,6 +40,6 @@ def update_academic(db: Session, db_obj: Academic, update_data: dict):
     return db_obj
 
 def delete_academic(db: Session, db_obj: Academic):
-    db.delete(db_obj)
+    db_obj.deleted_at = func.now()
     db.commit()
     return True

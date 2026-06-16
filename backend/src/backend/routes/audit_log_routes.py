@@ -14,6 +14,6 @@ def get_audit_logs(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN])) # Hanya admin sekolah yang bisa lihat log
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.SUPERADMIN])) # Admin sekolah & Superadmin bisa lihat log
 ):
     return audit_log_controller.get_audit_logs(db, current_user, skip, limit)

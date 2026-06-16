@@ -1,6 +1,7 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from src.backend.models.risk_prediction import RiskPredictionLog
+from src.backend.models.enums import RiskStatus
 
 def save_prediction(db: Session, data: dict, tenant_id: str) -> RiskPredictionLog:
     new_prediction = RiskPredictionLog(**data, tenant_id=tenant_id)
@@ -33,10 +34,7 @@ def get_latest_prediction_by_student(db: Session, student_id: str, tenant_id: st
     ).order_by(RiskPredictionLog.created_at.desc()).first()
 
 def get_all_risky_students(db: Session, tenant_id: str) -> List[RiskPredictionLog]:
-    """Mengambil daftar semua siswa yang saat ini berstatus BERISIKO untuk Dashboard BK"""
-    # Catatan: Logika aslinya mungkin perlu subquery untuk mencari data 'terbaru' per siswa,
-    # tapi ini cukup untuk MVP awal.
-    return db.query(RiskPredictionLog).filter(
+    return db.query(RiskPredictionLog).options(joinedload(RiskPredictionLog.student)).filter(
         RiskPredictionLog.tenant_id == tenant_id,
         RiskPredictionLog.is_at_risk == True
     ).order_by(RiskPredictionLog.risk_score.desc()).all()
@@ -45,3 +43,11 @@ def get_latest_prediction_by_tenant_all(db: Session,tenant_id: str) -> Optional[
     return db.query(RiskPredictionLog).filter(
         RiskPredictionLog.tenant_id == tenant_id
     ).order_by(RiskPredictionLog.created_at.desc()).all()
+
+def get_all_predictions(db: Session, tenant_id: str, risk_status: Optional[str] = None) -> List[RiskPredictionLog]:
+    query = db.query(RiskPredictionLog).options(joinedload(RiskPredictionLog.student)).filter(
+        RiskPredictionLog.tenant_id == tenant_id
+    )
+    if risk_status:
+        query = query.filter(RiskPredictionLog.risk_status == risk_status)
+    return query.order_by(RiskPredictionLog.created_at.desc()).all()

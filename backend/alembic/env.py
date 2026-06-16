@@ -15,7 +15,7 @@ from src.backend.database.engine import engine, Base
 # 3. WAJIB Import semua model agar terdeteksi oleh Alembic
 from src.backend.models import (
     tenant, user, student, academic, attendance, 
-    socio_economic, ml_model, risk_prediction, audit_log
+    socio_economic, ml_model, risk_prediction, audit_log, notification
 )
 
 config = context.config
@@ -37,7 +37,14 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 def run_migrations_online() -> None:
-    connectable = engine
+    url = str(engine.url)
+    if "postgresql+asyncpg" in url:
+        from sqlalchemy import create_engine
+        sync_url = url.replace("postgresql+asyncpg", "postgresql")
+        connectable = create_engine(sync_url)
+    else:
+        connectable = engine
+        
     with connectable.connect() as connection:
         context.configure(
             connection=connection, target_metadata=target_metadata

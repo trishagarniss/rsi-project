@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShieldCheck, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import Image from 'next/image';
 
 export default function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false);
@@ -42,18 +43,14 @@ export default function Navbar() {
             
             {/* LOGO AREA - Gunakan flex-1 agar seimbang dengan area tombol */}
             <div className="flex-1 flex justify-start">
-            <Link href="/" className="flex items-center gap-2.5 group">
-                <div className="text-asgard-secondary group-hover:scale-105 group-hover:text-yellow-300 transition-all duration-300 drop-shadow-md">
-                <ShieldCheck size={32} strokeWidth={2.5} />
-                </div>
-                <div className="flex flex-col">
-                <span className="text-2xl font-extrabold text-white tracking-tight leading-none drop-shadow-md">
-                    ASGARD
-                </span>
-                <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest hidden sm:block mt-0.5">
-                    Early Detection System
-                </span>
-                </div>
+            <Link href="/" className="flex items-center group">
+                <Image
+                src="/Logo-ASGARD.png"
+                alt="ASGARD Logo"
+                width={150}
+                height={50}
+                className="object-contain group-hover:scale-105 transition-all duration-300"
+                />
             </Link>
             </div>
 

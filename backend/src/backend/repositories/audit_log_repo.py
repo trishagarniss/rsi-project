@@ -11,6 +11,7 @@ def create_log(db: Session, data: AuditLogCreateDTO) -> AuditLog:
     return new_log
 
 def get_logs_by_tenant(db: Session, tenant_id: str, skip: int = 0, limit: int = 100) -> List[AuditLog]:
-    return db.query(AuditLog).filter(
-        AuditLog.tenant_id == tenant_id
-    ).order_by(AuditLog.created_at.desc()).offset(skip).limit(limit).all()
+    query = db.query(AuditLog)
+    if tenant_id:
+        query = query.filter(AuditLog.tenant_id == tenant_id)
+    return query.order_by(AuditLog.created_at.desc()).offset(skip).limit(limit).all()
