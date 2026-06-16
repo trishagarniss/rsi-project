@@ -19,6 +19,7 @@ class AuditLogResponseDTO(BaseModel):
     entity_id: Optional[str]
     details: Optional[Dict[str, Any]]
     created_at: datetime
+    user_role: Optional[str] = None
 
     class Config:
         from_attributes = True

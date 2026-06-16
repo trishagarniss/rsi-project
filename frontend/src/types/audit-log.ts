@@ -7,4 +7,5 @@ export interface AuditLog {
   entity_id?: string;
   details?: Record<string, unknown>;
   created_at: string;
+  user_role?: string;
 }

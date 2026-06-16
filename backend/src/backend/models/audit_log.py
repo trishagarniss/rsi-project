@@ -2,6 +2,7 @@ import uuid
 from sqlalchemy import Column, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import relationship
 
 from src.backend.database.engine import Base
 
@@ -22,3 +23,10 @@ class AuditLog(Base):
     ip_address = Column(String(45), nullable=True) # 45 karakter cukup untuk IPv6
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relasi ke User
+    user = relationship("User", foreign_keys=[user_id])
+
+    @property
+    def user_role(self) -> str | None:
+        return self.user.role.value if (self.user and self.user.role) else None
