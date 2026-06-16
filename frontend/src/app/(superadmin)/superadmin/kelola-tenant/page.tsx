@@ -56,6 +56,8 @@ export default function KelolaTenantPage() {
   const [fetchedCode, setFetchedCode] = useState<string | null>(null);
   const [codeLoading, setCodeLoading] = useState(false);
 
+  const [createdRegCode, setCreatedRegCode] = useState<string | null>(null);
+
  const loadData = async () => {
  setLoading(true);
  setErrorMsg("");
@@ -114,28 +116,31 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
  setIsDeleteModalOpen(true);
  };
 
- const handleCreate = async (e: React.FormEvent) => {
- e.preventDefault();
- setActionLoading(true);
- setErrorMsg("");
- try {
-  const data: TenantCreateDTO = {
-  name: formData.name,
-  address: formData.address || undefined,
-  contact_email: formData.contact_email || undefined,
-  status: formData.status,
+  const handleCreate = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setActionLoading(true);
+  setErrorMsg("");
+  setCreatedRegCode(null);
+  try {
+   const data: TenantCreateDTO = {
+   name: formData.name,
+   address: formData.address || undefined,
+   contact_email: formData.contact_email || undefined,
+   status: formData.status,
+   };
+   const res = await tenantService.create(data);
+   const code = res.data?.registration_code || null;
+   setCreatedRegCode(code);
+   setSuccessMsg(`Tenant "${res.data.name}" berhasil dibuat!`);
+   setIsAddModalOpen(false);
+   resetForm();
+   loadData();
+  } catch (err: unknown) {
+   setErrorMsg(err instanceof Error ? err.message : "Gagal membuat tenant.");
+  } finally {
+   setActionLoading(false);
+  }
   };
-  const res = await tenantService.create(data);
-  setSuccessMsg(`Tenant "${res.data.name}" berhasil dibuat!`);
-  setIsAddModalOpen(false);
-  resetForm();
-  loadData();
- } catch (err: unknown) {
-  setErrorMsg(err instanceof Error ? err.message : "Gagal membuat tenant.");
- } finally {
-  setActionLoading(false);
- }
- };
 
  const handleUpdate = async (e: React.FormEvent) => {
  e.preventDefault();
@@ -259,14 +264,37 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
     <span>{successMsg}</span>
    </div>
    )}
-   {errorMsg && (
-   <div className="p-4 bg-red-50 border-2 border-red-200 text-red-700 rounded-2xl flex items-start gap-3 text-sm font-bold">
-    <ShieldAlert size={20} className="shrink-0 text-red-500 mt-0.5" />
-    <span>{errorMsg}</span>
-   </div>
-   )}
+    {errorMsg && (
+    <div className="p-4 bg-red-50 border-2 border-red-200 text-red-700 rounded-2xl flex items-start gap-3 text-sm font-bold">
+     <ShieldAlert size={20} className="shrink-0 text-red-500 mt-0.5" />
+     <span>{errorMsg}</span>
+    </div>
+    )}
 
-   <div className="bg-white rounded-[28px] border-2 border-slate-200 overflow-hidden">
+    {createdRegCode && (
+    <div className="bg-white rounded-[28px] border-2 border-asgard-secondary/30 overflow-hidden">
+      <div className="p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-asgard-primary">
+            <Key size={20} />
+            <h3 className="font-extrabold">Kode Registrasi Tenant</h3>
+          </div>
+          <button onClick={() => setCreatedRegCode(null)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex items-center gap-3 p-4 bg-asgard-primary/5 rounded-2xl border-2 border-asgard-primary/20">
+          <code className="text-2xl font-black text-asgard-primary tracking-[0.25em] select-all flex-1">{createdRegCode}</code>
+          <button onClick={() => { navigator.clipboard.writeText(createdRegCode); setSuccessMsg("Kode berhasil disalin!"); }} className="px-5 py-2.5 bg-asgard-primary hover:bg-[#2434B5] text-white text-xs font-black rounded-xl transition-all border-2 border-asgard-primary/20 whitespace-nowrap">
+            Salin Kode
+          </button>
+        </div>
+        <p className="text-xs font-bold text-slate-400">Berlaku 24 jam. Bagikan kode ini ke admin sekolah untuk registrasi akun mereka.</p>
+      </div>
+    </div>
+    )}
+
+    <div className="bg-white rounded-[28px] border-2 border-slate-200 overflow-hidden">
    
    {/* Search / Filter Bar */}
    <div className="p-6 border-b-2 border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
