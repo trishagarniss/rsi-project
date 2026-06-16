@@ -12,8 +12,8 @@ class AuditLogCreateDTO(BaseModel):
 
 class AuditLogResponseDTO(BaseModel):
     id: str
-    user_id: str
-    tenant_id: str
+    user_id: Optional[str]
+    tenant_id: Optional[str]
     action: str
     entity_name: str
     entity_id: Optional[str]

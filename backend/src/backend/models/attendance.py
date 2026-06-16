@@ -27,6 +27,7 @@ class Attendance(Base):
     unexcused_count = Column(Integer, default=0)
     attendance_percentage = Column(Float, nullable=True)
     
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

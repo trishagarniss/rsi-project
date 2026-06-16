@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import Optional
+from sqlalchemy.sql import func
 from src.backend.models.socio_economic import SocioEconomic
 
 def create_socio_economic(db: Session, data: dict, tenant_id: str) -> SocioEconomic:
@@ -12,13 +13,15 @@ def create_socio_economic(db: Session, data: dict, tenant_id: str) -> SocioEcono
 def get_by_student(db: Session, student_id: str, tenant_id: str) -> Optional[SocioEconomic]:
     return db.query(SocioEconomic).filter(
         SocioEconomic.student_id == student_id,
-        SocioEconomic.tenant_id == tenant_id
+        SocioEconomic.tenant_id == tenant_id,
+        SocioEconomic.deleted_at == None
     ).first()
 
 def get_by_id(db: Session, se_id: str, tenant_id: str) -> Optional[SocioEconomic]:
     return db.query(SocioEconomic).filter(
         SocioEconomic.id == se_id,
-        SocioEconomic.tenant_id == tenant_id
+        SocioEconomic.tenant_id == tenant_id,
+        SocioEconomic.deleted_at == None
     ).first()
 
 def update_socio_economic(db: Session, db_obj: SocioEconomic, update_data: dict) -> SocioEconomic:
@@ -29,6 +32,6 @@ def update_socio_economic(db: Session, db_obj: SocioEconomic, update_data: dict)
     return db_obj
 
 def delete_socio_economic(db: Session, db_obj: SocioEconomic) -> bool:
-    db.delete(db_obj)
+    db_obj.deleted_at = func.now()
     db.commit()
     return True

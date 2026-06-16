@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from sqlalchemy.sql import func
 from src.backend.models.attendance import Attendance
 
 def create_attendance(db: Session, data: dict, tenant_id: str) -> Attendance:
@@ -12,7 +13,8 @@ def create_attendance(db: Session, data: dict, tenant_id: str) -> Attendance:
 def get_by_student(db: Session, student_id: str, tenant_id: str) -> List[Attendance]:
     return db.query(Attendance).filter(
         Attendance.student_id == student_id,
-        Attendance.tenant_id == tenant_id
+        Attendance.tenant_id == tenant_id,
+        Attendance.deleted_at == None
     ).order_by(Attendance.semester.asc()).all()
 
 def get_by_student_and_semester(db: Session, student_id: str, semester: int, academic_year: str, tenant_id: str) -> Optional[Attendance]:
@@ -20,13 +22,15 @@ def get_by_student_and_semester(db: Session, student_id: str, semester: int, aca
         Attendance.student_id == student_id,
         Attendance.semester == semester,
         Attendance.academic_year == academic_year,
-        Attendance.tenant_id == tenant_id
+        Attendance.tenant_id == tenant_id,
+        Attendance.deleted_at == None
     ).first()
 
 def get_by_id(db: Session, attendance_id: str, tenant_id: str) -> Optional[Attendance]:
     return db.query(Attendance).filter(
         Attendance.id == attendance_id,
-        Attendance.tenant_id == tenant_id
+        Attendance.tenant_id == tenant_id,
+        Attendance.deleted_at == None
     ).first()
 
 def update_attendance(db: Session, db_obj: Attendance, update_data: dict) -> Attendance:
@@ -37,6 +41,6 @@ def update_attendance(db: Session, db_obj: Attendance, update_data: dict) -> Att
     return db_obj
 
 def delete_attendance(db: Session, db_obj: Attendance) -> bool:
-    db.delete(db_obj)
+    db_obj.deleted_at = func.now()
     db.commit()
     return True
