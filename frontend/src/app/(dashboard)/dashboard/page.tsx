@@ -31,7 +31,7 @@ export default function DashboardOverview() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+useEffect(() => {
     let isMounted = true;
 
     async function loadDashboardData() {
@@ -39,18 +39,25 @@ export default function DashboardOverview() {
         setIsLoading(true);
 
         // ==============================================================
-        // FETCH PARALEL: Ambil data Siswa DAN Prediksi Terakhir sekaligus
+        // FETCH PARALEL: Ambil Data Siswa, Prediksi, dan TOTAL COUNT
         // ==============================================================
-        // Kita gunakan Promise.all agar request berjalan bersamaan (sangat cepat)
-        const [studentsResponse, predictionsResponse] = await Promise.all([
+        const [studentsResponse, predictionsResponse, countResponse] = await Promise.all([
+          // Tetap ambil siswa untuk digabungkan namanya di tabel bawah
           get('/api/v1/students/?skip=0&limit=2000').catch(() => []),
-          // Mencoba endpoint 'student/all' untuk prediksi terbaru, fallback ke '/' jika tidak ada
-          get('/api/v1/predictions/student/all').catch(() => get('/api/v1/predictions/?skip=0&limit=2000')).catch(() => [])
+          // Ambil data prediksi
+          get('/api/v1/predictions/student/all').catch(() => get('/api/v1/predictions/?skip=0&limit=2000')).catch(() => []),
+          // Ambil TOTAL SISWA yang sangat ringan dan cepat
+          get('/api/v1/students/count').catch(() => 0) 
         ]);
 
-        // Baris Detektif: Ekstrak array dari objek pagination (jika dibungkus)
+        // Ekstrak array
         const studentsArray = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.items || studentsResponse.data || []);
         const predictionsArray = Array.isArray(predictionsResponse) ? predictionsResponse : (predictionsResponse.items || predictionsResponse.data || []);
+
+        // Ekstrak angka total siswa (Menangani jika backend membalas angka mentah '1908' atau object '{ count: 1908 }')
+        const totalSiswaAktif = typeof countResponse === 'number' 
+          ? countResponse 
+          : (countResponse?.count ?? countResponse?.total ?? studentsArray.length);
 
         // --- PROSES AGREGASI (Menghitung Data untuk Grafik) ---
         let tinggi = 0, sedang = 0, rendah = 0, aman = 0;
@@ -84,10 +91,9 @@ export default function DashboardOverview() {
 
         if (isMounted) {
           setSummary({
-            // Jika ada siswa yang belum dievaluasi, total siswa tetap menggunakan jumlah data tabel students
-            totalStudents: Math.max(studentsArray.length, predictionsArray.length),
+            totalStudents: totalSiswaAktif, // <-- MENGGUNAKAN DATA DARI ENDPOINT /COUNT
             riskDistribution: { tinggi, sedang, rendah, aman },
-            topCriticalStudents: criticalList.slice(0, 5) // Ambil 5 teratas untuk tabel kritis
+            topCriticalStudents: criticalList.slice(0, 5) 
           });
           setError(null);
         }

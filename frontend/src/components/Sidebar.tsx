@@ -30,6 +30,8 @@ const adminMenu = [
   // { name: 'Laporan', path: '/reports', icon: BarChart3 }, <-- DINONAKTIFKAN UNTUK MVP
   { name: 'Import Data', path: '/import', icon: Upload },
   { name: 'Manajemen Akun', path: '/manage-accounts', icon: UserCog },
+  { name: 'Panduan Admin', path: '/guide_admin', icon: BookOpen },
+  {name: 'Panduan Konselor', path: '/guide_konselor', icon: BookOpen },
   // { name: 'Pengaturan', path: '/settings', icon: Settings2 }, <-- DINONAKTIFKAN UNTUK MVP
 ];
 

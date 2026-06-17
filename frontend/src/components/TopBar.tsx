@@ -79,10 +79,18 @@ export default function TopBar() {
     return 'Superadmin Portal';
   };
 
-  const adminName = user?.fullname || 'Admin';
-  const roleLabel = user?.role === 'superadmin' ? 'Super Admin' : user?.role === 'admin' ? 'Admin Sekolah' : 'Guru BK';
-  const initials = adminName.split(' ').map((n) => n[0]).join('').toUpperCase().substring(0, 2);
+// --- TAMBAHAN FIX HYDRATION ---
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
+  const adminName = isMounted ? (user?.fullname || 'Admin') : 'Admin';
+  const roleLabel = isMounted 
+    ? (user?.role === 'superadmin' ? 'Super Admin' : user?.role === 'admin' ? 'Admin Sekolah' : 'Guru BK') 
+    : 'Memuat...';
+  const initials = adminName.split(' ').map((n) => n[0]).join('').toUpperCase().substring(0, 2);
+ 
   const handleLogout = async () => {
     setDropdownOpen(false);
     logout();
