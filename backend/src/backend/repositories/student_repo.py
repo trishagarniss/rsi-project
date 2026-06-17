@@ -25,7 +25,7 @@ def get_students_by_tenant(db: Session, tenant_id: str, skip: int, limit: int):
     ).offset(skip).limit(limit).all()
 
 def count_all_students(db: Session) -> int:
-    return db.query(Student).filter(Student.deleted_at == None).count()
+    return db.query(Student).filter(Student.is_active == True).count()
 
 def count_total_students(db: Session) -> int:
     return db.query(Student).count()
