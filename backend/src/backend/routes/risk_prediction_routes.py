@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
-
+import io
+import pandas as pd
 from src.backend.database.engine import get_db
 from src.backend.controllers import risk_prediction_controller
 from src.backend.controllers.risk_prediction_controller import BulkPredictRequestDTO # Wajib import DTO ini
@@ -55,3 +56,17 @@ def get_all_student_predictions(
     risk_status: str = None 
 ):
     return risk_prediction_controller.get_all_predictions(db, current_user, risk_status)
+
+@app.post("/upload-csv/")
+async def upload_csv(file: UploadFile = File(...),db: Session = Depends(get_db),current_user: User = Depends(require_role([UserRole.ADMIN]))):
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File harus berformat CSV!")
+    
+    try:
+        contents = await file.read()
+        data = io.BytesIO(contents)
+        df = pd.read_csv(data)
+        return risk_prediction_controller.upload_file(db,current_user,df)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gagal memproses file: {str(e)}")

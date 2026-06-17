@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
+import pandas as pd
 
 from src.backend.services import risk_prediction_service
 from src.backend.models.user import User
@@ -49,4 +50,12 @@ def get_all_predictions(db: Session, current_user: User, risk_status: str = None
     return {
         "status": "success",
         "data": [RiskPredictionListDTO.model_validate(p) for p in predictions]
+    }
+    
+def upload_file(db : Session,  current_user: User, df : pd.DataFrame) :
+    risk_prediction_service.upload_file(db,current_user.tenant_id, df)
+    
+    return {
+        "status": "success",
+        "message": "Data berhasil masuk!"
     }

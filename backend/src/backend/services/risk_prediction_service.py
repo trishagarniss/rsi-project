@@ -3,6 +3,8 @@ import joblib
 import pandas as pd
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
+import pandas as pd
+from src.backend.models.student import generate_student_id
 
 from src.backend.repositories import (
     risk_prediction_repo, 
@@ -222,3 +224,81 @@ def fetch_all_predictions(db: Session, current_user: User, risk_status: str = No
         risk_status=risk_status
     )
     return predictions
+
+def upload_file(db : Session, tenant_id : str, df : pd.DataFrame) :
+    T = []
+    S = []
+    aktif = []
+    for i in range(len(df["name"])) :
+        T.append(tenant_id)
+        S.append(generate_student_id())
+        aktif.append(True)
+    df["tenant_id"] = T
+    df["student_id"] = S
+    df["is_active"] = aktif
+    
+    engine = db.get_bind()
+    
+    STUDENT = {}
+    STUDENT["id"] = df["student_id"]
+    STUDENT["tenant_id"] = df["tenant_id"]
+    STUDENT["nis"] = df["nis"]
+    STUDENT["nisn"] = df["nisn"]
+    STUDENT["name"] = df["name"]
+    STUDENT["gender"] = df["gender"]
+    STUDENT["date_of_birth"] = df["date_of_birth"]
+    STUDENT["address"] = df["address"]
+    STUDENT["parent_name"] = df["parent_name"]
+    STUDENT["parent_phone"] = df["parent_phone"]
+    STUDENT["is_active"] = df["is_active"]
+    try:
+        pd.DataFrame(STUDENT).to_sql('students', con=engine, if_exists='append', index=False)
+    except Exception as e:
+        pass
+    
+    ACADEMIC = {}
+    ACADEMIC["student_id"] = df["student_id"]
+    ACADEMIC["tenant_id"] = df["tenant_id"]
+    ACADEMIC["semester"] = df["semester"]
+    ACADEMIC["academic_year"] = df["academic_year"]
+    ACADEMIC["average_score"] = df["average_score"]
+    ACADEMIC["failed_subjects_count"] = df["failed_subjects_count"]
+    ACADEMIC["incomplete_assignments_count"] = df["incomplete_assignments_count"]
+    try:
+        pd.DataFrame(ACADEMIC).to_sql('academics', con=engine, if_exists='append', index=False)
+    except Exception as e:
+        pass
+    
+    ATTENDANCE = {}
+    ATTENDANCE["student_id"] = df["student_id"]
+    ATTENDANCE["tenant_id"] = df["tenant_id"]
+    ATTENDANCE["semester"] = df["semester"]
+    ATTENDANCE["academic_year"] = df["academic_year"]
+    ATTENDANCE["present_count"] = df["present_count"]
+    ATTENDANCE["sick_count"] = df["sick_count"]
+    ATTENDANCE["excused_count"] = df["excused_count"]
+    ATTENDANCE["unexcused_count"] = df["unexcused_count"]
+    ATTENDANCE["attendance_percentage"] = df["attendance_percentage"]
+    try:
+        pd.DataFrame(ATTENDANCE).to_sql('attendances', con=engine, if_exists='append', index=False)
+    except Exception as e:
+        pass
+    
+    SOCIO_ECONOMY = {}
+    SOCIO_ECONOMY["student_id"] = df["student_id"] 
+    SOCIO_ECONOMY["tenant_id"] = df["tenant_id"]
+    SOCIO_ECONOMY["parents_income"] = df["parents_income"]
+    SOCIO_ECONOMY["monthly_expenses"] = df["monthly_expenses"]
+    SOCIO_ECONOMY["parents_education_level"] = df["parents_education_level"]
+    SOCIO_ECONOMY["birth_order"] = df["birth_order"]
+    SOCIO_ECONOMY["dependents_count"] = df["dependents_count"]
+    SOCIO_ECONOMY["has_kip_scholarship"] = df["has_kip_scholarship"]
+    SOCIO_ECONOMY["is_working_student"] = df["is_working_student"]
+    SOCIO_ECONOMY["has_internet_access"] = df["has_internet_access"]
+    SOCIO_ECONOMY["distance_to_school_km"] = df["distance_to_school_km"]
+    SOCIO_ECONOMY["housing_status"] = df["housing_status"]
+    SOCIO_ECONOMY["transportation_mode"] = df["transportation_mode"]
+    try:
+        pd.DataFrame(SOCIO_ECONOMY).to_sql('socio_economics', con=engine, if_exists='append', index=False)
+    except Exception as e:
+        pass
