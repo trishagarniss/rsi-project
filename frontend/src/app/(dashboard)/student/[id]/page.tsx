@@ -134,10 +134,6 @@ export default function StudentDetail() {
             <h1 className="text-3xl font-black text-asgard-primary">{student.name}</h1>
             <p className="text-slate-500 font-medium mt-1">NIS: {student.nis} • NISN: {student.nisn ?? '-'} • {genderLabel}</p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline" className="border-slate-200">Unduh Laporan PDF</Button>
-            <Button variant="danger">Intervensi Segera</Button>
-          </div>
         </div>
       </div>
 
@@ -182,11 +178,10 @@ export default function StudentDetail() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
-                  activeTab === tab.id
+                className={`px-6 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${activeTab === tab.id
                     ? 'border-asgard-primary text-asgard-primary'
                     : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>

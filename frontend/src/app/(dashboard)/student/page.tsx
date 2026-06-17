@@ -5,6 +5,7 @@ import Link from 'next/link';
 import RiskBadge from '@/components/ui/RiskBadge';
 import Button from '@/components/ui/Button';
 import { get } from '@/lib/api-client';
+import { formatRiskLabel } from '@/lib/dashboard-api';
 
 // --- TIPE DATA SESUAI JSON BACKEND SAAT INI ---
 interface StudentRecord {
@@ -14,7 +15,7 @@ interface StudentRecord {
   nisn: string | null;
   gender: 'male' | 'female';
   is_active: boolean;
-  riskLevel: 'Tinggi' | 'Sedang' | 'Rendah' | 'Aman';
+  riskLevel: 'Tinggi' | 'Sedang' | 'Rendah' | 'Aman' | 'Belum Dievaluasi';
 }
 
 export default function StudentList() {
@@ -37,25 +38,42 @@ export default function StudentList() {
       try {
         setIsLoading(true);
         
-// ==============================================================
-        // FETCH DATA MENTAH DARI DATABASE POSTGRESQL BACKEND
         // ==============================================================
-        const data = await get('/api/v1/students/?skip=0&limit=100'); 
+        // FETCH DATA SISWA & PREDIKSI RISIKO DARI BACKEND
+        // ==============================================================
+        const [studentsResponse, predictionsResponse] = await Promise.all([
+          get('/api/v1/students/?skip=0&limit=100').catch(() => []),
+          get('/api/v1/predictions/student/all').catch(() => get('/api/v1/predictions/?skip=0&limit=10000')).catch(() => [])
+        ]);
         
-        // --- BARIS DETEKTIF BARU ---
-        // Jika data berupa array langsung, pakai data. Jika dibungkus object, cari array-nya di .items atau .data
-        const studentArray = Array.isArray(data) ? data : (data.items || data.data || data.students || []);
+        const studentArray = Array.isArray(studentsResponse) 
+          ? studentsResponse 
+          : (studentsResponse.items || studentsResponse.data || studentsResponse.students || []);
+          
+        const predictionsArray = Array.isArray(predictionsResponse) 
+          ? predictionsResponse 
+          : (predictionsResponse.items || predictionsResponse.data || predictionsResponse.predictions || []);
 
-        // Mapping JSON flat dari backend ke state Frontend menggunakan studentArray
-        const formattedStudents = studentArray.map((student: any, index: number) => ({
-          id: student.id || `temp-id-${index}`, 
-          name: student.name || 'Nama Tidak Diketahui',
-          nis: student.nis || '-',
-          nisn: student.nisn || '-',
-          gender: student.gender || 'male',
-          is_active: true, 
-          riskLevel: 'Aman' 
-        }));
+        // Mapping JSON dari backend ke state Frontend
+        const formattedStudents = studentArray.map((student: any, index: number) => {
+          const pred = predictionsArray.find((p: any) => p.student_id === student.id);
+          let riskLevel: 'Tinggi' | 'Sedang' | 'Rendah' | 'Aman' | 'Belum Dievaluasi' = 'Belum Dievaluasi';
+          
+          if (pred) {
+            const isAtRisk = pred.risk_status === 'at_risk' || pred.is_at_risk === true;
+            riskLevel = formatRiskLabel(pred.risk_score, isAtRisk) as any;
+          }
+
+          return {
+            id: student.id || `temp-id-${index}`, 
+            name: student.name || 'Nama Tidak Diketahui',
+            nis: student.nis || '-',
+            nisn: student.nisn || '-',
+            gender: student.gender || 'male',
+            is_active: student.is_active !== undefined ? student.is_active : true, 
+            riskLevel 
+          };
+        });
 
         if (isMounted) {
           setStudents(formattedStudents);
@@ -202,10 +220,13 @@ export default function StudentList() {
                     {siswa.gender === 'male' ? 'Laki-laki' : 'Perempuan'}
                   </td>
                   <td className="px-6 py-4">
-                    {/* Karena ML belum aktif, kita pasang abu-abu dulu */}
-                    <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                      Belum Dievaluasi
-                    </span>
+                    {siswa.riskLevel === 'Belum Dievaluasi' ? (
+                      <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md bg-slate-100 text-slate-500 border border-slate-200">
+                        Belum Dievaluasi
+                      </span>
+                    ) : (
+                      <RiskBadge level={siswa.riskLevel as any} />
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">
@@ -213,9 +234,11 @@ export default function StudentList() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <Button variant="outline" size="sm" className="text-xs px-4 py-2 h-auto opacity-0 group-hover:opacity-100 transition-all duration-300">
-                        Detail
-                    </Button>
+                    <Link href={`/student/${siswa.id}`}>
+                      <Button variant="outline" size="sm" className="text-xs px-4 py-2 h-auto opacity-0 group-hover:opacity-100 transition-all duration-300">
+                          Detail
+                      </Button>
+                    </Link>
                   </td>
                 </tr>
               ))}

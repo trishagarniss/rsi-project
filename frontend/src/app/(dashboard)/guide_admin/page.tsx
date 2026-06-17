@@ -5,6 +5,7 @@ import {
   BookOpen, Users, Building2, ClipboardList, Settings2, 
   GraduationCap, UserPlus, UploadCloud, PieChart, ExternalLink
 } from "lucide-react";
+import RoleGuard from "@/components/RoleGuard";
 
 const sections = [
   // ... (Data sections tetap sama persis seperti sebelumnya) ...
@@ -91,7 +92,8 @@ const quickTips = [
 
 export default function AdminGuidePage() {
   return (
-    <div className="relative font-sans antialiased text-slate-800 space-y-10">
+    <RoleGuard allowedRoles={['admin']}>
+      <div className="relative font-sans antialiased text-slate-800 space-y-10">
       {/* Background Decorators (Opsional, dibiarkan jika ingin efek cahaya) */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/5 blur-[150px] rounded-full pointer-events-none -z-10" />
 
@@ -160,6 +162,7 @@ export default function AdminGuidePage() {
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </RoleGuard>
   );
 }

@@ -5,6 +5,7 @@ import {
   BookOpen, BrainCircuit, FileText, Settings2, 
   AlertTriangle, HeartHandshake, Search, ExternalLink
 } from "lucide-react";
+import RoleGuard from "@/components/RoleGuard";
 
 const sections = [
   // ... (Data sections konselor) ...
@@ -90,7 +91,8 @@ const quickTips = [
 
 export default function KonselorGuidePage() {
   return (
-    <div className="relative font-sans antialiased text-slate-800 space-y-10">
+    <RoleGuard allowedRoles={['counselor']}>
+      <div className="relative font-sans antialiased text-slate-800 space-y-10">
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/5 blur-[150px] rounded-full pointer-events-none -z-10" />
 
       {/* Hero */}
@@ -158,6 +160,7 @@ export default function KonselorGuidePage() {
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </RoleGuard>
   );
 }

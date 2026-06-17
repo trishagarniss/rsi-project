@@ -76,21 +76,21 @@ export default function TopBar() {
       pathname.includes('/manage-accounts') || pathname.includes('/settings')
     ) return 'Dashboard';
     if (pathname.includes('/audit') || pathname.includes('/models')) return 'Superadmin';
-    return 'Superadmin Portal';
+    return 'Portal';
   };
 
-// --- TAMBAHAN FIX HYDRATION ---
+  // --- TAMBAHAN FIX HYDRATION ---
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   const adminName = isMounted ? (user?.fullname || 'Admin') : 'Admin';
-  const roleLabel = isMounted 
-    ? (user?.role === 'superadmin' ? 'Super Admin' : user?.role === 'admin' ? 'Admin Sekolah' : 'Guru BK') 
+  const roleLabel = isMounted
+    ? (user?.role === 'superadmin' ? 'Super Admin' : user?.role === 'admin' ? 'Admin Sekolah' : 'Guru BK')
     : 'Memuat...';
   const initials = adminName.split(' ').map((n) => n[0]).join('').toUpperCase().substring(0, 2);
- 
+
   const handleLogout = async () => {
     setDropdownOpen(false);
     logout();
@@ -98,9 +98,9 @@ export default function TopBar() {
   };
 
   const menuItems = [
-    { label: 'Profil Saya', icon: User, href: '/superadmin/profile' },
-    { label: 'Pengaturan', icon: Settings, href: '/superadmin/settings' },
-    { label: 'Panduan', icon: BookOpen, href: '/superadmin/guide' },
+    { label: 'Profil Saya', icon: User, href: '/admin/profile' },
+    { label: 'Pengaturan', icon: Settings, href: '/admin/settings' },
+    { label: 'Panduan', icon: BookOpen, href: '/admin/guide' },
   ];
 
   return (
@@ -159,8 +159,8 @@ export default function TopBar() {
                   recentNotifs.map((n) => {
                     const typeIcon = n.type === 'success' ? <CheckCircle size={14} className="text-green-500" />
                       : n.type === 'warning' ? <AlertTriangle size={14} className="text-amber-500" />
-                      : n.type === 'error' ? <XCircle size={14} className="text-red-500" />
-                      : <Info size={14} className="text-blue-500" />;
+                        : n.type === 'error' ? <XCircle size={14} className="text-red-500" />
+                          : <Info size={14} className="text-blue-500" />;
                     return (
                       <button
                         key={n.id}

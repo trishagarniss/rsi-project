@@ -60,12 +60,23 @@ export default function DashboardOverview() {
 
         predictionsArray.forEach((pred: any) => {
           const rawScore = pred.risk_score !== undefined ? pred.risk_score : pred.risk_status;
-          const isBerisiko = (rawScore === 1 || rawScore === '1' || rawScore === true || rawScore >= 50);
+          
+          // Deteksi apakah siswa berisiko secara komprehensif (status 'at_risk' atau skor desimal >= 0.75)
+          const isBerisiko = pred.risk_status === 'at_risk' || 
+                             pred.is_at_risk === true || 
+                             (typeof pred.risk_score === 'number' && (pred.risk_score >= 0.75 || pred.risk_score >= 50)) ||
+                             (rawScore === 1 || rawScore === '1' || rawScore === true);
 
           if (isBerisiko) berisiko++;
           else aman++;
 
           const studentInfo = studentsArray.find((s: any) => s.id === pred.student_id) || {};
+
+          // Format tampilan skor: jika desimal < 1, tampilkan persentase bulat
+          let formattedScore = rawScore;
+          if (typeof rawScore === 'number' && rawScore > 0 && rawScore < 1) {
+            formattedScore = `${Math.round(rawScore * 100)}%`;
+          }
 
           criticalList.push({
             id: pred.student_id || Math.random().toString(),
@@ -73,7 +84,7 @@ export default function DashboardOverview() {
             nis: studentInfo.nis || '-',
             nisn: studentInfo.nisn || '-',
             riskLevel: isBerisiko ? 'Berisiko' : 'Aman',
-            rawScore: rawScore, 
+            rawScore: formattedScore, 
             latestPrediction: pred
           });
         });

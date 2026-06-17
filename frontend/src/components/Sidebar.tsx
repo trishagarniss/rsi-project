@@ -24,37 +24,49 @@ const superadminMenu = [
 ];
 
 const adminMenu = [
-  { name: 'Beranda', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Daftar Siswa', path: '/student', icon: GraduationCap },
-  { name: 'Manajemen Konseling', path: '/counseling', icon: MessageSquareMore },
+  { name: 'Beranda', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'counselor'] },
+  { name: 'Daftar Siswa', path: '/student', icon: GraduationCap, roles: ['admin', 'counselor'] },
+  { name: 'Manajemen Konseling', path: '/counseling', icon: MessageSquareMore, roles: ['counselor'] },
   // { name: 'Laporan', path: '/reports', icon: BarChart3 }, <-- DINONAKTIFKAN UNTUK MVP
-  { name: 'Import Data', path: '/import', icon: Upload },
-  { name: 'Manajemen Akun', path: '/manage-accounts', icon: UserCog },
-  { name: 'Panduan Admin', path: '/guide_admin', icon: BookOpen },
-  {name: 'Panduan Konselor', path: '/guide_konselor', icon: BookOpen },
+  { name: 'Import Data', path: '/import', icon: Upload, roles: ['admin'] },
+  { name: 'Manajemen Akun', path: '/manage-accounts', icon: UserCog, roles: ['admin'] },
+  { name: 'Panduan Admin', path: '/guide_admin', icon: BookOpen, roles: ['admin'] },
+  { name: 'Panduan Konselor', path: '/guide_konselor', icon: BookOpen, roles: ['counselor'] },
   // { name: 'Pengaturan', path: '/settings', icon: Settings2 }, <-- DINONAKTIFKAN UNTUK MVP
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('sidebar_collapsed') === 'true';
-    }
-    return false;
-  });
+  const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('sidebar_collapsed', collapsed ? 'true' : 'false');
-  }, [collapsed]);
+    setMounted(true);
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('sidebar_collapsed');
+      if (stored === 'true') {
+        setCollapsed(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem('sidebar_collapsed', collapsed ? 'true' : 'false');
+    }
+  }, [collapsed, mounted]);
 
   const isSuperadmin = user?.role === 'superadmin' ||
     pathname.startsWith('/superadmin') ||
     pathname.startsWith('/audit') ||
     pathname.startsWith('/models');
 
-  const menuItems = isSuperadmin ? superadminMenu : adminMenu;
+  const menuItems = isSuperadmin 
+    ? superadminMenu 
+    : adminMenu.filter(item => !item.roles || (user?.role && item.roles.includes(user.role)));
+
+  const activeMenu = mounted ? menuItems : [];
 
   return (
     <aside className={`${collapsed ? 'w-[72px]' : 'w-[260px]'} bg-asgard-primary text-white flex flex-col h-screen sticky top-0 flex-shrink-0 z-50 transition-all duration-300`}>
@@ -79,7 +91,7 @@ export default function Sidebar() {
 
       {/* Navigation Menu */}
       <nav className="flex-1 py-6 flex flex-col gap-1 overflow-hidden">
-        {menuItems.map((item) => {
+        {activeMenu.map((item) => {
           const isActive = pathname === item.path || pathname === `${item.path}/`;
           const Icon = item.icon;
 

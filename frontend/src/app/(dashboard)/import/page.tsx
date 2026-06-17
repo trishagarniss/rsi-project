@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { fetchAllStudents, type StudentRecord } from '@/lib/dashboard-api';
+import RoleGuard from '@/components/RoleGuard';
 
 export default function DataImportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,7 +60,8 @@ export default function DataImportPage() {
   }, [searchValue, students]);
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <RoleGuard allowedRoles={['admin']}>
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
       {/* ================= HEADER ================= */}
       <div>
@@ -193,7 +195,7 @@ export default function DataImportPage() {
         </div>
 
       </div>
-
     </div>
+  </RoleGuard>
   );
 }
