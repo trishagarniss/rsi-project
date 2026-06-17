@@ -58,7 +58,7 @@ def get_all_predictions(db: Session, current_user: User, risk_status: Optional[i
         "data": [RiskPredictionListDTO.model_validate(p) for p in predictions]
     }
     
-def upload_file(db : Session,  current_user: User, df : pd.DataFrame) :
+def upload_file(db : Session,  current_user: User, df : dict) :
     for i in {"name" : [] , "gender" : [], "address" : [], "date_of_birth" : [], "nis" : [], "nisn" : [], "parent_name" : [], "parent_phone" : [], "semester" : [], "academic_year" : [], "present_count" : [],
         "sick_count" : [], "excused_count" : [], "unexcused_count" : [], "attendance_percentage" : [], "average_score" : [], "failed_subjects_count": [], "incomplete_assignments_count" : [], 
         "parents_income" : [], "monthly_expenses" : [], "parents_education_level" : [], "birth_order" : [], "dependents_count" : [], "has_kip_scholarship" : [], "is_working_student" : [], 

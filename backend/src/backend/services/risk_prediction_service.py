@@ -384,7 +384,7 @@ def fetch_all_predictions(db: Session, current_user: User, risk_status: int | No
     )
     return predictions
 
-def upload_file(db : Session, tenant_id : str, df : pd.DataFrame) :
+def upload_file(db : Session, tenant_id : str, df : dict) :
     T = []
     S = []
     aktif = []

@@ -63,7 +63,7 @@ def get_all_student_predictions(
 ):
     return risk_prediction_controller.get_all_predictions(db, current_user, risk_status)
 
-@app.post("/upload-csv/")
+@router.post("/upload-csv/")
 async def upload_csv(file: UploadFile = File(...),db: Session = Depends(get_db),current_user: User = Depends(require_role([UserRole.ADMIN]))):
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File harus berformat CSV!")
@@ -72,6 +72,7 @@ async def upload_csv(file: UploadFile = File(...),db: Session = Depends(get_db),
         contents = await file.read()
         data = io.BytesIO(contents)
         df = pd.read_csv(data)
+        df.to_dict(orient="list")
         return risk_prediction_controller.upload_file(db,current_user,df)
         
     except Exception as e:
