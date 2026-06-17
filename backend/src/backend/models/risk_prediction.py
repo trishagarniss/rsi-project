@@ -16,7 +16,7 @@ class RiskPredictionLog(Base):
     tenant_id = Column(String(50), ForeignKey("tenants.id"), index=True, nullable=False)
     model_id = Column(String(50), ForeignKey("ml_models.id"), index=True, nullable=False)
     
-    risk_status = Column(int, nullable=False) # 0 1
+    risk_status = Column(Integer, nullable=False) # 0 1
     risk_score = Column(Float, nullable=False) # Nilai probabilitas 0.0 - 1.0
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
