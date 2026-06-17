@@ -24,8 +24,3 @@ class HousingStatus(str, enum.Enum):
     WITH_RELATIVES = "with_relatives" # Numpang keluarga
     ORPHANAGE = "orphanage"     # Panti Asuhan
     OTHER = "other"             # Lainnya
-    
-# 5. Status Prediksi Risiko (Untuk risk_prediction.py)
-class RiskStatus(str, enum.Enum):
-    AT_RISK = "at_risk"         # Beresiko
-    NOT_AT_RISK = "not_at_risk" # Tidak beresiko

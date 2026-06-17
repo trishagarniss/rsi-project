@@ -60,3 +60,10 @@ def soft_delete_student_repo(db: Session, student: Student):
     student.deleted_at = func.now()
     db.commit()
     return student
+
+def get_all_active_students_by_tenant(db: Session, tenant_id: str):
+    return db.query(Student).filter(
+        Student.tenant_id == tenant_id,
+        Student.is_active == True,
+        Student.deleted_at == None
+    ).all()

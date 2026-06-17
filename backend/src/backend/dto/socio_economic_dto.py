@@ -2,9 +2,6 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from src.backend.models.enums import HousingStatus
 
-# (Catatan: Jika kamu punya enum TransportationMode di models/enums.py, silakan di-import juga)
-# from src.backend.models.enums import HousingStatus, TransportationMode
-
 # 1. Skema untuk Validasi Input (Request dari Frontend)
 class SocioEconomicCreateDTO(BaseModel):
     student_id: str = Field(..., description="ID Siswa wajib diisi")
@@ -22,13 +19,10 @@ class SocioEconomicCreateDTO(BaseModel):
     
     distance_to_school_km: Optional[float] = Field(None, ge=0.0)
     housing_status: Optional[HousingStatus] = None
-    
-    # Kalau kamu punya kolom transportasi di model, hapus tanda pagar di bawah ini:
-    # transportation_mode: Optional[TransportationMode] = None
+    transportation_mode: Optional[str] = None
 
 # 2. Skema untuk Update (Request dari Frontend jika mau edit data)
 class SocioEconomicUpdateDTO(BaseModel):
-    # Sama seperti absensi, student_id diblokir dari fitur update!
     parents_income: Optional[int] = Field(None, ge=0)
     monthly_expenses: Optional[int] = Field(None, ge=0)
     parents_education_level: Optional[str] = Field(None, max_length=100)
@@ -42,8 +36,7 @@ class SocioEconomicUpdateDTO(BaseModel):
     
     distance_to_school_km: Optional[float] = Field(None, ge=0.0)
     housing_status: Optional[HousingStatus] = None
-    
-    # transportation_mode: Optional[TransportationMode] = None
+    transportation_mode: Optional[str] = None
 
 # 3. Skema untuk Validasi Output (Response ke Frontend)
 class SocioEconomicResponseDTO(BaseModel):
@@ -64,8 +57,7 @@ class SocioEconomicResponseDTO(BaseModel):
     
     distance_to_school_km: Optional[float]
     housing_status: Optional[HousingStatus]
-    
-    # transportation_mode: Optional[TransportationMode]
+    transportation_mode: Optional[str]
     
     class Config:
         from_attributes = True

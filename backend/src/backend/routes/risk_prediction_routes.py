@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 
 from src.backend.database.engine import get_db
 from src.backend.controllers import risk_prediction_controller
-from src.backend.controllers.risk_prediction_controller import BulkPredictRequestDTO # Wajib import DTO ini
 from src.backend.middlewares.auth import require_role
 from src.backend.models.enums import UserRole
 from src.backend.models.user import User
@@ -20,11 +19,18 @@ def trigger_student_prediction(
 
 @router.post("/bulk", status_code=status.HTTP_201_CREATED)
 def trigger_bulk_prediction(
-    request_data: BulkPredictRequestDTO,
+    request_data: risk_prediction_controller.BulkPredictRequestDTO,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
 ):
     return risk_prediction_controller.predict_bulk_students(db, request_data, current_user)
+
+@router.post("/all", status_code=status.HTTP_201_CREATED)
+def trigger_all_unpredicted_prediction(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
+):
+    return risk_prediction_controller.predict_all_students(db, current_user)
 
 @router.get("/student/{student_id}")
 def get_student_latest_prediction(
@@ -52,6 +58,6 @@ def get_prediction_count(
 def get_all_student_predictions(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR])),
-    risk_status: str = None 
+    risk_status: int = Query(None)
 ):
     return risk_prediction_controller.get_all_predictions(db, current_user, risk_status)
