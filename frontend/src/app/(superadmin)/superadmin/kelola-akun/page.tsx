@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { 
   Users, 
   Search, 
@@ -16,7 +16,8 @@ import {
   Mail,
   UserCheck,
   Lock,
-  Clock
+  Clock,
+  ChevronDown
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/Sidebar";
@@ -52,9 +53,33 @@ export default function KelolaAkunPage() {
  role: "admin",
  tenant_id: "",
  is_active: true
- });
+  });
 
- const loadData = async () => {
+  const [schoolSearch, setSchoolSearch] = useState("");
+  const [schoolDropdownOpen, setSchoolDropdownOpen] = useState(false);
+  const schoolDropdownRef = useRef<HTMLDivElement>(null);
+
+  const sortedTenants = useMemo(() =>
+    [...tenants].sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()),
+  [tenants]);
+
+  const filteredSchools = useMemo(() =>
+    schoolSearch
+      ? sortedTenants.filter(t => t.name.toLowerCase().includes(schoolSearch.toLowerCase()))
+      : sortedTenants,
+  [sortedTenants, schoolSearch]);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (schoolDropdownRef.current && !schoolDropdownRef.current.contains(e.target as Node)) {
+        setSchoolDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const loadData = async () => {
  setLoading(true);
  setErrorMsg("");
  try {
@@ -110,9 +135,10 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
    email: "",
    password: "",
    role: "admin",
-   tenant_id: tenants.length > 0 ? tenants[0].id : "",
+   tenant_id: sortedTenants.length > 0 ? sortedTenants[0].id : "",
    is_active: true
   });
+  setSchoolSearch(sortedTenants.length > 0 ? sortedTenants[0].name : "");
   setSelectedUser(null);
   setIsAddModalOpen(true);
   };
@@ -127,6 +153,8 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
   tenant_id: user.tenant_id || "",
   is_active: user.is_active
  });
+ const currentTenant = tenants.find(t => t.id === user.tenant_id);
+ setSchoolSearch(currentTenant?.name || "");
  setIsEditModalOpen(true);
  };
 
@@ -524,18 +552,43 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
     {formData.role !== "superadmin" && (
     <div className="space-y-1.5">
     <label className="block text-xs font-extrabold text-slate-700">Instansi / Sekolah</label>
-    <div className="relative">
-     <School className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-     <select
-     value={formData.tenant_id}
-     onChange={(e) => setFormData(prev => ({ ...prev, tenant_id: e.target.value }))}
-      className="w-full pl-11 pr-4 h-[46px] rounded-xl border-2 border-slate-200 focus:ring-0 focus:border-asgard-primary outline-none transition-all text-sm font-extrabold text-slate-800 bg-white"
-     >
-     <option value="">-- Pilih Instansi --</option>
-     {tenants.map(t => (
-      <option key={t.id} value={t.id}>{t.name}</option>
-     ))}
-     </select>
+    <div className="relative" ref={schoolDropdownRef}>
+     <School className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={16} />
+     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none" size={16} />
+     <input
+      type="text"
+      placeholder="Cari instansi/sekolah..."
+      value={schoolSearch}
+      onFocus={() => setSchoolDropdownOpen(true)}
+      onChange={(e) => { setSchoolSearch(e.target.value); setSchoolDropdownOpen(true); }}
+      className="w-full pl-11 pr-11 h-[46px] rounded-xl border-2 border-slate-200 focus:ring-0 focus:border-asgard-primary outline-none transition-all text-sm font-bold text-slate-800 bg-white"
+     />
+     {schoolDropdownOpen && (
+      <div className="absolute z-20 mt-1 w-full bg-white rounded-xl border-2 border-slate-200 shadow-xl max-h-60 overflow-y-auto">
+       <button
+        type="button"
+        onClick={() => { setFormData(prev => ({ ...prev, tenant_id: "" })); setSchoolSearch(""); setSchoolDropdownOpen(false); }}
+        className="w-full text-left px-4 py-3 text-sm font-bold text-slate-400 hover:bg-slate-50 border-b-2 border-slate-100"
+       >
+        -- Pilih Instansi --
+       </button>
+       {filteredSchools.map(t => (
+        <button
+         key={t.id}
+         type="button"
+         onClick={() => { setFormData(prev => ({ ...prev, tenant_id: t.id })); setSchoolSearch(t.name); setSchoolDropdownOpen(false); }}
+         className={`w-full text-left px-4 py-3 text-sm font-bold hover:bg-asgard-primary/5 transition-colors ${
+          formData.tenant_id === t.id ? "bg-asgard-primary/10 text-asgard-primary" : "text-slate-800"
+         }`}
+        >
+         {t.name}
+        </button>
+       ))}
+       {filteredSchools.length === 0 && (
+        <p className="px-4 py-3 text-sm text-slate-400 font-bold">Tidak ada hasil.</p>
+       )}
+      </div>
+     )}
     </div>
     </div>
     )}
