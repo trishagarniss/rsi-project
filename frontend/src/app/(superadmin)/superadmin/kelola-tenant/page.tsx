@@ -131,10 +131,9 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
    contact_email: formData.contact_email || undefined,
    status: formData.status,
    };
-   const res = await tenantService.create(data);
-   const code = res.data?.registration_code || null;
-   setCreatedRegCode(code);
-   setSuccessMsg(`Tenant "${res.data.name}" berhasil dibuat!`);
+    const res = await tenantService.create(data);
+    setCreatedRegCode(res.data?.registration_code ?? null);
+    setSuccessMsg(`Tenant "${res.data.name}" berhasil dibuat!`);
    setIsAddModalOpen(false);
    resetForm();
    loadData();
@@ -191,9 +190,10 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
     setFetchedCode(null);
     setIsCodeModalOpen(true);
     setCodeLoading(true);
+
     try {
     const res = await tenantService.getRegistrationCode(t.id);
-    setFetchedCode(res.data.registration_code);
+    setFetchedCode(res.data?.registration_code ?? null);
     } catch {
     setFetchedCode(null);
     } finally {

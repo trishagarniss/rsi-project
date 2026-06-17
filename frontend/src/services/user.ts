@@ -7,6 +7,7 @@ export interface Tenant {
   address?: string;
   contact_email?: string;
   status: string;
+  created_at?: string;
 }
 
 export const userService = {

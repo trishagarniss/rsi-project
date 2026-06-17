@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from src.backend.repositories import academic_repo, student_repo
 from src.backend.dto.academic_dto import AcademicCreateDTO, AcademicUpdateDTO
 from src.backend.models.user import User
+from src.backend.services.risk_prediction_service import auto_predict_on_data_change
 
 def add_academic_record(db: Session, data: AcademicCreateDTO, current_user: User):
     # 1. Verifikasi apakah siswa milik tenant ini
@@ -17,7 +18,11 @@ def add_academic_record(db: Session, data: AcademicCreateDTO, current_user: User
     if duplicate:
         raise HTTPException(status_code=400, detail=f"Siswa sudah memiliki data akademik untuk semester {data.semester} tahun {data.academic_year}.")
     
-    return academic_repo.create_academic(db, data.model_dump(), current_user.tenant_id)
+    result = academic_repo.create_academic(db, data.model_dump(), current_user.tenant_id)
+    
+    auto_predict_on_data_change(db, data.student_id, current_user)
+    
+    return result
 
 def get_academic_by_student(db: Session, student_id: str, current_user: User):
     student = student_repo.get_student_by_id_and_tenant(db, student_id, current_user.tenant_id)
@@ -45,8 +50,12 @@ def modify_academic_record(db: Session, academic_id: str, data: AcademicUpdateDT
             raise HTTPException(status_code=400, detail=f"Siswa sudah memiliki data akademik untuk semester {new_sem} tahun {new_year}.")
             
     # 3. Eksekusi Update
-    update_data = data.model_dump(exclude_unset=True) # Hanya update field yang dikirim
-    return academic_repo.update_academic(db, record, update_data)
+    update_data = data.model_dump(exclude_unset=True)
+    result = academic_repo.update_academic(db, record, update_data)
+    
+    auto_predict_on_data_change(db, record.student_id, current_user)
+    
+    return result
 
 def delete_academic_record(db: Session, academic_id: str, current_user: User):
     # 1. Pastikan data ada dan milik tenant ini
