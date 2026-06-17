@@ -83,7 +83,7 @@ const [formData, setFormData] = useState({
    if (formData.accuracy_score) fd.append("accuracy_score", formData.accuracy_score);
    fd.append("is_active", String(formData.is_active));
    await mlModelService.create(fd);
-  setSuccessMsg(`Model ${data.version} berhasil ditambahkan!`);
+   setSuccessMsg(`Model ${formData.version} berhasil ditambahkan!`);
   setIsAddModalOpen(false);
   resetForm();
   loadData();
