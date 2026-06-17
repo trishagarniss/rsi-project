@@ -27,13 +27,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (token && stored) {
       try {
-        setUser(JSON.parse(stored) as User);
+        setUser(JSON.parse(stored) as User); // eslint-disable-line react-hooks/set-state-in-effect
       } catch {
         clearTokens();
         localStorage.removeItem(USER_KEY);
       }
     }
-    setIsLoading(false);
+    setIsLoading(false); // eslint-disable-line react-hooks/set-state-in-effect
   }, []);
 
   const login = async (email: string, password: string): Promise<User> => {
