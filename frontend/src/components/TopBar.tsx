@@ -88,11 +88,13 @@ export default function TopBar() {
     router.push('/login');
   };
 
-  const menuItems = [
+  const menuItems = user?.role === 'superadmin' ? [
     { label: 'Profil Saya', icon: User, href: '/superadmin/profile' },
     { label: 'Ganti Password', icon: Lock, href: '/superadmin/profile?modal=password' },
     { label: 'Keamanan Sesi', icon: ShieldAlert, href: '/superadmin/profile?modal=session' },
     { label: 'Panduan', icon: BookOpen, href: '/superadmin/guide' },
+  ] : [
+    { label: 'Profil Saya', icon: User, href: '/settings' },
   ];
 
   return (

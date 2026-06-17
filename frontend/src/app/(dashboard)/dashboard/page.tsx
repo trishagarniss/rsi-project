@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from 'react';
 import StatCard from '@/components/ui/StatCard';
@@ -20,9 +20,10 @@ interface DashboardSummary {
 
 // Fungsi pembantu untuk klasifikasi risiko (fallback jika dari backend tidak ada teks labelnya)
 const getRiskLevel = (score: number) => {
-  if (score >= 80) return 'Tinggi';
-  if (score >= 60) return 'Sedang';
-  if (score >= 40) return 'Rendah';
+  const scaled = score <= 1.0 ? score * 100 : score;
+  if (scaled >= 80) return 'Tinggi';
+  if (scaled >= 60) return 'Sedang';
+  if (scaled >= 40) return 'Rendah';
   return 'Aman';
 };
 
@@ -109,15 +110,7 @@ export default function DashboardOverview() {
     };
   }, []);
 
-  if (isLoading) {
-    return (
-      <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm">
-        <p className="text-sm font-bold text-slate-500 animate-pulse">Menghitung model prediksi dan memuat analitik...</p>
-      </div>
-    );
-  }
-
-  if (error || !summary) {
+  if (error) {
     return (
       <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-red-700 shadow-sm">
         <h3 className="text-base font-black">Gagal memuat dashboard</h3>
@@ -126,7 +119,10 @@ export default function DashboardOverview() {
     );
   }
 
-  const { totalStudents, riskDistribution, topCriticalStudents } = summary;
+  const totalStudents = summary?.totalStudents ?? 0;
+  const riskDistribution = summary?.riskDistribution ?? { tinggi: 0, sedang: 0, rendah: 0, aman: 0 };
+  const topCriticalStudents = summary?.topCriticalStudents ?? [];
+
   const interventionStudents = riskDistribution.tinggi + riskDistribution.sedang;
   const totalPredicted = riskDistribution.tinggi + riskDistribution.sedang + riskDistribution.rendah + riskDistribution.aman;
 
@@ -137,7 +133,7 @@ export default function DashboardOverview() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard 
           title="Total Siswa Aktif" 
-          value={totalStudents} 
+          value={isLoading ? "..." : totalStudents} 
           subtitle="Terdaftar pada sistem"
           icon={
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
@@ -145,7 +141,7 @@ export default function DashboardOverview() {
         />
         <StatCard 
           title="Berisiko Tinggi" 
-          value={riskDistribution.tinggi} 
+          value={isLoading ? "..." : riskDistribution.tinggi} 
           trend="up"
           subtitle="Berdasarkan prediksi terbaru"
           icon={
@@ -154,7 +150,7 @@ export default function DashboardOverview() {
         />
         <StatCard 
           title="Butuh Intervensi" 
-          value={interventionStudents} 
+          value={isLoading ? "..." : interventionStudents} 
           trend="neutral"
           subtitle="Tinggi + Sedang"
           icon={
@@ -168,54 +164,71 @@ export default function DashboardOverview() {
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-87.5">
           <h3 className="text-base font-black text-asgard-primary mb-6">Tren Prediksi Risiko Dropout</h3>
           <div className="flex-1 rounded-xl border border-slate-100 bg-slate-50 p-6">
-            <div className="grid grid-cols-2 gap-4 text-sm font-bold text-slate-600">
-              <div className="rounded-xl bg-white p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-wider text-slate-400">Siswa dievaluasi</p>
-                <p className="mt-2 text-3xl text-asgard-primary">{totalPredicted}</p>
+            {isLoading ? (
+              <div className="space-y-4 animate-pulse h-full flex flex-col justify-center">
+                <div className="h-10 bg-slate-200 rounded-xl w-full" />
+                <div className="h-6 bg-slate-200 rounded-xl w-3/4" />
+                <div className="h-6 bg-slate-200 rounded-xl w-5/6" />
+                <div className="h-6 bg-slate-200 rounded-xl w-2/3" />
               </div>
-              <div className="rounded-xl bg-white p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-wider text-slate-400">Persentase Aman</p>
-                <p className="mt-2 text-3xl text-emerald-600">{Math.round((riskDistribution.aman / Math.max(totalPredicted, 1)) * 100)}%</p>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              {[
-                { label: 'Tinggi', count: riskDistribution.tinggi, bar: 'bg-red-500' },
-                { label: 'Sedang', count: riskDistribution.sedang, bar: 'bg-amber-400' },
-                { label: 'Rendah', count: riskDistribution.rendah, bar: 'bg-emerald-500' },
-                { label: 'Aman', count: riskDistribution.aman, bar: 'bg-slate-300' },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-3">
-                  <span className="w-16 text-xs font-black uppercase tracking-wider text-slate-500">{item.label}</span>
-                  <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-200">
-                    <div
-                      className={`h-full rounded-full ${item.bar}`}
-                      style={{ width: `${Math.max((item.count / Math.max(totalPredicted, 1)) * 100, item.count > 0 ? 6 : 0)}%` }}
-                    />
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4 text-sm font-bold text-slate-600">
+                  <div className="rounded-xl bg-white p-4 shadow-sm">
+                    <p className="text-xs uppercase tracking-wider text-slate-400">Siswa dievaluasi</p>
+                    <p className="mt-2 text-3xl text-asgard-primary">{totalPredicted}</p>
                   </div>
-                  <span className="w-8 text-right text-sm font-bold text-slate-600">{item.count}</span>
+                  <div className="rounded-xl bg-white p-4 shadow-sm">
+                    <p className="text-xs uppercase tracking-wider text-slate-400">Persentase Aman</p>
+                    <p className="mt-2 text-3xl text-emerald-600">{Math.round((riskDistribution.aman / Math.max(totalPredicted, 1)) * 100)}%</p>
+                  </div>
                 </div>
-              ))}
-            </div>
+
+                <div className="mt-6 space-y-4">
+                  {[
+                    { label: 'Tinggi', count: riskDistribution.tinggi, bar: 'bg-red-500' },
+                    { label: 'Sedang', count: riskDistribution.sedang, bar: 'bg-amber-400' },
+                    { label: 'Rendah', count: riskDistribution.rendah, bar: 'bg-emerald-500' },
+                    { label: 'Aman', count: riskDistribution.aman, bar: 'bg-slate-300' },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-3">
+                      <span className="w-16 text-xs font-black uppercase tracking-wider text-slate-500">{item.label}</span>
+                      <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-200">
+                        <div
+                          className={`h-full rounded-full ${item.bar}`}
+                          style={{ width: `${Math.max((item.count / Math.max(totalPredicted, 1)) * 100, item.count > 0 ? 6 : 0)}%` }}
+                        />
+                      </div>
+                      <span className="w-8 text-right text-sm font-bold text-slate-600">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-87.5">
           <h3 className="text-base font-black text-asgard-primary mb-6">Distribusi Tingkat Risiko</h3>
           <div className="flex-1 flex items-center justify-center gap-8">
-            <div className="w-40 h-40 rounded-full border-16 border-slate-100 shadow-inner overflow-hidden">
-              <div className="h-full w-full rotate-45" style={{
-                background: totalPredicted === 0 
-                  ? '#f1f5f9' 
-                  : `conic-gradient(#ef4444 0 ${Math.max((riskDistribution.tinggi / totalPredicted) * 100, 1)}%, #f59e0b ${Math.max((riskDistribution.tinggi / totalPredicted) * 100, 1)}% ${Math.max(((riskDistribution.tinggi + riskDistribution.sedang) / totalPredicted) * 100, 2)}%, #10b981 ${Math.max(((riskDistribution.tinggi + riskDistribution.sedang) / totalPredicted) * 100, 2)}% 100%)`,
-              }} />
-            </div>
-            <div className="space-y-3 text-sm font-bold text-slate-600">
-               <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-400" /> Tinggi ({Math.round((riskDistribution.tinggi / Math.max(totalPredicted, 1)) * 100)}%)</div>
-               <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-400" /> Sedang ({Math.round((riskDistribution.sedang / Math.max(totalPredicted, 1)) * 100)}%)</div>
-               <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-400" /> Rendah/Aman ({Math.round(((riskDistribution.rendah + riskDistribution.aman) / Math.max(totalPredicted, 1)) * 100)}%)</div>
-            </div>
+            {isLoading ? (
+              <div className="w-40 h-40 rounded-full border-16 border-slate-200 animate-pulse" />
+            ) : (
+              <>
+                <div className="w-40 h-40 rounded-full border-16 border-slate-100 shadow-inner overflow-hidden">
+                  <div className="h-full w-full rotate-45" style={{
+                    background: totalPredicted === 0 
+                      ? '#f1f5f9' 
+                      : `conic-gradient(#ef4444 0 ${Math.max((riskDistribution.tinggi / totalPredicted) * 100, 1)}%, #f59e0b ${Math.max((riskDistribution.tinggi / totalPredicted) * 100, 1)}% ${Math.max(((riskDistribution.tinggi + riskDistribution.sedang) / totalPredicted) * 100, 2)}%, #10b981 ${Math.max(((riskDistribution.tinggi + riskDistribution.sedang) / totalPredicted) * 100, 2)}% 100%)`,
+                  }} />
+                </div>
+                <div className="space-y-3 text-sm font-bold text-slate-600">
+                   <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-400" /> Tinggi ({Math.round((riskDistribution.tinggi / Math.max(totalPredicted, 1)) * 100)}%)</div>
+                   <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-400" /> Sedang ({Math.round((riskDistribution.sedang / Math.max(totalPredicted, 1)) * 100)}%)</div>
+                   <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-400" /> Rendah/Aman ({Math.round(((riskDistribution.rendah + riskDistribution.aman) / Math.max(totalPredicted, 1)) * 100)}%)</div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -239,7 +252,17 @@ export default function DashboardOverview() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {topCriticalStudents.length === 0 ? (
+              {isLoading ? (
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-32" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-20" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-16" /></td>
+                    <td className="px-6 py-4"><div className="h-6 bg-slate-200 rounded-xl w-24" /></td>
+                    <td className="px-6 py-4 text-right"><div className="h-8 bg-slate-200 rounded-xl w-20 ml-auto" /></td>
+                  </tr>
+                ))
+              ) : topCriticalStudents.length === 0 ? (
                  <tr>
                     <td colSpan={5} className="px-6 py-8 text-center text-slate-400 font-bold">
                        Belum ada data siswa berisiko dari model Machine Learning.
@@ -249,7 +272,7 @@ export default function DashboardOverview() {
                 <tr key={siswa.id} className="hover:bg-slate-50/80 transition-colors group">
                   <td className="px-6 py-4 font-bold text-slate-800 uppercase">{siswa.name}</td>
                   <td className="px-6 py-4 text-sm text-slate-500 font-medium">{siswa.nisn ?? '-'}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600 font-bold">{Math.round(siswa.latestPrediction.risk_score)}/100</td>
+                  <td className="px-6 py-4 text-sm text-slate-600 font-bold">{Math.round(siswa.latestPrediction.risk_score <= 1.0 ? siswa.latestPrediction.risk_score * 100 : siswa.latestPrediction.risk_score)}/100</td>
                   <td className="px-6 py-4">
                     {/* Hati-hati, format RiskBadge mungkin menyesuaikan komponen Anda */}
                     <RiskBadge level={siswa.riskLevel as any} /> 
