@@ -57,7 +57,7 @@ export default function CounselingManagement() {
         // FETCH PARALEL: Ambil data Siswa & Prediksi (Sama seperti Dashboard)
         // ==============================================================
         const [studentsResponse, predictionsResponse] = await Promise.all([
-          get('/api/v1/students/?skip=0&limit=2000').catch(() => []),
+          get('/api/v1/students/?skip=0&limit=10000').catch(() => []),
           get('/api/v1/predictions/student/all').catch(() => get('/api/v1/predictions/?skip=0&limit=2000')).catch(() => [])
         ]);
 

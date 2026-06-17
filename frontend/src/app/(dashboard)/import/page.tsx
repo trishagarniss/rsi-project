@@ -84,15 +84,6 @@ export default function DataImportPage() {
         
         {/* Dropdowns & Action Button */}
         <div className="flex gap-3 w-full md:w-auto">
-            <select className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm">
-                <option>Filter Kelas</option>
-            </select>
-            <select className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm">
-                <option>Filter Status</option>
-            </select>
-            <select className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm">
-                <option>Filter Risiko</option>
-            </select>
             <Button variant="secondary" onClick={handleUploadClick} className="whitespace-nowrap">
                 Upload .csv
             </Button>

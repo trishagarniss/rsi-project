@@ -1,79 +1,70 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import StatCard from '@/components/ui/StatCard';
 import RiskBadge from '@/components/ui/RiskBadge';
 import Button from '@/components/ui/Button';
 import { get } from '@/lib/api-client';
 
-// --- TIPE DATA ---
+// --- TIPE DATA BINER ---
 interface DashboardSummary {
   totalStudents: number;
   riskDistribution: {
-    tinggi: number;
-    sedang: number;
-    rendah: number;
+    berisiko: number;
     aman: number;
   };
   topCriticalStudents: any[];
 }
 
-// Fungsi pembantu untuk klasifikasi risiko (fallback jika dari backend tidak ada teks labelnya)
-const getRiskLevel = (score: number) => {
-  if (score >= 80) return 'Tinggi';
-  if (score >= 60) return 'Sedang';
-  if (score >= 40) return 'Rendah';
-  return 'Aman';
-};
-
 export default function DashboardOverview() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // State untuk memicu animasi grafik setelah data siap
+  const [animateCharts, setAnimateCharts] = useState(false);
 
-useEffect(() => {
+  useEffect(() => {
     let isMounted = true;
 
     async function loadDashboardData() {
       try {
         setIsLoading(true);
 
-        // ==============================================================
-        // FETCH PARALEL: Ambil Data Siswa, Prediksi, dan TOTAL COUNT
-        // ==============================================================
         const [studentsResponse, predictionsResponse, countResponse] = await Promise.all([
-          // Tetap ambil siswa untuk digabungkan namanya di tabel bawah
-          get('/api/v1/students/?skip=0&limit=2000').catch(() => []),
-          // Ambil data prediksi
-          get('/api/v1/predictions/student/all').catch(() => get('/api/v1/predictions/?skip=0&limit=2000')).catch(() => []),
-          // Ambil TOTAL SISWA yang sangat ringan dan cepat
+          get('/api/v1/students/?skip=0&limit=10000').catch(() => []),
+          get('/api/v1/predictions/?skip=0&limit=10000').catch(() => get('/api/v1/predictions/student/all')).catch(() => []),
           get('/api/v1/students/count').catch(() => 0) 
         ]);
 
-        // Ekstrak array
-        const studentsArray = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.items || studentsResponse.data || []);
-        const predictionsArray = Array.isArray(predictionsResponse) ? predictionsResponse : (predictionsResponse.items || predictionsResponse.data || []);
+        // Super Extractor
+        const extractArray = (res: any) => {
+          if (!res) return [];
+          if (Array.isArray(res)) return res;
+          if (res.data && Array.isArray(res.data)) return res.data;
+          if (res.data?.items && Array.isArray(res.data.items)) return res.data.items;
+          if (res.items && Array.isArray(res.items)) return res.items;
+          return [];
+        };
 
-        // Ekstrak angka total siswa (Menangani jika backend membalas angka mentah '1908' atau object '{ count: 1908 }')
+        const studentsArray = extractArray(studentsResponse);
+        const predictionsArray = extractArray(predictionsResponse);
+
         const totalSiswaAktif = typeof countResponse === 'number' 
           ? countResponse 
-          : (countResponse?.count ?? countResponse?.total ?? studentsArray.length);
+          : (countResponse?.data?.total_active ?? countResponse?.count ?? countResponse?.total ?? studentsArray.length);
 
-        // --- PROSES AGREGASI (Menghitung Data untuk Grafik) ---
-        let tinggi = 0, sedang = 0, rendah = 0, aman = 0;
+        let berisiko = 0, aman = 0;
         const criticalList: any[] = [];
 
-        // Gabungkan data prediksi dengan data biodata siswa
         predictionsArray.forEach((pred: any) => {
-          const score = pred.risk_score || 0;
-          const level = getRiskLevel(score);
+          const rawScore = pred.risk_score !== undefined ? pred.risk_score : pred.risk_status;
+          const isBerisiko = (rawScore === 1 || rawScore === '1' || rawScore === true || rawScore >= 50);
 
-          if (level === 'Tinggi') tinggi++;
-          else if (level === 'Sedang') sedang++;
-          else if (level === 'Rendah') rendah++;
+          if (isBerisiko) berisiko++;
           else aman++;
 
-          // Cari biodata siswa yang cocok dengan ID di prediksi
           const studentInfo = studentsArray.find((s: any) => s.id === pred.student_id) || {};
 
           criticalList.push({
@@ -81,26 +72,32 @@ useEffect(() => {
             name: studentInfo.name || 'Nama Tidak Diketahui',
             nis: studentInfo.nis || '-',
             nisn: studentInfo.nisn || '-',
-            riskLevel: level,
+            riskLevel: isBerisiko ? 'Berisiko' : 'Aman',
+            rawScore: rawScore, 
             latestPrediction: pred
           });
         });
 
-        // Urutkan siswa dari risiko paling tinggi/kritis ke rendah
-        criticalList.sort((a, b) => (b.latestPrediction.risk_score || 0) - (a.latestPrediction.risk_score || 0));
+        criticalList.sort((a, b) => {
+          const scoreA = a.riskLevel === 'Berisiko' ? 1 : 0;
+          const scoreB = b.riskLevel === 'Berisiko' ? 1 : 0;
+          return scoreB - scoreA;
+        });
 
         if (isMounted) {
           setSummary({
-            totalStudents: totalSiswaAktif, // <-- MENGGUNAKAN DATA DARI ENDPOINT /COUNT
-            riskDistribution: { tinggi, sedang, rendah, aman },
+            totalStudents: totalSiswaAktif,
+            riskDistribution: { berisiko, aman },
             topCriticalStudents: criticalList.slice(0, 5) 
           });
           setError(null);
+          
+          // Memicu animasi 100ms setelah data dirender agar efek transisinya terlihat
+          setTimeout(() => setAnimateCharts(true), 100);
         }
 
       } catch (loadError) {
         if (isMounted) {
-          console.error("Gagal menarik data dashboard:", loadError);
           setError(loadError instanceof Error ? loadError.message : 'Gagal memuat data dashboard.');
         }
       } finally {
@@ -133,8 +130,8 @@ useEffect(() => {
   }
 
   const { totalStudents, riskDistribution, topCriticalStudents } = summary;
-  const interventionStudents = riskDistribution.tinggi + riskDistribution.sedang;
-  const totalPredicted = riskDistribution.tinggi + riskDistribution.sedang + riskDistribution.rendah + riskDistribution.aman;
+  const totalPredicted = riskDistribution.berisiko + riskDistribution.aman;
+  const persentaseAman = totalPredicted > 0 ? Math.round((riskDistribution.aman / totalPredicted) * 100) : 0;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -145,62 +142,55 @@ useEffect(() => {
           title="Total Siswa Aktif" 
           value={totalStudents} 
           subtitle="Terdaftar pada sistem"
-          icon={
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-          }
+          icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
         />
         <StatCard 
-          title="Berisiko Tinggi" 
-          value={riskDistribution.tinggi} 
+          title="Siswa Berisiko Dropout" 
+          value={riskDistribution.berisiko} 
           trend="up"
-          subtitle="Berdasarkan prediksi terbaru"
-          icon={
-            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
-          }
+          subtitle="Membutuhkan intervensi segera"
+          icon={<svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
         />
         <StatCard 
-          title="Butuh Intervensi" 
-          value={interventionStudents} 
-          trend="neutral"
-          subtitle="Tinggi + Sedang"
-          icon={
-            <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-          }
+          title="Siswa Status Aman" 
+          value={riskDistribution.aman} 
+          trend="down"
+          subtitle={totalPredicted === 0 ? "Belum ada prediksi" : `Atau ${persentaseAman}% dari siswa dievaluasi`}
+          icon={<svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
         />
       </div>
 
-      {/* ================= BARIS 2: CHARTS ================= */}
+      {/* ================= BARIS 2: CHARTS (ANIMATED) ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-87.5">
           <h3 className="text-base font-black text-asgard-primary mb-6">Tren Prediksi Risiko Dropout</h3>
-          <div className="flex-1 rounded-xl border border-slate-100 bg-slate-50 p-6">
-            <div className="grid grid-cols-2 gap-4 text-sm font-bold text-slate-600">
-              <div className="rounded-xl bg-white p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-wider text-slate-400">Siswa dievaluasi</p>
+          <div className="flex-1 rounded-xl border border-slate-100 bg-slate-50 p-6 flex flex-col justify-center">
+            <div className="grid grid-cols-2 gap-4 text-sm font-bold text-slate-600 mb-8">
+              <div className="rounded-xl bg-white p-4 shadow-sm transition-transform duration-500 hover:scale-105">
+                <p className="text-xs uppercase tracking-wider text-slate-400">Total Dievaluasi</p>
                 <p className="mt-2 text-3xl text-asgard-primary">{totalPredicted}</p>
               </div>
-              <div className="rounded-xl bg-white p-4 shadow-sm">
+              <div className="rounded-xl bg-white p-4 shadow-sm transition-transform duration-500 hover:scale-105">
                 <p className="text-xs uppercase tracking-wider text-slate-400">Persentase Aman</p>
-                <p className="mt-2 text-3xl text-emerald-600">{Math.round((riskDistribution.aman / Math.max(totalPredicted, 1)) * 100)}%</p>
+                <p className="mt-2 text-3xl text-emerald-600">{persentaseAman}%</p>
               </div>
             </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="space-y-6">
               {[
-                { label: 'Tinggi', count: riskDistribution.tinggi, bar: 'bg-red-500' },
-                { label: 'Sedang', count: riskDistribution.sedang, bar: 'bg-amber-400' },
-                { label: 'Rendah', count: riskDistribution.rendah, bar: 'bg-emerald-500' },
-                { label: 'Aman', count: riskDistribution.aman, bar: 'bg-slate-300' },
+                { label: 'Berisiko', count: riskDistribution.berisiko, bar: 'bg-red-500', text: 'text-red-600' },
+                { label: 'Aman', count: riskDistribution.aman, bar: 'bg-emerald-500', text: 'text-emerald-600' },
               ].map((item) => (
-                <div key={item.label} className="flex items-center gap-3">
-                  <span className="w-16 text-xs font-black uppercase tracking-wider text-slate-500">{item.label}</span>
-                  <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-200">
+                <div key={item.label} className="flex items-center gap-4">
+                  <span className={`w-20 text-xs font-black uppercase tracking-wider ${item.text}`}>{item.label}</span>
+                  <div className="h-4 flex-1 overflow-hidden rounded-full bg-slate-200">
                     <div
-                      className={`h-full rounded-full ${item.bar}`}
-                      style={{ width: `${Math.max((item.count / Math.max(totalPredicted, 1)) * 100, item.count > 0 ? 6 : 0)}%` }}
+                      className={`h-full rounded-full ${item.bar} transition-all duration-1000 ease-out`}
+                      // Animasi: Mulai dari 0%, memanjang saat state animateCharts berubah menjadi true
+                      style={{ width: animateCharts ? `${Math.max((item.count / Math.max(totalPredicted, 1)) * 100, item.count > 0 ? 3 : 0)}%` : '0%' }}
                     />
                   </div>
-                  <span className="w-8 text-right text-sm font-bold text-slate-600">{item.count}</span>
+                  <span className="w-10 text-right text-base font-black text-slate-600">{item.count}</span>
                 </div>
               ))}
             </div>
@@ -208,19 +198,31 @@ useEffect(() => {
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-87.5">
-          <h3 className="text-base font-black text-asgard-primary mb-6">Distribusi Tingkat Risiko</h3>
-          <div className="flex-1 flex items-center justify-center gap-8">
-            <div className="w-40 h-40 rounded-full border-16 border-slate-100 shadow-inner overflow-hidden">
-              <div className="h-full w-full rotate-45" style={{
-                background: totalPredicted === 0 
-                  ? '#f1f5f9' 
-                  : `conic-gradient(#ef4444 0 ${Math.max((riskDistribution.tinggi / totalPredicted) * 100, 1)}%, #f59e0b ${Math.max((riskDistribution.tinggi / totalPredicted) * 100, 1)}% ${Math.max(((riskDistribution.tinggi + riskDistribution.sedang) / totalPredicted) * 100, 2)}%, #10b981 ${Math.max(((riskDistribution.tinggi + riskDistribution.sedang) / totalPredicted) * 100, 2)}% 100%)`,
-              }} />
+          <h3 className="text-base font-black text-asgard-primary mb-6">Distribusi Klasifikasi Model AI</h3>
+          <div className="flex-1 flex items-center justify-center gap-10">
+            <div className="w-48 h-48 rounded-full border-[20px] border-slate-50 shadow-inner overflow-hidden relative group cursor-pointer">
+              <div 
+                className="h-full w-full rotate-45 transition-all duration-[1500ms] ease-out" 
+                style={{
+                  // Animasi: Donat berwarna abu-abu dulu, lalu diisi warna sesuai persentase
+                  background: (!animateCharts || totalPredicted === 0)
+                    ? '#f1f5f9' 
+                    : `conic-gradient(#ef4444 0 ${Math.max((riskDistribution.berisiko / totalPredicted) * 100, 1)}%, #10b981 ${Math.max((riskDistribution.berisiko / totalPredicted) * 100, 1)}% 100%)`,
+                }} 
+              />
+              <div className="absolute inset-0 m-auto w-24 h-24 bg-white rounded-full shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+                 <span className="text-sm font-black text-slate-400">ASGARD</span>
+              </div>
             </div>
-            <div className="space-y-3 text-sm font-bold text-slate-600">
-               <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-400" /> Tinggi ({Math.round((riskDistribution.tinggi / Math.max(totalPredicted, 1)) * 100)}%)</div>
-               <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-400" /> Sedang ({Math.round((riskDistribution.sedang / Math.max(totalPredicted, 1)) * 100)}%)</div>
-               <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-400" /> Rendah/Aman ({Math.round(((riskDistribution.rendah + riskDistribution.aman) / Math.max(totalPredicted, 1)) * 100)}%)</div>
+            <div className="space-y-4 text-base font-bold text-slate-600">
+               <div className="flex items-center gap-3">
+                 <span className="w-4 h-4 rounded-full bg-red-500 shadow-sm" /> 
+                 Berisiko <span className="text-red-500 bg-red-50 px-2 py-0.5 rounded-md text-xs">{totalPredicted === 0 ? 0 : Math.round((riskDistribution.berisiko / totalPredicted) * 100)}%</span>
+               </div>
+               <div className="flex items-center gap-3">
+                 <span className="w-4 h-4 rounded-full bg-emerald-500 shadow-sm" /> 
+                 Aman <span className="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md text-xs">{persentaseAman}%</span>
+               </div>
             </div>
           </div>
         </div>
@@ -230,7 +232,12 @@ useEffect(() => {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <h3 className="text-base font-black text-asgard-primary">Siswa Peringatan Kritis Teratas</h3>
-          <Button variant="outline" size="sm">Lihat Semua</Button>
+          {/* Menghubungkan tombol Lihat Semua ke halaman Daftar Siswa */}
+          <Link href="/student">
+            <Button variant="outline" size="sm" className="hover:bg-asgard-primary hover:text-white transition-colors">
+              Lihat Semua
+            </Button>
+          </Link>
         </div>
         
         <div className="overflow-x-auto">
@@ -239,32 +246,41 @@ useEffect(() => {
               <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
                 <th className="px-6 py-4 font-bold">Nama Siswa</th>
                 <th className="px-6 py-4 font-bold">NISN</th>
-                <th className="px-6 py-4 font-bold">Skor Risiko</th>
-                <th className="px-6 py-4 font-bold">Tingkat Risiko</th>
-                <th className="px-6 py-4 font-bold text-right">Aksi</th>
+                <th className="px-6 py-4 font-bold text-center">Prediksi AI</th>
+                <th className="px-6 py-4 font-bold">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {topCriticalStudents.length === 0 ? (
                  <tr>
                     <td colSpan={5} className="px-6 py-8 text-center text-slate-400 font-bold">
-                       Belum ada data siswa berisiko dari model Machine Learning.
+                       Belum ada data siswa yang dievaluasi oleh model AI.
                     </td>
                  </tr>
               ) : topCriticalStudents.map((siswa) => (
                 <tr key={siswa.id} className="hover:bg-slate-50/80 transition-colors group">
                   <td className="px-6 py-4 font-bold text-slate-800 uppercase">{siswa.name}</td>
                   <td className="px-6 py-4 text-sm text-slate-500 font-medium">{siswa.nisn ?? '-'}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600 font-bold">{Math.round(siswa.latestPrediction.risk_score)}/100</td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={`font-mono text-sm font-bold px-2 py-1 rounded ${siswa.riskLevel === 'Berisiko' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                      {siswa.rawScore !== undefined ? siswa.rawScore : '-'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4">
-                    {/* Hati-hati, format RiskBadge mungkin menyesuaikan komponen Anda */}
-                    <RiskBadge level={siswa.riskLevel as any} /> 
+                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${siswa.riskLevel === 'Berisiko' ? 'bg-red-100 text-red-700 animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}>
+                      {siswa.riskLevel}
+                    </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      <Button variant="secondary" size="sm" className="opacity-0 group-hover:opacity-100">
-                        Intervensi
-                      </Button>
+                      {/* Hanya tampilkan tombol Intervensi jika siswa Berisiko, tombol Lihat Detail dihapus */}
+                      {siswa.riskLevel === 'Berisiko' ? (
+                        <Button variant="primary" size="sm">
+                          Intervensi
+                        </Button>
+                      ) : (
+                        <span className="text-xs font-bold text-slate-400">-</span>
+                      )}
                     </div>
                   </td>
                 </tr>
