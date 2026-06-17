@@ -5,7 +5,7 @@ from datetime import datetime
 class MlModelCreateDTO(BaseModel):
     version: str = Field(..., max_length=50, description="Contoh: v1.0.0")
     algorithm: str = Field(..., max_length=100, description="Contoh: Random Forest")
-    file_path: str = Field(..., max_length=255, description="Lokasi file .pkl")
+    file_path: str = Field(..., max_length=255, description="Path file .pkl di server")
     accuracy_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     is_active: bool = False
 

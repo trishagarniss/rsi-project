@@ -9,14 +9,6 @@ export interface MlModel {
   updated_at?: string;
 }
 
-export interface MlModelCreateDTO {
-  version: string;
-  algorithm: string;
-  file_path: string;
-  accuracy_score?: number;
-  is_active?: boolean;
-}
-
 export interface MlModelUpdateDTO {
   version?: string;
   algorithm?: string;
