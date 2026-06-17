@@ -33,13 +33,12 @@ def count_total_students(db: Session) -> int:
 def count_students_by_tenant(db: Session, tenant_id: str) -> int:
     return db.query(Student).filter(
         Student.tenant_id == tenant_id,
-        Student.deleted_at == None
+        Student.is_active == True
     ).count()
 
 def count_total_students_by_tenant(db: Session, tenant_id: str) -> int:
     return db.query(Student).filter(
-        Student.tenant_id == tenant_id,
-        Student.deleted_at == None
+        Student.tenant_id == tenant_id
     ).count()
     
 def get_student_by_id_and_tenant(db: Session, student_id: str, tenant_id: str):
