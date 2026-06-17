@@ -1,13 +1,13 @@
-import { get, post, put, del } from "@/lib/api-client";
-import { MlModel, MlModelCreateDTO, MlModelUpdateDTO } from "@/types/ml-model";
+import { get, postForm, put, del } from "@/lib/api-client";
+import { MlModel, MlModelUpdateDTO } from "@/types/ml-model";
 
 export const mlModelService = {
   async getAll(): Promise<{ status: string; data: MlModel[] }> {
     return get<{ status: string; data: MlModel[] }>("/models/");
   },
 
-  async create(data: MlModelCreateDTO): Promise<{ status: string; message: string; data: MlModel }> {
-    return post<{ status: string; message: string; data: MlModel }>("/models/", data);
+  async create(formData: FormData): Promise<{ status: string; message: string; data: MlModel }> {
+    return postForm<{ status: string; message: string; data: MlModel }>("/models/", formData);
   },
 
   async update(id: string, data: MlModelUpdateDTO): Promise<{ status: string; message: string; data: MlModel }> {
