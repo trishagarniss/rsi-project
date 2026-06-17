@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List
 import pandas as pd
 from typing import List, Optional
+from fastapi import HTTPException
 
 from src.backend.services import risk_prediction_service
 from src.backend.models.user import User
@@ -58,6 +59,13 @@ def get_all_predictions(db: Session, current_user: User, risk_status: Optional[i
     }
     
 def upload_file(db : Session,  current_user: User, df : pd.DataFrame) :
+    for i in {"name" : [] , "gender" : [], "address" : [], "date_of_birth" : [], "nis" : [], "nisn" : [], "parent_name" : [], "parent_phone" : [], "semester" : [], "academic_year" : [], "present_count" : [],
+        "sick_count" : [], "excused_count" : [], "unexcused_count" : [], "attendance_percentage" : [], "average_score" : [], "failed_subjects_count": [], "incomplete_assignments_count" : [], 
+        "parents_income" : [], "monthly_expenses" : [], "parents_education_level" : [], "birth_order" : [], "dependents_count" : [], "has_kip_scholarship" : [], "is_working_student" : [], 
+        "has_internet_access" : [], "distance_to_school_km" : [], "housing_status" : [], "transportation_mode" : []
+    } :
+        if i not in df :
+            raise HTTPException(status_code=400, detail="Kolom data tidak lengkap!")
     risk_prediction_service.upload_file(db,current_user.tenant_id, df)
     
     return {
