@@ -1,8 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import AOS from 'aos';
-import 'aos/dist/aos.css';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -44,10 +42,6 @@ export default function LoginPage() {
   });
   const { login } = useAuth();
 
-  useEffect(() => {
-    AOS.init({ duration: 800, once: true });
-  }, []);
-
   // 3. Fungsi utama untuk memproses Login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault(); // Mencegah halaman refresh otomatis
@@ -88,7 +82,7 @@ export default function LoginPage() {
         {/* Blurs for Aesthetic Depth */}
         <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#FFC107]/15 blur-[100px] rounded-full pointer-events-none z-0" />
 
-        <div className="relative z-10 w-full max-w-2xl" data-aos="fade-right">
+        <div className="relative z-10 w-full max-w-2xl">
           
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold uppercase tracking-widest mb-6">
@@ -107,10 +101,10 @@ export default function LoginPage() {
           </p>
 
           {/* Floating Analytics Cards */}
-          <div className="relative h-[220px] w-full" data-aos="zoom-in" data-aos-delay="200">
+          <div className="relative h-[220px] w-full">
             
             {/* Card 1: High Risk */}
-            <div className="absolute top-0 left-0 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4 animate-[bounce_4s_ease-in-out_infinite]">
+            <div className="absolute top-0 left-0 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/30">
                 <AlertTriangle size={20} />
               </div>
@@ -121,7 +115,7 @@ export default function LoginPage() {
             </div>
 
             {/* Card 2: Attendance Alert */}
-            <div className="absolute top-20 left-28 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4 animate-[bounce_5s_ease-in-out_infinite_0.5s]">
+            <div className="absolute top-20 left-28 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-yellow-500/20 text-[#FFC107] flex items-center justify-center border border-yellow-500/30">
                 <CalendarClock size={20} />
               </div>
@@ -132,7 +126,7 @@ export default function LoginPage() {
             </div>
 
             {/* Card 3: Counseling Activity */}
-            <div className="absolute top-6 right-10 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4 animate-[bounce_6s_ease-in-out_infinite_1s]">
+            <div className="absolute top-6 right-10 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-green-500/20 text-green-400 flex items-center justify-center border border-green-500/30">
                 <Users size={20} />
               </div>
@@ -149,7 +143,7 @@ export default function LoginPage() {
       {/* ================= RIGHT SIDE (LOGIN FORM - 45%) ================= */}
       <div className="relative flex items-center justify-center p-6 lg:p-8 z-10 w-full min-h-screen lg:min-h-0">
         
-        <div className="w-full max-w-[420px]" data-aos="fade-left">
+        <div className="w-full max-w-[420px]">
           
           {/* Mobile Only Header (Logo & Title) */}
           <div className="lg:hidden text-center mb-8">
@@ -180,7 +174,7 @@ export default function LoginPage() {
 
             {/* 5. Notifikasi Error Muncul di sini jika login gagal */}
             {errorMsg && (
-              <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-red-600 text-xs font-bold animate-pulse">
+                <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-red-600 text-xs font-bold">
                 <AlertTriangle size={16} />
                 <p>{errorMsg}</p>
               </div>

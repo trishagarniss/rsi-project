@@ -1,8 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import AOS from 'aos';
-import 'aos/dist/aos.css';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -38,10 +36,6 @@ export default function RegisterPage() {
   const [isChecking, setIsChecking] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-
-  useEffect(() => {
-    AOS.init({ duration: 800, once: true });
-  }, []);
 
   const handleCheckCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +94,7 @@ export default function RegisterPage() {
       {/* ================= LEFT SIDE (REGISTER FORM - 45%) ================= */}
       <div className="relative flex items-center justify-center p-6 lg:p-8 z-10 w-full min-h-screen lg:min-h-0 order-2 lg:order-1">
         
-        <div className="w-full max-w-[480px]" data-aos="fade-right">
+        <div className="w-full max-w-[480px]">
           
           {/* Mobile Only Header */}
           <div className="lg:hidden text-center mb-6">
@@ -147,7 +141,7 @@ export default function RegisterPage() {
 
             {/* Error Message */}
             {errorMsg && (
-              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-red-600 text-xs font-bold animate-pulse">
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-red-600 text-xs font-bold">
                 <AlertTriangle size={16} />
                 <p>{errorMsg}</p>
               </div>
@@ -352,7 +346,7 @@ export default function RegisterPage() {
         
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#FFC107]/15 blur-[100px] rounded-full pointer-events-none z-0" />
 
-        <div className="relative z-10 w-full max-w-2xl ml-auto" data-aos="fade-left">
+        <div className="relative z-10 w-full max-w-2xl ml-auto">
           
           <h1 className="text-[clamp(2rem,3.5vw,3.5rem)] font-extrabold text-white leading-[1.1] tracking-tight mb-4 drop-shadow-md">
             Bergabung dengan <br /> Ekosistem <span className="text-[#FFC107]">ASGARD</span>
@@ -362,9 +356,9 @@ export default function RegisterPage() {
             Satu langkah lagi untuk mentransformasi data menjadi keputusan preventif yang menyelamatkan masa depan pendidikan.
           </p>
 
-          <div className="relative h-[240px] w-full" data-aos="zoom-in" data-aos-delay="200">
+          <div className="relative h-[240px] w-full">
             
-            <div className="absolute top-0 right-10 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4 animate-[bounce_4s_ease-in-out_infinite]">
+            <div className="absolute top-0 right-10 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30">
                 <ShieldCheck size={20} />
               </div>
@@ -374,7 +368,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="absolute top-20 right-56 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4 animate-[bounce_5s_ease-in-out_infinite_0.5s]">
+            <div className="absolute top-20 right-56 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-[#FFC107]/20 text-[#FFC107] flex items-center justify-center border border-[#FFC107]/30">
                 <UsersRound size={20} />
               </div>
@@ -384,7 +378,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="absolute top-36 right-4 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4 animate-[bounce_6s_ease-in-out_infinite_1s]">
+            <div className="absolute top-36 right-4 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center border border-purple-500/30">
                 <ChartNoAxesCombined size={20} />
               </div>
