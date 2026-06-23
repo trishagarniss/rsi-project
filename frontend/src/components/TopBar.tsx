@@ -67,15 +67,19 @@ export default function TopBar() {
     return 'Dashboard';
   };
 
+  const isSuperAdminUser = user?.role === 'superadmin';
+
   const getBreadcrumbPrefix = () => {
-    if (pathname.includes('/profile') || pathname.includes('/guide')) return 'Superadmin';
+    if (pathname.includes('/profile') || pathname.includes('/guide')) {
+      return isSuperAdminUser ? 'Superadmin' : 'Dashboard';
+    }
     if (
       pathname.includes('/student') || pathname.includes('/counseling') ||
       pathname.includes('/reports') || pathname.includes('/import') ||
       pathname.includes('/manage-accounts') || pathname.includes('/settings')
     ) return 'Dashboard';
     if (pathname.includes('/audit') || pathname.includes('/models')) return 'Superadmin';
-    return 'Superadmin Portal';
+    return isSuperAdminUser ? 'Superadmin Portal' : 'Dashboard';
   };
 
   const adminName = user?.fullname || 'Admin';
@@ -88,11 +92,14 @@ export default function TopBar() {
     router.push('/login');
   };
 
+  const profileBase = isSuperAdminUser ? '/superadmin/profile' : '/profile';
+  const guideHref = isSuperAdminUser ? '/superadmin/guide' : '/guide';
+
   const menuItems = [
-    { label: 'Profil Saya', icon: User, href: '/superadmin/profile' },
-    { label: 'Ganti Password', icon: Lock, href: '/superadmin/profile?modal=password' },
-    { label: 'Keamanan Sesi', icon: ShieldAlert, href: '/superadmin/profile?modal=session' },
-    { label: 'Panduan', icon: BookOpen, href: '/superadmin/guide' },
+    { label: 'Profil Saya', icon: User, href: profileBase },
+    { label: 'Ganti Password', icon: Lock, href: `${profileBase}?modal=password` },
+    { label: 'Keamanan Sesi', icon: ShieldAlert, href: `${profileBase}?modal=session` },
+    { label: 'Panduan', icon: BookOpen, href: guideHref },
   ];
 
   return (
@@ -181,7 +188,7 @@ export default function TopBar() {
               </div>
               <div className="border-t-2 border-slate-100 pt-1">
                 <button
-                  onClick={() => { setNotifDropdownOpen(false); router.push('/superadmin/notification'); }}
+                  onClick={() => { setNotifDropdownOpen(false); router.push(isSuperAdminUser ? '/superadmin/notification' : '/notification'); }}
                   className="w-full px-5 py-3 text-center text-xs font-bold text-asgard-primary hover:bg-slate-50 transition-colors rounded-b-2xl"
                 >
                   Lihat Semua Notifikasi
