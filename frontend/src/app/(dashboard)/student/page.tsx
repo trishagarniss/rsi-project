@@ -1,11 +1,10 @@
-"use client";
+'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import RiskBadge from '@/components/ui/RiskBadge';
 import Button from '@/components/ui/Button';
 import { get } from '@/lib/api-client';
-import { formatRiskLabel } from '@/lib/dashboard-api';
 
 // --- TIPE DATA SESUAI JSON BACKEND SAAT INI ---
 interface StudentRecord {
@@ -15,18 +14,18 @@ interface StudentRecord {
   nisn: string | null;
   gender: 'male' | 'female';
   is_active: boolean;
-  riskLevel: 'Tinggi' | 'Sedang' | 'Rendah' | 'Aman' | 'Belum Dievaluasi';
+  riskLevel: 'Berisiko' | 'Aman' | 'Belum Dievaluasi';
 }
 
 export default function StudentList() {
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // States Filter
   const [searchValue, setSearchValue] = useState('');
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
@@ -37,7 +36,7 @@ export default function StudentList() {
     async function loadStudents() {
       try {
         setIsLoading(true);
-        
+
         // ==============================================================
         // FETCH DATA SISWA & PREDIKSI RISIKO DARI BACKEND
         // ==============================================================
@@ -45,33 +44,44 @@ export default function StudentList() {
           get('/api/v1/students/?skip=0&limit=100').catch(() => []),
           get('/api/v1/predictions/student/all').catch(() => get('/api/v1/predictions/?skip=0&limit=10000')).catch(() => [])
         ]);
-        
-        const studentArray = Array.isArray(studentsResponse) 
-          ? studentsResponse 
-          : (studentsResponse.items || studentsResponse.data || studentsResponse.students || []);
-          
-        const predictionsArray = Array.isArray(predictionsResponse) 
-          ? predictionsResponse 
-          : (predictionsResponse.items || predictionsResponse.data || predictionsResponse.predictions || []);
 
-        // Mapping JSON dari backend ke state Frontend
+        const extractArray = (res: any) => {
+          if (!res) return [];
+          if (Array.isArray(res)) return res;
+          if (res.data && Array.isArray(res.data)) return res.data;
+          if (res.data?.items && Array.isArray(res.data.items)) return res.data.items;
+          if (res.items && Array.isArray(res.items)) return res.items;
+          return [];
+        };
+
+        const studentArray = extractArray(studentsResponse);
+        const predictionsArray = extractArray(predictionsResponse);
+
+        // Mapping JSON dari backend ke state Frontend menggunakan Logika Biner
         const formattedStudents = studentArray.map((student: any, index: number) => {
           const pred = predictionsArray.find((p: any) => p.student_id === student.id);
-          let riskLevel: 'Tinggi' | 'Sedang' | 'Rendah' | 'Aman' | 'Belum Dievaluasi' = 'Belum Dievaluasi';
-          
+          let riskLevel: 'Berisiko' | 'Aman' | 'Belum Dievaluasi' = 'Belum Dievaluasi';
+
           if (pred) {
-            const isAtRisk = pred.risk_status === 'at_risk' || pred.is_at_risk === true;
-            riskLevel = formatRiskLabel(pred.risk_score, isAtRisk) as any;
+            const rawScore = pred.risk_score !== undefined ? pred.risk_score : (pred.risk_status ?? 0);
+            const isAtRisk = (
+              pred.risk_status === 'at_risk' ||
+              pred.is_at_risk === true ||
+              rawScore === 1 ||
+              rawScore === '1' ||
+              rawScore >= 50
+            );
+            riskLevel = isAtRisk ? 'Berisiko' : 'Aman';
           }
 
           return {
-            id: student.id || `temp-id-${index}`, 
+            id: student.id || `temp-id-${index}`,
             name: student.name || 'Nama Tidak Diketahui',
             nis: student.nis || '-',
             nisn: student.nisn || '-',
             gender: student.gender || 'male',
-            is_active: student.is_active !== undefined ? student.is_active : true, 
-            riskLevel 
+            is_active: student.is_active !== undefined ? student.is_active : true,
+            riskLevel
           };
         });
 
@@ -112,7 +122,7 @@ export default function StudentList() {
         student.name.toLowerCase().includes(query) ||
         student.nis.toLowerCase().includes(query) ||
         (student.nisn && student.nisn.toLowerCase().includes(query));
-      
+
       const matchesGender = genderFilter === 'all' || student.gender === genderFilter;
 
       return matchesSearch && matchesGender;
@@ -149,7 +159,7 @@ export default function StudentList() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
+
       {/* ================= HEADER ================= */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -161,32 +171,32 @@ export default function StudentList() {
       {/* ================= BARIS FILTER & SEARCH ================= */}
       <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="flex-1 w-full flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-asgard-primary focus-within:ring-2 focus-within:ring-asgard-primary/20 transition-all">
-            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            <input 
-              type="text" 
-              placeholder="Cari nama siswa atau NIS/NISN..." 
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              className="w-full bg-transparent border-none focus:outline-none text-sm font-bold text-slate-700 placeholder-slate-400" 
-            />
+          <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <input
+            type="text"
+            placeholder="Cari nama siswa atau NIS/NISN..."
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            className="w-full bg-transparent border-none focus:outline-none text-sm font-bold text-slate-700 placeholder-slate-400"
+          />
         </div>
-        
+
         <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
-            <select
-              value={genderFilter}
-              onChange={(e) => setGenderFilter(e.target.value as any)}
-              className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50"
-            >
-                <option value="all">Semua Gender</option>
-                <option value="male">Laki-laki</option>
-                <option value="female">Perempuan</option>
-            </select>
-            
-            <Link href="/import">
-              <Button variant="outline" className="whitespace-nowrap border-asgard-primary text-asgard-primary hover:bg-asgard-primary/5">
-                  Import Data
-              </Button>
-            </Link>
+          <select
+            value={genderFilter}
+            onChange={(e) => setGenderFilter(e.target.value as any)}
+            className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50"
+          >
+            <option value="all">Semua Gender</option>
+            <option value="male">Laki-laki</option>
+            <option value="female">Perempuan</option>
+          </select>
+
+          <Link href="/import">
+            <Button variant="outline" className="whitespace-nowrap border-asgard-primary text-asgard-primary hover:bg-asgard-primary/5">
+              Import Data
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -225,7 +235,8 @@ export default function StudentList() {
                         Belum Dievaluasi
                       </span>
                     ) : (
-                      <RiskBadge level={siswa.riskLevel as any} />
+                      // Mengelabui RiskBadge lama: Jika Berisiko kirim string 'Tinggi' agar berwarna merah
+                      <RiskBadge level={siswa.riskLevel === 'Berisiko' ? 'Tinggi' : 'Aman' as any} />
                     )}
                   </td>
                   <td className="px-6 py-4">
@@ -235,14 +246,15 @@ export default function StudentList() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <Link href={`/student/${siswa.id}`}>
-                      <Button variant="outline" size="sm" className="text-xs px-4 py-2 h-auto opacity-0 group-hover:opacity-100 transition-all duration-300">
-                          Detail
+                      {/* FIX: Menghapus opacity-0 group-hover:opacity-100 agar tombol selalu terlihat */}
+                      <Button variant="outline" size="sm" className="text-xs px-4 py-2 h-auto">
+                        Detail
                       </Button>
                     </Link>
                   </td>
                 </tr>
               ))}
-              
+
               {paginatedStudents.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center font-bold text-slate-400">
@@ -257,38 +269,37 @@ export default function StudentList() {
 
       {/* ================= PAGINATION ================= */}
       <div className="px-8 py-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/30">
-          <span className="text-sm font-bold text-slate-500">
-            Menampilkan {firstItemIndex}-{lastItemIndex} dari {filteredStudents.length} siswa (Database Nyata)
-          </span>
-          <div className="flex items-center gap-1">
-              <button
-                onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50"
-              >
-                « Prev
-              </button>
-              {pageNumbers.map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold transition-colors ${
-                    page === currentPage
-                      ? 'bg-asgard-primary text-white shadow-md'
-                      : 'text-slate-600 hover:text-asgard-primary hover:bg-slate-100'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-lg text-slate-600 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50"
-              >
-                Next »
-              </button>
-          </div>
+        <span className="text-sm font-bold text-slate-500">
+          Menampilkan {firstItemIndex}-{lastItemIndex} dari {filteredStudents.length} siswa (Database Nyata)
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50"
+          >
+            « Prev
+          </button>
+          {pageNumbers.map((page) => (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold transition-colors ${page === currentPage
+                ? 'bg-asgard-primary text-white shadow-md'
+                : 'text-slate-600 hover:text-asgard-primary hover:bg-slate-100'
+                }`}
+            >
+              {page}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1.5 rounded-lg text-slate-600 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50"
+          >
+            Next »
+          </button>
+        </div>
       </div>
 
     </div>

@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { fetchAllUsers, formatDateTime, type UserRecord } from '@/lib/dashboard-api';
 import RoleGuard from '@/components/RoleGuard';
+import { post } from '@/lib/api-client';
 
 const roleLabelMap: Record<UserRecord['role'], string> = {
   superadmin: 'Super Admin',
@@ -15,56 +16,72 @@ export default function ManageAccounts() {
   const [accounts, setAccounts] = useState<UserRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [searchValue, setSearchValue] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | UserRecord['role']>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
+  // --- MODAL STATES ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalForm, setModalForm] = useState({ fullname: '', email: '', password: '', role: 'counselor' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+
+  async function loadAccounts() {
+    try {
+      setIsLoading(true);
+      const userRecords = await fetchAllUsers(100);
+      setAccounts(userRecords);
+      setError(null);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Gagal memuat akun pengguna.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   useEffect(() => {
     let isMounted = true;
-
-    async function loadAccounts() {
-      try {
-        setIsLoading(true);
-        const userRecords = await fetchAllUsers(100);
-
-        if (isMounted) {
-          setAccounts(userRecords);
-          setError(null);
-        }
-      } catch (loadError) {
-        if (isMounted) {
-          setError(loadError instanceof Error ? loadError.message : 'Gagal memuat akun pengguna.');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadAccounts();
-
-    return () => {
-      isMounted = false;
-    };
+    if (isMounted) loadAccounts();
+    return () => { isMounted = false; };
   }, []);
 
   const filteredAccounts = useMemo(() => {
     const query = searchValue.trim().toLowerCase();
-
     return accounts.filter((account) => {
-      const matchesSearch =
-        !query ||
-        account.fullname.toLowerCase().includes(query) ||
-        account.email.toLowerCase().includes(query);
+      const matchesSearch = !query || account.fullname.toLowerCase().includes(query) || account.email.toLowerCase().includes(query);
       const matchesRole = roleFilter === 'all' || account.role === roleFilter;
-      const matchesStatus =
-        statusFilter === 'all' ||
-        (statusFilter === 'active' ? account.is_active : !account.is_active);
-
+      const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? account.is_active : !account.is_active);
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [accounts, roleFilter, searchValue, statusFilter]);
+
+  // --- FUNGSI TEMBAK STAF BARU ---
+  const handleRegisterStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setModalError(null);
+
+    try {
+      await post('/api/v1/users/staff', {
+        fullname: modalForm.fullname,
+        email: modalForm.email,
+        password: modalForm.password,
+        role: modalForm.role
+      });
+
+      // Reset form & tutup modal
+      setModalForm({ fullname: '', email: '', password: '', role: 'counselor' });
+      setIsModalOpen(false);
+
+      // Muat ulang daftar tabel akun
+      await loadAccounts();
+    } catch (err: any) {
+      setModalError(err.response?.data?.detail || err.message || 'Gagal mendaftarkan staf.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -87,107 +104,183 @@ export default function ManageAccounts() {
     <RoleGuard allowedRoles={['admin']}>
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-      {/* ================= HEADER ================= */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-asgard-primary">Manajemen Akses Sekolah</h1>
-          <p className="text-slate-500 font-medium mt-1">Daftar akun ditarik langsung dari tabel users backend.</p>
-        </div>
+        {/* ================= HEADER ================= */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-asgard-primary">Manajemen Akses Sekolah</h1>
+            <p className="text-slate-500 font-medium mt-1">Daftar akun ditarik langsung dari tabel users backend.</p>
+          </div>
 
-        <Button variant="primary" className="whitespace-nowrap shadow-md hover:shadow-lg transition-all">
-          + Daftarkan Staf Baru
-        </Button>
-      </div>
-
-      {/* ================= BARIS FILTER & SEARCH ================= */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="flex-1 w-full flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-asgard-primary focus-within:ring-2 focus-within:ring-asgard-primary/20 transition-all">
-          <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          <input
-            type="text"
-            placeholder="Cari nama staf atau email..."
-            className="w-full bg-transparent border-none focus:outline-none text-sm font-bold text-slate-700 placeholder-slate-400"
-            value={searchValue}
-            onChange={(event) => setSearchValue(event.target.value)}
-          />
-        </div>
-
-        <div className="flex gap-3 w-full md:w-auto">
-          <select
-            value={roleFilter}
-            onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}
-            className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors"
+          {/* Tombol pemicu modal */}
+          <Button
+            variant="primary"
+            className="whitespace-nowrap shadow-md hover:shadow-lg transition-all"
+            onClick={() => setIsModalOpen(true)}
           >
-            <option value="all">Semua Jabatan</option>
-            <option value="superadmin">Super Admin</option>
-            <option value="admin">Admin</option>
-            <option value="counselor">Konselor (BK)</option>
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-            className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors"
-          >
-            <option value="all">Semua Status</option>
-            <option value="active">Aktif</option>
-            <option value="inactive">Non-Aktif</option>
-          </select>
+            + Daftarkan Staf Baru
+          </Button>
         </div>
-      </div>
 
-      {/* ================= TABEL DATA AKUN ================= */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[900px]">
-            <thead>
-              <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
-                <th className="px-6 py-5 font-black">Informasi Pengguna</th>
-                <th className="px-6 py-5 font-black">Hak Akses (Role)</th>
-                <th className="px-6 py-5 font-black">Status Akses</th>
-                <th className="px-6 py-5 font-black">Terakhir Login</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredAccounts.map((akun) => (
-                <tr key={akun.id} className="hover:bg-slate-50/80 transition-colors group">
-                  <td className="px-6 py-4">
-                    <p className="font-bold text-slate-800">{akun.fullname}</p>
-                    <p className="text-xs font-medium text-slate-400 mt-0.5">{akun.email}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md ${akun.role === 'admin'
+        {/* ================= MODAL POP-UP INPUT STAF ================= */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white w-full max-w-md p-6 rounded-2xl shadow-xl border border-slate-100 animate-in zoom-in-95 duration-200">
+              <h3 className="text-xl font-black text-asgard-primary">Daftarkan Staf Sekolah</h3>
+              <p className="text-xs text-slate-400 mt-1">Akun staf akan otomatis terdaftar di sekolah Anda.</p>
+
+              {modalError && (
+                <div className="mt-4 bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-xs font-bold">
+                  {modalError}
+                </div>
+              )}
+
+              <form className="space-y-4 mt-6" onSubmit={handleRegisterStaff}>
+                <div>
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1">Nama Lengkap</label>
+                  <input
+                    type="text" required
+                    value={modalForm.fullname}
+                    onChange={(e) => setModalForm({ ...modalForm, fullname: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:border-asgard-primary transition-all"
+                    placeholder="Contoh: Joko Widodo, M.Pd"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1">Email</label>
+                  <input
+                    type="email" required
+                    value={modalForm.email}
+                    onChange={(e) => setModalForm({ ...modalForm, email: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:border-asgard-primary transition-all"
+                    placeholder="contoh: bk@sekolah.sch.id"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1">Password Sementara</label>
+                  <input
+                    type="password" required
+                    value={modalForm.password}
+                    onChange={(e) => setModalForm({ ...modalForm, password: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:border-asgard-primary transition-all"
+                    placeholder="Minimal 6 karakter"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1">Role / Jabatan</label>
+                  <select
+                    value={modalForm.role}
+                    onChange={(e) => setModalForm({ ...modalForm, role: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:border-asgard-primary transition-all cursor-pointer"
+                  >
+                    <option value="counselor">Konselor (BK)</option>
+                    <option value="admin">Admin Sekolah</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-50 mt-6">
+                  <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>Batal</Button>
+                  <Button type="submit" variant="primary" disabled={isSubmitting}>
+                    {isSubmitting ? 'Mendaftarkan...' : 'Daftarkan Staf'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ================= BARIS FILTER & SEARCH ================= */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="flex-1 w-full flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-asgard-primary focus-within:ring-2 focus-within:ring-asgard-primary/20 transition-all">
+            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <input
+              type="text"
+              placeholder="Cari nama staf atau email..."
+              className="w-full bg-transparent border-none focus:outline-none text-sm font-bold text-slate-700 placeholder-slate-400"
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
+            />
+          </div>
+
+          <div className="flex gap-3 w-full md:w-auto">
+            <select
+              value={roleFilter}
+              onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}
+              className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors"
+            >
+              <option value="all">Semua Jabatan</option>
+              <option value="superadmin">Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="counselor">Konselor (BK)</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+              className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors"
+            >
+              <option value="all">Semua Status</option>
+              <option value="active">Aktif</option>
+              <option value="inactive">Non-Aktif</option>
+            </select>
+          </div>
+        </div>
+
+        {/* ================= TABEL DATA AKUN ================= */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[900px]">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
+                  <th className="px-6 py-5 font-black">Informasi Pengguna</th>
+                  <th className="px-6 py-5 font-black">Hak Akses (Role)</th>
+                  <th className="px-6 py-5 font-black">Status Akses</th>
+                  <th className="px-6 py-5 font-black">Terakhir Login</th>
+                  <th className="px-6 py-5 font-black text-center">Aksi</th> {/* Header aksi ditambahkan */}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredAccounts.map((akun) => (
+                  <tr key={akun.id} className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-slate-800">{akun.fullname}</p>
+                      <p className="text-xs font-medium text-slate-400 mt-0.5">{akun.email}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md ${akun.role === 'admin'
                         ? 'bg-purple-50 text-purple-600 border border-purple-100'
                         : akun.role === 'counselor'
                           ? 'bg-blue-50 text-blue-600 border border-blue-100'
                           : 'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}>
-                      {roleLabelMap[akun.role]}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${akun.is_active ? 'bg-emerald-500' : 'bg-red-400'}`}></span>
-                      <span className="text-sm font-bold text-slate-600">{akun.is_active ? 'Aktif' : 'Non-Aktif'}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium text-slate-500">{formatDateTime(akun.created_at)}</td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredAccounts.length === 0 && (
-          <div className="border-t border-slate-100 bg-slate-50/30 px-8 py-6 text-sm font-medium text-slate-500">
-            Tidak ada akun yang cocok dengan filter saat ini.
+                        }`}>
+                        {roleLabelMap[akun.role]}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${akun.is_active ? 'bg-emerald-500' : 'bg-red-400'}`}></span>
+                        <span className="text-sm font-bold text-slate-600">{akun.is_active ? 'Aktif' : 'Non-Aktif'}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-slate-500">{formatDateTime(akun.created_at)}</td>
+                    <td className="px-6 py-4 text-center">
+                      {/* Tempat untuk tombol edit/delete di masa depan, saat ini disembunyikan sampai di-hover */}
+                      <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        {/* Contoh placeholder aksi */}
+                        <span className="text-xs text-slate-400">-</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+
+          {filteredAccounts.length === 0 && (
+            <div className="border-t border-slate-100 bg-slate-50/30 px-8 py-6 text-sm font-medium text-slate-500">
+              Tidak ada akun yang cocok dengan filter saat ini.
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  </RoleGuard>
+    </RoleGuard>
   );
 }
