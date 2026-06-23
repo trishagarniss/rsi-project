@@ -23,14 +23,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const token = getAccessToken();
-    const stored = localStorage.getItem(USER_KEY);
+    const stored = sessionStorage.getItem(USER_KEY);
     
     if (token && stored) {
       try {
         setUser(JSON.parse(stored) as User); // eslint-disable-line react-hooks/set-state-in-effect
       } catch {
         clearTokens();
-        localStorage.removeItem(USER_KEY);
+        sessionStorage.removeItem(USER_KEY);
       }
     }
     setIsLoading(false); // eslint-disable-line react-hooks/set-state-in-effect
@@ -41,20 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { access_token, user: userData } = response.data;
 
     setAccessToken(access_token);
-    localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    sessionStorage.setItem(USER_KEY, JSON.stringify(userData));
     setUser(userData as User);
 
     return userData as User;
   };
 
   const refreshUser = (updated: User) => {
-    localStorage.setItem(USER_KEY, JSON.stringify(updated));
+    sessionStorage.setItem(USER_KEY, JSON.stringify(updated));
     setUser(updated);
   };
 
   const logout = () => {
     clearTokens();
-    localStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(USER_KEY);
     setUser(null);
   };
 

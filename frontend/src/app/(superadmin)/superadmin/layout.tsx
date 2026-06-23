@@ -29,7 +29,7 @@ export default function SuperadminLayout({
     const effectiveUser = user || (() => {
       if (typeof window === "undefined") return null;
       try {
-        const stored = localStorage.getItem("asgard_user");
+        const stored = sessionStorage.getItem("asgard_user");
         return stored ? JSON.parse(stored) : null;
       } catch {
         return null;
