@@ -15,6 +15,13 @@ from src.backend.config.settings import settings
 security = HTTPBearer()
 ACCESS_TOKEN_TTL = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
+IDLE_TIMEOUT_SECONDS = 3600
+ACTIVITY_UPDATE_INTERVAL = 300
+
+
+def _ensure_utc(dt: datetime) -> datetime:
+    return dt.astimezone(timezone.utc) if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
 def get_password_hash(password: str) -> str:
     pwd_bytes = password.encode('utf-8')
     salt = bcrypt.gensalt()
@@ -49,13 +56,16 @@ def get_current_user(
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="User tidak ditemukan atau tidak aktif")
 
-    # Validasi sesi: jika user.updated_at lebih baru dari iat token, token dianggap kadaluarsa
-    token_iat = payload.get("iat")
-    if token_iat and user.updated_at:
-        token_time = datetime.fromtimestamp(token_iat, tz=timezone.utc)
-        user_updated = user.updated_at.astimezone(timezone.utc) if user.updated_at.tzinfo else user.updated_at.replace(tzinfo=timezone.utc)
-        if token_time < user_updated:
-            raise HTTPException(status_code=401, detail="Sesi telah berakhir, silakan login ulang")
+    now = datetime.now(timezone.utc)
+
+    if user.last_activity_at:
+        idle_seconds = (now - _ensure_utc(user.last_activity_at)).total_seconds()
+        if idle_seconds > IDLE_TIMEOUT_SECONDS:
+            raise HTTPException(status_code=401, detail="Sesi habis karena tidak ada aktivitas, silakan login ulang")
+
+    if not user.last_activity_at or (now - _ensure_utc(user.last_activity_at)).total_seconds() > ACTIVITY_UPDATE_INTERVAL:
+        user.last_activity_at = now
+        db.commit()
 
     tenant_id = str(user.tenant_id) if user.tenant_id else ""
     db.execute(text("SELECT set_config('app.tenant_id', :tid, true)"), {"tid": tenant_id})

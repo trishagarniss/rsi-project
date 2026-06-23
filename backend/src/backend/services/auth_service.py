@@ -16,6 +16,7 @@ def login_user(db: Session, login_data: UserLoginDTO):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Akun dinonaktifkan")
 
     user.last_login_at = datetime.now(timezone.utc)
+    user.last_activity_at = datetime.now(timezone.utc)
     db.commit()
 
     access_token = create_access_token(data={"sub": user.id})
