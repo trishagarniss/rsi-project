@@ -1,307 +1,364 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import RiskBadge from '@/components/ui/RiskBadge';
-import Button from '@/components/ui/Button';
-import { get } from '@/lib/api-client';
+import {
+  fetchAcademics,
+  fetchAttendances,
+  fetchLatestPrediction,
+  fetchSocioEconomic,
+  fetchStudent,
+  formatCurrency,
+  formatDateTime,
+  type AcademicRecord,
+  type AttendanceRecord,
+  type RiskPredictionRecord,
+  type SocioEconomicRecord,
+  type StudentRecord,
+} from '@/lib/dashboard-api';
 
-// --- TIPE DATA SESUAI JSON BACKEND SAAT INI ---
-interface StudentRecord {
-  id: string; // Biasanya backend tetap mengirimkan ID, atau kita pakai NIS sebagai key
-  name: string;
-  nis: string;
-  nisn: string | null;
-  gender: 'male' | 'female';
-  is_active: boolean;
-  riskLevel: 'Berisiko' | 'Aman' | 'Belum Dievaluasi';
-}
+type TabKey = 'akademik' | 'sosek' | 'konseling';
 
-export default function StudentList() {
-  const [students, setStudents] = useState<StudentRecord[]>([]);
+export default function StudentDetail() {
+  const params = useParams<{ id: string }>();
+  const studentId = params?.id;
+
+  const [activeTab, setActiveTab] = useState<TabKey>('akademik');
+  const [student, setStudent] = useState<StudentRecord | null>(null);
+  const [academics, setAcademics] = useState<AcademicRecord[]>([]);
+  const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
+  const [socioEconomic, setSocioEconomic] = useState<SocioEconomicRecord | null>(null);
+  const [latestPrediction, setLatestPrediction] = useState<RiskPredictionRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // States Filter
-  const [searchValue, setSearchValue] = useState('');
-  const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
-
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 15;
-
   useEffect(() => {
+    if (!studentId) return;
+
     let isMounted = true;
 
-    async function loadStudents() {
+    async function loadStudentDetail() {
       try {
         setIsLoading(true);
 
-        // ==============================================================
-        // FETCH DATA SISWA & PREDIKSI RISIKO DARI BACKEND
-        // ==============================================================
-        const [studentsResponse, predictionsResponse] = await Promise.all([
-          get('/api/v1/students/?skip=0&limit=100').catch(() => []),
-          get('/api/v1/predictions/student/all').catch(() => get('/api/v1/predictions/?skip=0&limit=10000')).catch(() => [])
-        ]);
+        const [studentResult, academicsResult, attendancesResult, socioEconomicResult, predictionResult] =
+          await Promise.allSettled([
+            fetchStudent(studentId as string),
+            fetchAcademics(studentId as string),
+            fetchAttendances(studentId as string),
+            fetchSocioEconomic(studentId as string),
+            fetchLatestPrediction(studentId as string),
+          ]);
 
-        const extractArray = (res: any) => {
-          if (!res) return [];
-          if (Array.isArray(res)) return res;
-          if (res.data && Array.isArray(res.data)) return res.data;
-          if (res.data?.items && Array.isArray(res.data.items)) return res.data.items;
-          if (res.items && Array.isArray(res.items)) return res.items;
-          return [];
-        };
+        if (!isMounted) return;
 
-        const studentArray = extractArray(studentsResponse);
-        const predictionsArray = extractArray(predictionsResponse);
-
-        // Mapping JSON dari backend ke state Frontend menggunakan Logika Biner
-        const formattedStudents = studentArray.map((student: any, index: number) => {
-          const pred = predictionsArray.find((p: any) => p.student_id === student.id);
-          let riskLevel: 'Berisiko' | 'Aman' | 'Belum Dievaluasi' = 'Belum Dievaluasi';
-
-          if (pred) {
-            const rawScore = pred.risk_score !== undefined ? pred.risk_score : (pred.risk_status ?? 0);
-            const isAtRisk = (
-              pred.risk_status === 'at_risk' ||
-              pred.is_at_risk === true ||
-              rawScore === 1 ||
-              rawScore === '1' ||
-              rawScore >= 50
-            );
-            riskLevel = isAtRisk ? 'Berisiko' : 'Aman';
-          }
-
-          return {
-            id: student.id || `temp-id-${index}`,
-            name: student.name || 'Nama Tidak Diketahui',
-            nis: student.nis || '-',
-            nisn: student.nisn || '-',
-            gender: student.gender || 'male',
-            is_active: student.is_active !== undefined ? student.is_active : true,
-            riskLevel
-          };
-        });
-
-        if (isMounted) {
-          setStudents(formattedStudents);
-          setError(null);
-        }
-
+        setStudent(studentResult.status === 'fulfilled' ? studentResult.value : null);
+        setAcademics(academicsResult.status === 'fulfilled' ? academicsResult.value : []);
+        setAttendances(attendancesResult.status === 'fulfilled' ? attendancesResult.value : []);
+        setSocioEconomic(socioEconomicResult.status === 'fulfilled' ? socioEconomicResult.value : null);
+        setLatestPrediction(predictionResult.status === 'fulfilled' ? predictionResult.value : null);
+        setError(null);
       } catch (loadError) {
         if (isMounted) {
-          console.error("Gagal menarik data asli:", loadError);
-          setError(loadError instanceof Error ? loadError.message : 'Gagal memuat data siswa.');
+          setError(loadError instanceof Error ? loadError.message : 'Gagal memuat detail siswa.');
         }
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
 
-    loadStudents();
+    loadStudentDetail();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [studentId]);
 
-  // Reset pagination saat filter berubah
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchValue, genderFilter]);
+  const latestAcademic = [...academics].sort((left, right) => right.semester - left.semester)[0] ?? null;
+  const latestAttendance = [...attendances].sort((left, right) => right.semester - left.semester)[0] ?? null;
+  const attendancePercent = latestAttendance?.attendance_percentage ?? 0;
+  const genderLabel = student?.gender === 'male' ? 'Laki-laki' : student?.gender === 'female' ? 'Perempuan' : '-';
 
-  // Logika Filter (Hanya untuk Search & Gender karena Risiko belum jalan)
-  const filteredStudents = useMemo(() => {
-    const query = searchValue.trim().toLowerCase();
+  // --- LOGIKA RISIKO BINER ---
+  let riskLevel: 'Tinggi' | 'Aman' | 'Belum Dievaluasi' = 'Belum Dievaluasi';
+  let isBerisiko = false;
 
-    return students.filter((student) => {
-      const matchesSearch =
-        !query ||
-        student.name.toLowerCase().includes(query) ||
-        student.nis.toLowerCase().includes(query) ||
-        (student.nisn && student.nisn.toLowerCase().includes(query));
-
-      const matchesGender = genderFilter === 'all' || student.gender === genderFilter;
-
-      return matchesSearch && matchesGender;
-    });
-  }, [students, searchValue, genderFilter]);
-
-  // Kalkulasi Pagination
-  const totalPages = Math.max(Math.ceil(filteredStudents.length / pageSize), 1);
-  const paginatedStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const firstItemIndex = filteredStudents.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const lastItemIndex = Math.min(currentPage * pageSize, filteredStudents.length);
-
-  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1).slice(
-    Math.max(0, currentPage - 3),
-    Math.min(totalPages, currentPage + 2)
-  );
+  if (latestPrediction) {
+    const rawScore = latestPrediction.risk_score !== undefined ? latestPrediction.risk_score : (latestPrediction.risk_status ?? 0);
+    // Menggunakan variabel yang sama persis seperti di Daftar Siswa dan Beranda
+    isBerisiko = (latestPrediction.risk_status === 'at_risk' || latestPrediction.is_at_risk === true || rawScore === 1 || rawScore === '1' || rawScore >= 50);
+    // Mengubahnya menjadi 'Tinggi' agar RiskBadge berwarna Merah
+    riskLevel = isBerisiko ? 'Tinggi' : 'Aman';
+  }
 
   if (isLoading) {
     return (
       <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm">
-        <p className="text-sm font-bold text-slate-500">Memuat ratusan data siswa asli dari server...</p>
+        <p className="text-sm font-bold text-slate-500 animate-pulse">Memuat detail siswa dari backend...</p>
       </div>
     );
   }
 
-  if (error && students.length === 0) {
+  if (error) {
     return (
       <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-red-700 shadow-sm">
-        <h3 className="text-base font-black">Koneksi Database Gagal</h3>
+        <h3 className="text-base font-black">Gagal memuat detail siswa</h3>
         <p className="mt-2 text-sm font-medium">{error}</p>
       </div>
     );
   }
 
+  if (!student) {
+    return (
+      <div className="rounded-2xl border border-amber-100 bg-amber-50 p-8 text-amber-700 shadow-sm">
+        <h3 className="text-base font-black">Siswa tidak ditemukan</h3>
+        <p className="mt-2 text-sm font-medium">ID siswa yang diminta tidak ada di database backend.</p>
+      </div>
+    );
+  }
+
+  const renderEmptyState = (title: string, description: string) => (
+    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+      <p className="text-base font-black text-slate-500">{title}</p>
+      <p className="mt-2 text-sm font-medium text-slate-400">{description}</p>
+    </div>
+  );
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-      {/* ================= HEADER ================= */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-asgard-primary">Daftar Siswa</h1>
-          <p className="text-slate-500 font-medium mt-1">Data ditarik langsung dari tabel <code className="bg-slate-100 text-pink-600 px-1 rounded">students</code> PostgreSQL</p>
+      <div className="flex flex-col gap-4">
+        <Link href="/student" className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-asgard-primary transition-colors w-fit">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
+          Kembali ke Daftar Siswa
+        </Link>
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-asgard-primary">{student.name}</h1>
+            <p className="text-slate-500 font-medium mt-1">NIS: {student.nis} • NISN: {student.nisn ?? '-'} • {genderLabel}</p>
+          </div>
         </div>
       </div>
 
-      {/* ================= BARIS FILTER & SEARCH ================= */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="flex-1 w-full flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-asgard-primary focus-within:ring-2 focus-within:ring-asgard-primary/20 transition-all">
-          <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          <input
-            type="text"
-            placeholder="Cari nama siswa atau NIS/NISN..."
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            className="w-full bg-transparent border-none focus:outline-none text-sm font-bold text-slate-700 placeholder-slate-400"
-          />
-        </div>
-
-        <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
-          <select
-            value={genderFilter}
-            onChange={(e) => setGenderFilter(e.target.value as any)}
-            className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50"
-          >
-            <option value="all">Semua Gender</option>
-            <option value="male">Laki-laki</option>
-            <option value="female">Perempuan</option>
-          </select>
-
-          <Link href="/import">
-            <Button variant="outline" className="whitespace-nowrap border-asgard-primary text-asgard-primary hover:bg-asgard-primary/5">
-              Import Data
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* ================= TABEL DATA SISWA ASLI ================= */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-200">
-            <thead>
-              <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
-                <th className="px-6 py-5 font-black w-16">No.</th>
-                <th className="px-6 py-5 font-black">Nama Siswa</th>
-                <th className="px-6 py-5 font-black">NIS / NISN</th>
-                <th className="px-6 py-5 font-black">Gender</th>
-                <th className="px-6 py-5 font-black">Tingkat Risiko</th>
-                <th className="px-6 py-5 font-black">Status</th>
-                <th className="px-6 py-5 font-black text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {paginatedStudents.map((siswa, index) => (
-                <tr key={siswa.id} className="hover:bg-slate-50/80 transition-colors group">
-                  <td className="px-6 py-4 text-sm font-bold text-slate-400">{firstItemIndex + index}</td>
-                  <td className="px-6 py-4 font-bold text-slate-800 uppercase">{siswa.name}</td>
-                  <td className="px-6 py-4 text-sm font-bold text-slate-600">
-                    <div className="flex flex-col">
-                      <span>{siswa.nis}</span>
-                      <span className="text-xs font-medium text-slate-400">{siswa.nisn ?? '-'}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm font-bold text-slate-600">
-                    {siswa.gender === 'male' ? 'Laki-laki' : 'Perempuan'}
-                  </td>
-                  <td className="px-6 py-4">
-                    {siswa.riskLevel === 'Belum Dievaluasi' ? (
-                      <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                        Belum Dievaluasi
-                      </span>
-                    ) : (
-                      // Mengelabui RiskBadge lama: Jika Berisiko kirim string 'Tinggi' agar berwarna merah
-                      <RiskBadge level={siswa.riskLevel === 'Berisiko' ? 'Tinggi' : 'Aman' as any} />
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">
-                      Aktif
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <Link href={`/student/${siswa.id}`}>
-                      {/* FIX: Menghapus opacity-0 group-hover:opacity-100 agar tombol selalu terlihat */}
-                      <Button variant="outline" size="sm" className="text-xs px-4 py-2 h-auto">
-                        Detail
-                      </Button>
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-
-              {paginatedStudents.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center font-bold text-slate-400">
-                    Tidak ada data siswa yang ditemukan.
-                  </td>
-                </tr>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Status Risiko</h3>
+              {riskLevel === 'Belum Dievaluasi' ? (
+                <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md bg-slate-100 text-slate-500 border border-slate-200">
+                  Belum Dievaluasi
+                </span>
+              ) : (
+                <RiskBadge level={riskLevel as any} />
               )}
-            </tbody>
-          </table>
+            </div>
+
+            <div className="space-y-4">
+              <div className="pb-4 border-b border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase">Alamat</p>
+                <p className="text-sm font-bold text-slate-700 mt-1">{student.address ?? '-'}</p>
+              </div>
+              <div className="pb-4 border-b border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase">Prediksi Terakhir</p>
+                <p className="text-sm font-bold text-slate-700 mt-1">{latestPrediction ? formatDateTime(latestPrediction.created_at) : '-'}</p>
+              </div>
+              <div className="pb-4 border-b border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase">Skor Kepastian AI</p>
+                <p className="text-sm font-bold text-slate-700 mt-1">
+                  {latestPrediction
+                    ? (latestPrediction.risk_score > 1 ? `${Math.round(latestPrediction.risk_score)}%` : `${Math.round(latestPrediction.risk_score * 100)}%`)
+                    : '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase">Status Keaktifan</p>
+                <span className="inline-block mt-2 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  {student.is_active ? 'Aktif' : 'Non-Aktif'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="flex border-b border-slate-100 px-2 pt-2 bg-slate-50/50 overflow-x-auto">
+            {([
+              { id: 'akademik', label: 'Riwayat Akademik' },
+              { id: 'sosek', label: 'Data Sosio-Ekonomi' },
+              { id: 'konseling', label: 'Riwayat Konseling' },
+            ] as const).map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${activeTab === tab.id
+                  ? 'border-asgard-primary text-asgard-primary'
+                  : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="p-8 flex-1 min-h-100">
+            {activeTab === 'akademik' && (
+              <div className="animate-in fade-in duration-300 space-y-6">
+                <h3 className="text-lg font-black text-asgard-primary">Grafik Nilai & Kehadiran</h3>
+
+                {latestAcademic ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Tahun Ajaran</p>
+                      <p className="text-base font-black text-slate-700 mt-1">{latestAcademic.academic_year}</p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Rata-rata Nilai</p>
+                      <p className="text-base font-black text-slate-700 mt-1">{latestAcademic.average_score.toFixed(2)}</p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Tugas Belum Selesai</p>
+                      <p className="text-base font-black text-slate-700 mt-1">{latestAcademic.incomplete_assignments_count}</p>
+                    </div>
+                  </div>
+                ) : renderEmptyState('Belum ada data akademik', 'Backend belum menyimpan riwayat akademik untuk siswa ini.')}
+
+                {academics.length > 0 && (
+                  <div className="overflow-x-auto rounded-xl border border-slate-100 mt-6">
+                    <table className="w-full text-left border-collapse">
+                      <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-400">
+                        <tr>
+                          <th className="px-4 py-3 font-bold">Semester</th>
+                          <th className="px-4 py-3 font-bold">Tahun Ajaran</th>
+                          <th className="px-4 py-3 font-bold">Nilai Rata-rata</th>
+                          <th className="px-4 py-3 font-bold">Mapel Tidak Lulus</th>
+                          <th className="px-4 py-3 font-bold">Tugas Belum Selesai</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {academics.map((record) => (
+                          <tr key={record.id}>
+                            <td className="px-4 py-3 text-sm font-bold text-slate-700">{record.semester}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600">{record.academic_year}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600">{record.average_score.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600">{record.failed_subjects_count}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600">{record.incomplete_assignments_count}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'sosek' && (
+              <div className="animate-in fade-in duration-300 space-y-6">
+                <h3 className="text-lg font-black text-asgard-primary">Indikator Sosio-Ekonomi</h3>
+
+                {socioEconomic ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Penerima KIP/KKS</p>
+                      <p className="text-base font-black text-slate-700 mt-1">{socioEconomic.has_kip_scholarship ? 'Ya' : 'Tidak'}</p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Penghasilan Orang Tua</p>
+                      <p className="text-base font-black text-slate-700 mt-1">{formatCurrency(socioEconomic.parents_income)}</p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Pengeluaran Bulanan</p>
+                      <p className="text-base font-black text-slate-700 mt-1">{formatCurrency(socioEconomic.monthly_expenses)}</p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Jarak ke Sekolah</p>
+                      <p className="text-base font-black text-slate-700 mt-1">{socioEconomic.distance_to_school_km ?? '-'} km</p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Pendidikan Orang Tua</p>
+                      <p className="text-base font-black text-slate-700 mt-1">{socioEconomic.parents_education_level ?? '-'}</p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Akses Internet Rumah</p>
+                      <p className="text-base font-black text-slate-700 mt-1">{socioEconomic.has_internet_access ? 'Ada' : 'Tidak Ada'}</p>
+                    </div>
+                  </div>
+                ) : renderEmptyState('Belum ada data sosio-ekonomi', 'Backend belum menyimpan profil sosio-ekonomi untuk siswa ini.')}
+              </div>
+            )}
+
+            {activeTab === 'konseling' && (
+              <div className="animate-in fade-in duration-300 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-black text-asgard-primary">Riwayat Penanganan BK</h3>
+                </div>
+
+                {latestPrediction ? (
+                  <div className="space-y-4">
+                    <div className={`p-6 rounded-xl border ${isBerisiko ? 'border-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50'}`}>
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <RiskBadge level={riskLevel as any} />
+                        <span className={`text-sm font-bold ${isBerisiko ? 'text-red-700' : 'text-emerald-700'}`}>
+                          {formatDateTime(latestPrediction.created_at)}
+                        </span>
+                      </div>
+                      <p className={`text-sm font-medium leading-relaxed ${isBerisiko ? 'text-red-900' : 'text-emerald-900'}`}>
+                        {latestPrediction.factors_summary ?? 'Tidak ada catatan khusus dari AI karena siswa dalam batas wajar.'}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                        <p className="text-xs font-bold text-slate-400 uppercase">Skor Model AI</p>
+                        <p className="text-base font-black text-slate-700 mt-1">
+                          {latestPrediction.risk_score > 1 ? Math.round(latestPrediction.risk_score) : Math.round(latestPrediction.risk_score * 100)}%
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                        <p className="text-xs font-bold text-slate-400 uppercase">Status Prediksi</p>
+                        <p className={`text-base font-black mt-1 ${isBerisiko ? 'text-red-600' : 'text-emerald-600'}`}>
+                          {isBerisiko ? 'Berisiko Dropout' : 'Aman'}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
+                        <p className="text-xs font-bold text-slate-400 uppercase">Kehadiran Terakhir</p>
+                        <p className="text-base font-black text-slate-700 mt-1">{attendancePercent ? `${attendancePercent.toFixed(2)}%` : '-'}</p>
+                      </div>
+                    </div>
+
+                    {latestAttendance && (
+                      <div className="p-6 rounded-xl border border-slate-100 bg-white mt-6">
+                        <p className="text-sm font-black text-slate-700 mb-3">Ringkasan Absensi Semester {latestAttendance.semester}</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase">Hadir</p>
+                            <p className="mt-1 font-black text-slate-700">{latestAttendance.present_count}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase">Sakit</p>
+                            <p className="mt-1 font-black text-slate-700">{latestAttendance.sick_count}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase">Izin</p>
+                            <p className="mt-1 font-black text-slate-700">{latestAttendance.excused_count}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase">Alpha</p>
+                            <p className="mt-1 font-black text-slate-700">{latestAttendance.unexcused_count}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : renderEmptyState('Belum ada riwayat prediksi', 'Sistem belum memproses status risiko untuk siswa ini.')}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* ================= PAGINATION ================= */}
-      <div className="px-8 py-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/30">
-        <span className="text-sm font-bold text-slate-500">
-          Menampilkan {firstItemIndex}-{lastItemIndex} dari {filteredStudents.length} siswa (Database Nyata)
-        </span>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50"
-          >
-            « Prev
-          </button>
-          {pageNumbers.map((page) => (
-            <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold transition-colors ${page === currentPage
-                ? 'bg-asgard-primary text-white shadow-md'
-                : 'text-slate-600 hover:text-asgard-primary hover:bg-slate-100'
-                }`}
-            >
-              {page}
-            </button>
-          ))}
-          <button
-            onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1.5 rounded-lg text-slate-600 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50"
-          >
-            Next »
-          </button>
-        </div>
-      </div>
-
     </div>
   );
 }

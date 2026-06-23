@@ -1,22 +1,33 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import RiskBadge from '@/components/ui/RiskBadge';
 import Button from '@/components/ui/Button';
 import { get } from '@/lib/api-client';
 import RoleGuard from '@/components/RoleGuard';
 
-// --- TIPE DATA BINER ---
+// --- TIPE DATA ---
 interface CounselingRow {
   id: string;
   name: string;
   nis: string;
   nisn: string | null;
-  risk_score: number | string;
-  riskLevel: 'Berisiko' | 'Aman' | 'Belum Dievaluasi';
+  risk_score: number;
+  riskLevel: 'Tinggi' | 'Sedang' | 'Rendah' | 'Aman';
   topik: string;
   tanggal: string;
 }
+
+// Fungsi pembantu klasifikasi risiko
+const getRiskLevel = (score: number, isBerisiko: boolean = true) => {
+  if (!isBerisiko) return 'Aman';
+  const val = (score > 0 && score <= 1) ? score * 100 : score;
+  if (val >= 80) return 'Tinggi';
+  if (val >= 60) return 'Sedang';
+  if (val >= 40) return 'Rendah';
+  return 'Aman';
+};
 
 // Fungsi format tanggal sederhana
 const formatDate = (dateString?: string) => {
@@ -30,9 +41,9 @@ export default function CounselingManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State Filter disesuaikan dengan Biner
+  // State Filter
   const [searchValue, setSearchValue] = useState('');
-  const [riskFilter, setRiskFilter] = useState<'all' | 'Berisiko' | 'Aman' | 'Belum Dievaluasi'>('all');
+  const [riskFilter, setRiskFilter] = useState<'all' | 'Tinggi' | 'Sedang' | 'Rendah' | 'Aman'>('all');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,11 +57,11 @@ export default function CounselingManagement() {
         setIsLoading(true);
 
         // ==============================================================
-        // FETCH PARALEL: Ambil data Siswa & Prediksi 
+        // FETCH PARALEL: Ambil data Siswa & Prediksi (Sama seperti Dashboard)
         // ==============================================================
         const [studentsResponse, predictionsResponse] = await Promise.all([
           get('/api/v1/students/?skip=0&limit=10000').catch(() => []),
-          get('/api/v1/predictions/student/all').catch(() => get('/api/v1/predictions/?skip=0&limit=10000')).catch(() => [])
+          get('/api/v1/predictions/student/all').catch(() => get('/api/v1/predictions/?skip=0&limit=2000')).catch(() => [])
         ]);
 
         const extractArray = (res: any) => {
@@ -65,7 +76,7 @@ export default function CounselingManagement() {
         const studentsArray = extractArray(studentsResponse);
         const predictionsArray = extractArray(predictionsResponse);
 
-        // Ambil prediksi terbaru untuk setiap siswa
+        // Group predictions by student_id to get only the latest prediction for each student
         const latestPredictionsMap = new Map<string, any>();
         predictionsArray.forEach((pred: any) => {
           const studentId = pred.student_id;
@@ -76,33 +87,36 @@ export default function CounselingManagement() {
           }
         });
 
-        // Proses Penggabungan Data (Logika Biner)
+        // Proses Penggabungan Data
         const mergedData = studentsArray.map((student: any) => {
           const pred = latestPredictionsMap.get(student.id);
-          const rawScore = pred?.risk_score !== undefined ? pred.risk_score : (pred?.risk_status ?? 0);
+          const rawScore = pred?.risk_score !== undefined ? pred.risk_score : 0;
 
-          let level: 'Berisiko' | 'Aman' | 'Belum Dievaluasi' = 'Belum Dievaluasi';
-          let isBerisiko = false;
+          // Deteksi apakah siswa berisiko secara komprehensif (status 'at_risk' atau skor desimal >= 0.75 atau >= 50)
+          const isBerisiko = pred
+            ? (pred.risk_status === 'at_risk' ||
+              pred.is_at_risk === true ||
+              (typeof pred.risk_score === 'number' && (pred.risk_score >= 0.75 || pred.risk_score >= 50)) ||
+              (rawScore === 1 || rawScore === '1' || rawScore === true))
+            : false;
 
-          if (pred) {
-            isBerisiko = (pred.risk_status === 'at_risk' || pred.is_at_risk === true || rawScore === 1 || rawScore === '1' || rawScore >= 50);
-            level = isBerisiko ? 'Berisiko' : 'Aman';
-          }
+          const level = getRiskLevel(rawScore, isBerisiko);
+          const scoreForSorting = (rawScore > 0 && rawScore <= 1) ? rawScore * 100 : rawScore;
 
           return {
             id: student.id,
             name: student.name || 'Nama Tidak Diketahui',
             nis: student.nis || '-',
             nisn: student.nisn || '-',
-            risk_score: isBerisiko ? 1 : 0, // Sort priority
+            risk_score: scoreForSorting,
             riskLevel: level,
             tanggal: formatDate(pred?.created_at),
             topik: pred?.factors_summary || 'Belum ada catatan evaluasi kritis',
           };
         });
 
-        // Urutkan: Berisiko (1) di atas, Aman (0) di bawah
-        mergedData.sort((a: CounselingRow, b: CounselingRow) => (b.risk_score as number) - (a.risk_score as number));
+        // Urutkan: Siswa dengan risiko paling tinggi berada di urutan paling atas
+        mergedData.sort((a: CounselingRow, b: CounselingRow) => b.risk_score - a.risk_score);
 
         if (isMounted) {
           setSessions(mergedData);
@@ -146,11 +160,11 @@ export default function CounselingManagement() {
   const firstItemIndex = filteredSessions.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const lastItemIndex = Math.min(currentPage * pageSize, filteredSessions.length);
 
-  // Summary Cards (Disesuaikan dengan Biner)
+  // Summary Cards
   const summary = useMemo(() => ({
     total: sessions.length,
-    berisiko: sessions.filter((s) => s.riskLevel === 'Berisiko').length,
-    aman: sessions.filter((s) => s.riskLevel === 'Aman').length,
+    tinggi: sessions.filter((s) => s.riskLevel === 'Tinggi').length,
+    sedang: sessions.filter((s) => s.riskLevel === 'Sedang').length,
   }), [sessions]);
 
   if (isLoading) {
@@ -181,12 +195,12 @@ export default function CounselingManagement() {
             <p className="mt-2 text-3xl font-black text-asgard-primary">{summary.total}</p>
           </div>
           <div className="rounded-2xl border border-slate-100 bg-red-50 p-5 shadow-sm border-l-4 border-l-red-500">
-            <p className="text-xs font-bold uppercase tracking-wider text-red-500">Prioritas Panggilan</p>
-            <p className="mt-2 text-3xl font-black text-red-600">{summary.berisiko}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-red-500">Prioritas Panggilan (Tinggi)</p>
+            <p className="mt-2 text-3xl font-black text-red-600">{summary.tinggi}</p>
           </div>
-          <div className="rounded-2xl border border-slate-100 bg-emerald-50 p-5 shadow-sm border-l-4 border-l-emerald-500">
-            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Status Aman</p>
-            <p className="mt-2 text-3xl font-black text-emerald-600">{summary.aman}</p>
+          <div className="rounded-2xl border border-slate-100 bg-amber-50 p-5 shadow-sm border-l-4 border-l-amber-500">
+            <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Pantauan Ekstra (Sedang)</p>
+            <p className="mt-2 text-3xl font-black text-amber-600">{summary.sedang}</p>
           </div>
         </div>
 
@@ -210,9 +224,8 @@ export default function CounselingManagement() {
               className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm hover:bg-slate-50 transition-colors"
             >
               <option value="all">Semua Tingkat Risiko</option>
-              <option value="Berisiko">Berisiko</option>
+              <option value="Beresiko"></option>
               <option value="Aman">Aman</option>
-              <option value="Belum Dievaluasi">Belum Dievaluasi</option>
             </select>
           </div>
         </div>
@@ -239,29 +252,22 @@ export default function CounselingManagement() {
                       <p className="text-xs font-medium text-slate-400 mt-0.5">NISN: {sesi.nisn ?? '-'}</p>
                     </td>
                     <td className="px-6 py-4">
-                      {sesi.riskLevel === 'Belum Dievaluasi' ? (
-                        <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                          Belum Dievaluasi
-                        </span>
-                      ) : (
-                        // Memanfaatkan RiskBadge, memaksa merah jika Berisiko
-                        <RiskBadge level={sesi.riskLevel === 'Berisiko' ? 'Tinggi' : 'Aman' as any} />
-                      )}
+                      <RiskBadge level={sesi.riskLevel as any} />
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-sm font-medium text-slate-600 line-clamp-2">{sesi.topik}</p>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        {/* Tombol akan mengarah ke sistem generate surat nantinya */}
                         <Button
-                          variant={sesi.riskLevel === 'Berisiko' ? 'primary' : 'outline'}
+                          variant={sesi.riskLevel === 'Tinggi' || sesi.riskLevel === 'Sedang' ? 'primary' : 'outline'}
                           size="sm"
                           className="text-xs px-4 py-2 h-auto w-full whitespace-nowrap"
-                          disabled={sesi.riskLevel === 'Aman' || sesi.riskLevel === 'Belum Dievaluasi'}
                           onClick={() => {
                             const link = document.createElement('a');
                             link.href = '/Template_Surat_Panggilan_BK.docx';
-                            link.download = `Template_Surat_Panggilan_${sesi.name.replace(/\s+/g, '_')}.docx`;
+                            link.download = 'Template_Surat_Panggilan_BK.docx';
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
