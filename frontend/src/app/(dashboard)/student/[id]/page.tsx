@@ -90,7 +90,7 @@ export default function StudentDetail() {
   if (latestPrediction) {
     const rawScore = latestPrediction.risk_score !== undefined ? latestPrediction.risk_score : (latestPrediction.risk_status ?? 0);
     // Menggunakan variabel yang sama persis seperti di Daftar Siswa dan Beranda
-    isBerisiko = (latestPrediction.risk_status === 'at_risk' || latestPrediction.is_at_risk === true || rawScore === 1 || rawScore === '1' || rawScore >= 50);
+    isBerisiko = (latestPrediction.risk_status === 'at_risk' || latestPrediction.is_at_risk === true || rawScore === 1 || rawScore === '1' || Number(rawScore) >= 50);
     // Mengubahnya menjadi 'Tinggi' agar RiskBadge berwarna Merah
     riskLevel = isBerisiko ? 'Tinggi' : 'Aman';
   }
@@ -170,7 +170,7 @@ export default function StudentDetail() {
                 <p className="text-xs font-bold text-slate-400 uppercase">Skor Kepastian AI</p>
                 <p className="text-sm font-bold text-slate-700 mt-1">
                   {latestPrediction
-                    ? (latestPrediction.risk_score > 1 ? `${Math.round(latestPrediction.risk_score)}%` : `${Math.round(latestPrediction.risk_score * 100)}%`)
+                    ? (Number(latestPrediction.risk_score) > 1 ? `${Math.round(Number(latestPrediction.risk_score))}%` : `${Math.round(Number(latestPrediction.risk_score) * 100)}%`)
                     : '-'}
                 </p>
               </div>
@@ -314,7 +314,7 @@ export default function StudentDetail() {
                       <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">
                         <p className="text-xs font-bold text-slate-400 uppercase">Skor Model AI</p>
                         <p className="text-base font-black text-slate-700 mt-1">
-                          {latestPrediction.risk_score > 1 ? Math.round(latestPrediction.risk_score) : Math.round(latestPrediction.risk_score * 100)}%
+                          {Number(latestPrediction.risk_score) > 1 ? Math.round(Number(latestPrediction.risk_score)) : Math.round(Number(latestPrediction.risk_score) * 100)}%
                         </p>
                       </div>
                       <div className="p-4 rounded-xl border border-slate-100 bg-slate-50">

@@ -35,7 +35,7 @@ export default function DashboardOverview() {
         const [studentsResponse, predictionsResponse, countResponse] = await Promise.all([
           get('/api/v1/students/?skip=0&limit=10000').catch(() => []),
           get('/api/v1/predictions/?skip=0&limit=10000').catch(() => get('/api/v1/predictions/student/all')).catch(() => []),
-          get('/api/v1/students/count').catch(() => 0)
+          get<{ data?: { total_active: number }; count?: number; total?: number }>('/api/v1/students/count').catch(() => 0)
         ]);
 
         // Super Extractor

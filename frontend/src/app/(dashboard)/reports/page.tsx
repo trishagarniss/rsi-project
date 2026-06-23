@@ -97,7 +97,7 @@ export default function ReportsAnalytics() {
 
     const reportItems = useMemo(() => {
         const latestRiskStudent = [...students].sort(
-            (left, right) => (right.latestPrediction?.risk_score ?? 0) - (left.latestPrediction?.risk_score ?? 0)
+            (left, right) => Number(right.latestPrediction?.risk_score ?? 0) - Number(left.latestPrediction?.risk_score ?? 0)
         )[0];
         const latestAuditLog = auditLogs[0];
 
