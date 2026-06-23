@@ -100,7 +100,7 @@ export default function TopBar() {
   const menuItems = [
     { label: 'Profil Saya', icon: User, href: '/admin/profile' },
     { label: 'Pengaturan', icon: Settings, href: '/admin/settings' },
-    { label: 'Panduan', icon: BookOpen, href: '/admin/guide' },
+    { label: 'Panduan', icon: BookOpen, href: '/guide_admin' },
   ];
 
   return (
