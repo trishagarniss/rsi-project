@@ -21,7 +21,7 @@ export default function DashboardOverview() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // State untuk memicu animasi grafik setelah data siap
   const [animateCharts, setAnimateCharts] = useState(false);
 
@@ -35,7 +35,7 @@ export default function DashboardOverview() {
         const [studentsResponse, predictionsResponse, countResponse] = await Promise.all([
           get('/api/v1/students/?skip=0&limit=10000').catch(() => []),
           get('/api/v1/predictions/?skip=0&limit=10000').catch(() => get('/api/v1/predictions/student/all')).catch(() => []),
-          get('/api/v1/students/count').catch(() => 0) 
+          get('/api/v1/students/count').catch(() => 0)
         ]);
 
         // Super Extractor
@@ -51,21 +51,32 @@ export default function DashboardOverview() {
         const studentsArray = extractArray(studentsResponse);
         const predictionsArray = extractArray(predictionsResponse);
 
-        const totalSiswaAktif = typeof countResponse === 'number' 
-          ? countResponse 
+        const totalSiswaAktif = typeof countResponse === 'number'
+          ? countResponse
           : (countResponse?.data?.total_active ?? countResponse?.count ?? countResponse?.total ?? studentsArray.length);
+
+        // Group predictions by student_id to get only the latest prediction for each student
+        const latestPredictionsMap = new Map<string, any>();
+        predictionsArray.forEach((pred: any) => {
+          const studentId = pred.student_id;
+          if (!studentId) return;
+          const existing = latestPredictionsMap.get(studentId);
+          if (!existing || new Date(pred.created_at) > new Date(existing.created_at)) {
+            latestPredictionsMap.set(studentId, pred);
+          }
+        });
 
         let berisiko = 0, aman = 0;
         const criticalList: any[] = [];
 
-        predictionsArray.forEach((pred: any) => {
+        latestPredictionsMap.forEach((pred: any) => {
           const rawScore = pred.risk_score !== undefined ? pred.risk_score : pred.risk_status;
-          
+
           // Deteksi apakah siswa berisiko secara komprehensif (status 'at_risk' atau skor desimal >= 0.75)
-          const isBerisiko = pred.risk_status === 'at_risk' || 
-                             pred.is_at_risk === true || 
-                             (typeof pred.risk_score === 'number' && (pred.risk_score >= 0.75 || pred.risk_score >= 50)) ||
-                             (rawScore === 1 || rawScore === '1' || rawScore === true);
+          const isBerisiko = pred.risk_status === 'at_risk' ||
+            pred.is_at_risk === true ||
+            (typeof pred.risk_score === 'number' && (pred.risk_score >= 0.75 || pred.risk_score >= 50)) ||
+            (rawScore === 1 || rawScore === '1' || rawScore === true);
 
           if (isBerisiko) berisiko++;
           else aman++;
@@ -84,7 +95,7 @@ export default function DashboardOverview() {
             nis: studentInfo.nis || '-',
             nisn: studentInfo.nisn || '-',
             riskLevel: isBerisiko ? 'Berisiko' : 'Aman',
-            rawScore: formattedScore, 
+            rawScore: formattedScore,
             latestPrediction: pred
           });
         });
@@ -92,17 +103,21 @@ export default function DashboardOverview() {
         criticalList.sort((a, b) => {
           const scoreA = a.riskLevel === 'Berisiko' ? 1 : 0;
           const scoreB = b.riskLevel === 'Berisiko' ? 1 : 0;
-          return scoreB - scoreA;
+          if (scoreA !== scoreB) return scoreB - scoreA;
+          
+          const valA = typeof a.latestPrediction.risk_score === 'number' ? a.latestPrediction.risk_score : 0;
+          const valB = typeof b.latestPrediction.risk_score === 'number' ? b.latestPrediction.risk_score : 0;
+          return valB - valA;
         });
 
         if (isMounted) {
           setSummary({
             totalStudents: totalSiswaAktif,
             riskDistribution: { berisiko, aman },
-            topCriticalStudents: criticalList.slice(0, 5) 
+            topCriticalStudents: criticalList.slice(0, 5)
           });
           setError(null);
-          
+
           // Memicu animasi 100ms setelah data dirender agar efek transisinya terlihat
           setTimeout(() => setAnimateCharts(true), 100);
         }
@@ -142,29 +157,34 @@ export default function DashboardOverview() {
 
   const { totalStudents, riskDistribution, topCriticalStudents } = summary;
   const totalPredicted = riskDistribution.berisiko + riskDistribution.aman;
-  const persentaseAman = totalPredicted > 0 ? Math.round((riskDistribution.aman / totalPredicted) * 100) : 0;
+  
+  const persentaseAmanVal = totalPredicted > 0 ? (riskDistribution.aman / totalPredicted) * 100 : 0;
+  const persentaseAman = persentaseAmanVal % 1 === 0 ? persentaseAmanVal.toFixed(0) : persentaseAmanVal.toFixed(1);
+
+  const persentaseBerisikoVal = totalPredicted > 0 ? (riskDistribution.berisiko / totalPredicted) * 100 : 0;
+  const persentaseBerisiko = persentaseBerisikoVal % 1 === 0 ? persentaseBerisikoVal.toFixed(0) : persentaseBerisikoVal.toFixed(1);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
+
       {/* ================= BARIS 1: STATISTIC CARDS ================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Total Siswa Aktif" 
-          value={totalStudents} 
+        <StatCard
+          title="Total Siswa Aktif"
+          value={totalStudents}
           subtitle="Terdaftar pada sistem"
           icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
         />
-        <StatCard 
-          title="Siswa Berisiko Dropout" 
-          value={riskDistribution.berisiko} 
+        <StatCard
+          title="Siswa Berisiko Dropout"
+          value={riskDistribution.berisiko}
           trend="up"
           subtitle="Membutuhkan intervensi segera"
           icon={<svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
         />
-        <StatCard 
-          title="Siswa Status Aman" 
-          value={riskDistribution.aman} 
+        <StatCard
+          title="Siswa Status Aman"
+          value={riskDistribution.aman}
           trend="down"
           subtitle={totalPredicted === 0 ? "Belum ada prediksi" : `Atau ${persentaseAman}% dari siswa dievaluasi`}
           icon={<svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
@@ -212,28 +232,28 @@ export default function DashboardOverview() {
           <h3 className="text-base font-black text-asgard-primary mb-6">Distribusi Klasifikasi Model AI</h3>
           <div className="flex-1 flex items-center justify-center gap-10">
             <div className="w-48 h-48 rounded-full border-[20px] border-slate-50 shadow-inner overflow-hidden relative group cursor-pointer">
-              <div 
-                className="h-full w-full rotate-45 transition-all duration-[1500ms] ease-out" 
+              <div
+                className="h-full w-full rotate-45 transition-all duration-[1500ms] ease-out"
                 style={{
                   // Animasi: Donat berwarna abu-abu dulu, lalu diisi warna sesuai persentase
                   background: (!animateCharts || totalPredicted === 0)
-                    ? '#f1f5f9' 
+                    ? '#f1f5f9'
                     : `conic-gradient(#ef4444 0 ${Math.max((riskDistribution.berisiko / totalPredicted) * 100, 1)}%, #10b981 ${Math.max((riskDistribution.berisiko / totalPredicted) * 100, 1)}% 100%)`,
-                }} 
+                }}
               />
               <div className="absolute inset-0 m-auto w-24 h-24 bg-white rounded-full shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-                 <span className="text-sm font-black text-slate-400">ASGARD</span>
+                <span className="text-sm font-black text-slate-400">ASGARD</span>
               </div>
             </div>
             <div className="space-y-4 text-base font-bold text-slate-600">
-               <div className="flex items-center gap-3">
-                 <span className="w-4 h-4 rounded-full bg-red-500 shadow-sm" /> 
-                 Berisiko <span className="text-red-500 bg-red-50 px-2 py-0.5 rounded-md text-xs">{totalPredicted === 0 ? 0 : Math.round((riskDistribution.berisiko / totalPredicted) * 100)}%</span>
-               </div>
-               <div className="flex items-center gap-3">
-                 <span className="w-4 h-4 rounded-full bg-emerald-500 shadow-sm" /> 
-                 Aman <span className="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md text-xs">{persentaseAman}%</span>
-               </div>
+              <div className="flex items-center gap-3">
+                <span className="w-4 h-4 rounded-full bg-red-500 shadow-sm" />
+                Berisiko <span className="text-red-500 bg-red-50 px-2 py-0.5 rounded-md text-xs">{persentaseBerisiko}%</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="w-4 h-4 rounded-full bg-emerald-500 shadow-sm" />
+                Aman <span className="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md text-xs">{persentaseAman}%</span>
+              </div>
             </div>
           </div>
         </div>
@@ -250,7 +270,7 @@ export default function DashboardOverview() {
             </Button>
           </Link>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -263,11 +283,11 @@ export default function DashboardOverview() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {topCriticalStudents.length === 0 ? (
-                 <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-slate-400 font-bold">
-                       Belum ada data siswa yang dievaluasi oleh model AI.
-                    </td>
-                 </tr>
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-400 font-bold">
+                    Belum ada data siswa yang dievaluasi oleh model AI.
+                  </td>
+                </tr>
               ) : topCriticalStudents.map((siswa) => (
                 <tr key={siswa.id} className="hover:bg-slate-50/80 transition-colors group">
                   <td className="px-6 py-4 font-bold text-slate-800 uppercase">{siswa.name}</td>
@@ -283,16 +303,6 @@ export default function DashboardOverview() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      {/* Hanya tampilkan tombol Intervensi jika siswa Berisiko, tombol Lihat Detail dihapus */}
-                      {siswa.riskLevel === 'Berisiko' ? (
-                        <Button variant="primary" size="sm">
-                          Intervensi
-                        </Button>
-                      ) : (
-                        <span className="text-xs font-bold text-slate-400">-</span>
-                      )}
-                    </div>
                   </td>
                 </tr>
               ))}

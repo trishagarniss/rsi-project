@@ -145,7 +145,7 @@ export default function SuperadminDashboard() {
                       )}
                     </p>
                     {'total' in card && card.loaded && (
-                      <p className="text-xs font-bold text-slate-400 mt-0.5">dari {(card.total ?? 0).toLocaleString("id-ID")} siswa</p>
+                      <p className="text-xs font-bold text-slate-400 mt-0.5">dari {((card as any).total ?? 0).toLocaleString("id-ID")} siswa</p>
                     )}
                   </div>
                 </div>
