@@ -131,7 +131,7 @@ export default function DashboardOverview() {
   const totalPredicted = riskDistribution.tinggi + riskDistribution.sedang + riskDistribution.rendah + riskDistribution.aman;
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-8 ">
       
       {/* ================= BARIS 1: STATISTIC CARDS ================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

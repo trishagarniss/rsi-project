@@ -24,12 +24,12 @@ const superadminMenu = [
 
 const adminMenu = [
   { name: 'Beranda', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Daftar Siswa', path: '/student', icon: GraduationCap },
-  { name: 'Manajemen Konseling', path: '/counseling', icon: MessageSquareMore },
+  { name: 'Manajemen Siswa', path: '/student', icon: GraduationCap },
+  { name: 'Prediksi Risiko', path: '/prediction', icon: Brain },
   { name: 'Laporan', path: '/reports', icon: BarChart3 },
-  { name: 'Import Data', path: '/import', icon: Upload },
   { name: 'Manajemen Akun', path: '/manage-accounts', icon: UserCog },
-  { name: 'Pengaturan', path: '/settings', icon: Settings2 },
+  { name: 'Notifikasi', path: '/notification', icon: Bell },
+  { name: 'Panduan', path: '/guide', icon: BookOpen },
 ];
 
 export default function Sidebar() {

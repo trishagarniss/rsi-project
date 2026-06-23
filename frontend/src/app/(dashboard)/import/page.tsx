@@ -52,7 +52,7 @@ export default function DataImportPage() {
   }, [searchValue, students]);
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 ">
       <div>
         <h1 className="text-3xl font-black text-asgard-primary">Pengelolaan Data Siswa</h1>
         <p className="text-slate-500 font-medium mt-1">Unggah berkas .csv atau .xlsx untuk memperbarui basis data siswa</p>

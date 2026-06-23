@@ -153,7 +153,7 @@ export default function CounselingManagement() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 ">
 
       {/* ================= BARIS 1: KARTU RINGKASAN ================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

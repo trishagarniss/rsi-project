@@ -3,82 +3,57 @@
 import React from "react";
 import {
   BookOpen, ShieldCheck, Users, GraduationCap,
-  ClipboardList, BarChart3, Upload, MessageSquareMore,
+  ClipboardList, BarChart3, MessageSquareMore,
   UserPlus, Brain, Settings2, ExternalLink, Key,
-  UserCog, CalendarCheck, Wallet
+  UserCog, Bell, LayoutDashboard
 } from "lucide-react";
 
 const sections = [
   {
-    icon: GraduationCap,
-    title: "Dashboard",
-    desc: "Halaman utama yang menampilkan ringkasan data siswa, status risiko, dan notifikasi penting. Cocok untuk memantau kondisi sekolah secara cepat.",
+    icon: LayoutDashboard,
+    title: "Beranda",
+    desc: "Halaman utama yang menampilkan ringkasan data siswa, jumlah siswa berisiko, grafik distribusi risiko, dan daftar siswa kritis yang butuh perhatian segera.",
     link: "/dashboard",
   },
   {
     icon: Users,
-    title: "Daftar Siswa",
-    desc: "Kelola data seluruh siswa di sekolah. Anda dapat menambah, mengedit, mencari, dan menghapus data siswa. Tersedia filter berdasarkan jenis kelamin dan status aktif.",
+    title: "Manajemen Siswa",
+    desc: "Kelola seluruh data siswa dalam satu tempat. Klik siswa untuk membuka halaman detail yang dilengkapi tab untuk mengisi berbagai data pendukung prediksi.",
     features: [
-      "Tambah siswa baru",
-      "Edit data siswa",
-      "Cari siswa berdasarkan nama",
+      "Tambah, edit, cari, dan hapus siswa",
       "Filter jenis kelamin & status aktif",
+      "Tab Biodata — data diri siswa",
+      "Tab Akademik — nilai rata-rata, mata pelajaran gagal, tugas tidak lengkap",
+      "Tab Absensi — jumlah hadir, sakit, izin, alpha per semester",
+      "Tab Sosial Ekonomi — penghasilan ortu, KIP, status tempat tinggal, pekerjaan siswa",
+      "Tab Prediksi — lihat hasil prediksi & riwayat",
     ],
-    link: "/student",
-  },
-  {
-    icon: ClipboardList,
-    title: "Data Akademik",
-    desc: "Input dan kelola nilai akademik siswa per semester. Meliputi rata-rata nilai, jumlah mata pelajaran gagal, dan tugas tidak lengkap. Data ini digunakan sebagai faktor prediksi risiko.",
-    link: "/student",
-  },
-  {
-    icon: CalendarCheck,
-    title: "Data Absensi",
-    desc: "Catat dan pantau kehadiran siswa setiap semester. Meliputi jumlah hadir, sakit, izin, dan alpha. Persentase kehadiran rendah menjadi indikator risiko putus sekolah.",
-    link: "/student",
-  },
-  {
-    icon: Wallet,
-    title: "Data Sosial Ekonomi",
-    desc: "Kelola data latar belakang sosial ekonomi siswa seperti penghasilan orang tua, status tempat tinggal, kepemilikan KIP, dan status pekerjaan siswa.",
     link: "/student",
   },
   {
     icon: Brain,
     title: "Prediksi Risiko",
-    desc: "Sistem ASGARD akan menganalisis data akademik, absensi, dan sosial ekonomi untuk memprediksi risiko putus sekolah. Hasil prediksi menampilkan status 'Berisiko' atau 'Tidak Berisiko' beserta skor risikonya.",
+    desc: "Jalankan prediksi risiko putus sekolah untuk semua siswa. Upload CSV data siswa, akademik, absensi, dan sosial ekonomi — data otomatis masuk database dan prediksi langsung dijalankan jika fitur lengkap.",
     features: [
-      "Prediksi per siswa",
-      "Prediksi semua siswa sekaligus",
-      "Upload CSV untuk prediksi batch",
-      "Riwayat prediksi per siswa",
+      "Upload CSV data siswa",
+      "Upload CSV data akademik",
+      "Upload CSV data absensi",
+      "Upload CSV data sosial ekonomi",
+      "Prediksi otomatis saat data lengkap",
+      "Notifikasi jika ada data yang kurang",
     ],
-    link: "/student",
-  },
-  {
-    icon: MessageSquareMore,
-    title: "Manajemen Konseling",
-    desc: "Pantau siswa yang membutuhkan konseling. Tersedia filter berdasarkan status risiko untuk memprioritaskan penanganan siswa berisiko tinggi.",
-    link: "/counseling",
+    link: "/prediction",
   },
   {
     icon: BarChart3,
     title: "Laporan",
-    desc: "Akses laporan dan analitik data siswa, hasil prediksi, dan riwayat audit. Gunakan data ini untuk evaluasi dan pengambilan keputusan.",
+    desc: "Akses laporan dan analitik data siswa, hasil prediksi, dan riwayat audit. Gunakan data ini untuk evaluasi dan pengambilan keputusan di tingkat sekolah.",
     link: "/reports",
-  },
-  {
-    icon: Upload,
-    title: "Import Data",
-    desc: "Upload data siswa dalam format CSV atau Excel untuk mempercepat input data massal. Sistem akan memvalidasi data sebelum menyimpannya.",
-    link: "/import",
   },
   {
     icon: UserCog,
     title: "Manajemen Akun",
-    desc: "Kelola akun pengguna di sekolah. Admin dapat membuat akun Guru BK (Counselor), mengedit profil, mengaktifkan/nonaktifkan, dan menghapus akun.",
+    desc: "Kelola akun pengguna di sekolah. Admin dapat membuat akun Guru BK (Counselor), mengedit profil, mengaktifkan atau menonaktifkan akun, serta menghapus akun. Admin hanya bisa mengelola akun di tenantnya sendiri dan tidak bisa menghapus sesama admin.",
     features: [
       "Buat akun Counselor/Guru BK",
       "Edit profil & email pengguna",
@@ -88,14 +63,31 @@ const sections = [
     link: "/manage-accounts",
   },
   {
+    icon: Bell,
+    title: "Notifikasi",
+    desc: "Pusat notifikasi sistem yang menampilkan aktivitas penting seperti hasil prediksi, perubahan data siswa, dan peringatan sistem.",
+    link: "/notification",
+  },
+  {
     icon: Settings2,
-    title: "Pengaturan Profil",
-    desc: "Kelola profil pribadi dan keamanan akun. Ubah nama tampilan, alamat email, atau ganti password akun. Pantau riwayat login dan kelola sesi perangkat.",
+    title: "Pengaturan",
+    desc: "Konfigurasi sekolah seperti tahun ajaran aktif, semester berjalan, dan preferensi notifikasi.",
     features: [
+      "Atur tahun ajaran & semester aktif",
+      "Preferensi notifikasi email",
+    ],
+    link: "/settings",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Profil & Keamanan Akun",
+    desc: "Kelola profil pribadi dan keamanan akun. Fitur ini bisa diakses dari menu dropdown di pojok kanan atas.",
+    features: [
+      "Lihat detail akun (email, role, tenant)",
       "Ubah nama lengkap & email",
-      "Ganti password akun",
-      "Lihat info akun & riwayat login",
+      "Ganti password",
       "Logout dari perangkat lain",
+      "Riwayat login",
     ],
     link: "/profile",
   },
@@ -105,17 +97,55 @@ const quickTips = [
   {
     icon: UserPlus,
     title: "Input Data Siswa",
-    desc: "Mulai dengan mengisi data siswa di halaman Daftar Siswa. Pastikan data NIS dan NISN unik untuk menghindari duplikasi.",
+    desc: "Mulai dari Manajemen Siswa. Isi biodata, lalu buka detail siswa untuk mengisi data akademik, absensi, dan sosial ekonomi di tab yang tersedia.",
   },
   {
     icon: Brain,
-    title: "Jalankan Prediksi",
-    desc: "Setelah data akademik, absensi, dan sosial ekonomi terisi lengkap, jalankan prediksi untuk mengetahui siswa yang berisiko putus sekolah.",
+    title: "Prediksi Cepat",
+    desc: "Setelah semua data siswa lengkap, gunakan halaman Prediksi Risiko untuk upload CSV atau jalankan prediksi massal. Sistem akan memberitahu jika ada data yang kurang.",
   },
   {
     icon: Key,
     title: "Keamanan Akun",
-    desc: "Ganti password secara berkala dan gunakan fitur Keamanan Sesi untuk logout dari perangkat yang tidak dikenal.",
+    desc: "Ganti password secara berkala melalui halaman Profil. Gunakan fitur Logout Semua Perangkat jika mencurigai akun digunakan di tempat lain.",
+  },
+];
+
+const roleComparison = [
+  {
+    feature: "Manajemen Siswa (Tambah, Edit, Hapus)",
+    admin: true,
+    counselor: false,
+  },
+  {
+    feature: "Input Data Akademik, Absensi, Ekonomi",
+    admin: true,
+    counselor: true,
+  },
+  {
+    feature: "Prediksi Risiko & Upload CSV",
+    admin: true,
+    counselor: false,
+  },
+  {
+    feature: "Manajemen Akun (Buat/Edit/Hapus Counselor)",
+    admin: true,
+    counselor: false,
+  },
+  {
+    feature: "Laporan & Audit Log",
+    admin: true,
+    counselor: false,
+  },
+  {
+    feature: "Notifikasi Sistem",
+    admin: true,
+    counselor: true,
+  },
+  {
+    feature: "Pengaturan Sekolah",
+    admin: true,
+    counselor: false,
   },
 ];
 
@@ -195,6 +225,49 @@ export default function GuidePage() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Perbedaan Admin vs Counselor */}
+      <div>
+        <h2 className="text-xl font-extrabold text-slate-800 mb-6 flex items-center gap-2">
+          <ShieldCheck size={20} className="text-asgard-primary" />
+          Perbedaan Hak Akses Admin & Counselor
+        </h2>
+        <div className="bg-white rounded-[24px] border-2 border-slate-200 p-6 md:p-8">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b-2 border-slate-200">
+                  <th className="text-left py-3 px-4 font-extrabold text-slate-800">Fitur</th>
+                  <th className="text-center py-3 px-4 font-extrabold text-slate-800 w-28">Admin</th>
+                  <th className="text-center py-3 px-4 font-extrabold text-slate-800 w-28">Counselor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roleComparison.map((item, i) => (
+                  <tr key={i} className="border-b border-slate-100 last:border-0">
+                    <td className="py-3.5 px-4 font-bold text-slate-600">{item.feature}</td>
+                    <td className="text-center py-3.5 px-4">
+                      {item.admin
+                        ? <span className="inline-flex items-center gap-1 text-green-600 font-extrabold text-xs bg-green-50 px-3 py-1 rounded-lg border border-green-200"><ShieldCheck size={12} />Ya</span>
+                        : <span className="inline-flex items-center gap-1 text-red-500 font-extrabold text-xs bg-red-50 px-3 py-1 rounded-lg border border-red-200">Tidak</span>
+                      }
+                    </td>
+                    <td className="text-center py-3.5 px-4">
+                      {item.counselor
+                        ? <span className="inline-flex items-center gap-1 text-green-600 font-extrabold text-xs bg-green-50 px-3 py-1 rounded-lg border border-green-200"><ShieldCheck size={12} />Ya</span>
+                        : <span className="inline-flex items-center gap-1 text-red-500 font-extrabold text-xs bg-red-50 px-3 py-1 rounded-lg border border-red-200">Tidak</span>
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 text-xs font-medium text-slate-400 leading-relaxed">
+            Admin memiliki akses penuh ke semua fitur manajemen, prediksi, dan pengaturan. Counselor hanya bisa mengelola data siswa (akademik, absensi, sosial ekonomi), melihat prediksi, dan mendapatkan notifikasi.
+          </p>
         </div>
       </div>
 
