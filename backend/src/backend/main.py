@@ -19,7 +19,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         settings.FRONTEND_URL,
-        "http://100.126.164.53:3000",
+        "http://100.77.143.80:3000",
         "http://localhost:3000",
     ],
     allow_credentials=True,
