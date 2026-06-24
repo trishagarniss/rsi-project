@@ -348,7 +348,8 @@ def auto_predict_on_data_change(db: Session, student_id: str, current_user: User
         )
 
         return risk_prediction_repo.replace_prediction(db, pred_data.model_dump(), current_user.tenant_id)
-    except Exception:
+    except Exception as e:
+        print(f"ERROR auto_predict {student_id}: {e}")
         return None
 
 
@@ -405,6 +406,21 @@ def upload_file(db : Session, tenant_id : str, df : dict) :
     df["academic_id"] = AC
     df["attendance_id"] = AT
     df["socio_id"] = SE
+    
+    GENDER_MAP = {
+        "L": "MALE", "P": "FEMALE",
+        "LAKI": "MALE", "LAKI_LAKI": "MALE",
+        "PEREMPUAN": "FEMALE",
+        "MALE": "MALE", "FEMALE": "FEMALE",
+    }
+    df["gender"] = [GENDER_MAP.get(str(g).strip().upper(), str(g).strip().upper()) for g in df["gender"]]
+
+    HOUSING_MAP = {
+        "OWNED": "owned", "RENTED": "rented",
+        "WITH_RELATIVES": "with_relatives",
+        "ORPHANAGE": "orphanage", "OTHER": "other",
+    }
+    df["housing_status"] = [HOUSING_MAP.get(str(h).strip().upper(), str(h).strip().lower()) for h in df["housing_status"]]
     
     engine = db.get_bind()
     

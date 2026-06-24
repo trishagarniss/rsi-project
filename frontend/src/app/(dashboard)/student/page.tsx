@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Users, Loader2, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { get } from "@/lib/api-client";
+import { useAuth } from "@/hooks/useAuth";
 import RiskBadge from "@/components/ui/RiskBadge";
 import Button from "@/components/ui/Button";
 
@@ -27,6 +28,8 @@ function getRiskLevel(score: number): string {
 
 export default function StudentList() {
   const router = useRouter();
+  const { user } = useAuth();
+  const isCounselor = user?.role === "counselor";
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,14 +143,16 @@ export default function StudentList() {
           <h1 className="text-2xl font-extrabold text-asgard-primary">Manajemen Siswa</h1>
           <p className="text-slate-500 text-sm font-medium mt-1">{filtered.length} siswa</p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="border-asgard-primary text-asgard-primary" onClick={() => router.push("/import")}>
-            Import Data
-          </Button>
-          <Button variant="primary" className="shadow-md">
-            + Tambah Siswa
-          </Button>
-        </div>
+        {!isCounselor && (
+          <div className="flex gap-3">
+            <Button variant="outline" className="border-asgard-primary text-asgard-primary" onClick={() => router.push("/import")}>
+              Import Data
+            </Button>
+            <Button variant="primary" className="shadow-md">
+              + Tambah Siswa
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Search & Filter */}

@@ -53,8 +53,8 @@ export default function ReportsAnalytics() {
       try {
         setIsLoading(true);
         const [studentRes, auditRes] = await Promise.allSettled([
-          get<{ status: string; data: Student[] }>('/students/?skip=0&limit=100'),
-          get<{ status: string; data: AuditLog[] }>('/audit-logs/?skip=0&limit=100'),
+          get<{ status: string; data: Student[] }>('/students/?skip=0&limit=999999'),
+          get<{ status: string; data: AuditLog[] }>('/audit-logs/?skip=0&limit=999999'),
         ]);
 
         const studentRecords = studentRes.status === 'fulfilled' ? studentRes.value.data : [];

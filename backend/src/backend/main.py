@@ -4,7 +4,7 @@ import psutil
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
-from src.backend.routes import auth_routes, tenant_routes, user_routes, student_routes, academic_routes, attendance_routes, socio_economic_routes, ml_model_routes, risk_prediction_routes, audit_log_routes, contact_routes, notification_routes, dashboard_routes
+from src.backend.routes import auth_routes, tenant_routes, user_routes, student_routes, academic_routes, attendance_routes, socio_economic_routes, ml_model_routes, risk_prediction_routes, audit_log_routes, contact_routes, notification_routes, dashboard_routes, counseling_routes
 from src.backend.config.settings import settings
 from src.backend.database.engine import SessionLocal
 from src.backend.database.redis import redis_client
@@ -41,6 +41,7 @@ app.include_router(audit_log_routes.router)
 app.include_router(contact_routes.router)
 app.include_router(notification_routes.router)
 app.include_router(dashboard_routes.router)
+app.include_router(counseling_routes.router)
 
 # Health check
 START_TIME = datetime.now(timezone.utc)

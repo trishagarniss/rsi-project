@@ -32,6 +32,14 @@ const adminMenu = [
   { name: 'Panduan', path: '/guide', icon: BookOpen },
 ];
 
+const counselorMenu = [
+  { name: 'Beranda', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'Daftar Siswa', path: '/student', icon: GraduationCap },
+  { name: 'Manajemen Konseling', path: '/counseling', icon: MessageSquareMore },
+  { name: 'Notifikasi', path: '/notification', icon: Bell },
+  { name: 'Panduan', path: '/guide', icon: BookOpen },
+];
+
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
@@ -51,7 +59,9 @@ export default function Sidebar() {
     pathname.startsWith('/audit') ||
     pathname.startsWith('/models');
 
-  const menuItems = isSuperadmin ? superadminMenu : adminMenu;
+  const isCounselor = user?.role === 'counselor';
+
+  const menuItems = isSuperadmin ? superadminMenu : isCounselor ? counselorMenu : adminMenu;
 
   return (
     <aside className={`${collapsed ? 'w-[72px]' : 'w-[260px]'} bg-asgard-primary text-white flex flex-col h-screen sticky top-0 flex-shrink-0 z-50 transition-all duration-300`}>

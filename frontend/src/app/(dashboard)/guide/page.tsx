@@ -1,11 +1,12 @@
 "use client";
 
 import React from "react";
+import { useAuth } from "@/hooks/useAuth";
 import {
   BookOpen, ShieldCheck, Users, GraduationCap,
   ClipboardList, BarChart3, MessageSquareMore,
   UserPlus, Brain, Settings2, ExternalLink, Key,
-  UserCog, Bell, LayoutDashboard
+  UserCog, Bell, LayoutDashboard, FileDown
 } from "lucide-react";
 
 const sections = [
@@ -14,46 +15,65 @@ const sections = [
     title: "Beranda",
     desc: "Halaman utama yang menampilkan ringkasan data siswa, jumlah siswa berisiko, grafik distribusi risiko, dan daftar siswa kritis yang butuh perhatian segera.",
     link: "/dashboard",
+    showFor: ["admin", "counselor"],
   },
   {
     icon: Users,
     title: "Manajemen Siswa",
-    desc: "Kelola seluruh data siswa dalam satu tempat. Klik siswa untuk membuka halaman detail yang dilengkapi tab untuk mengisi berbagai data pendukung prediksi.",
+    desc: "Kelola data siswa dalam satu tempat. Klik siswa untuk membuka halaman detail dengan tab data akademik, absensi, sosial ekonomi, dan prediksi.",
     features: [
-      "Tambah, edit, cari, dan hapus siswa",
-      "Filter jenis kelamin & status aktif",
+      "Tambah, edit, cari, dan hapus siswa (Admin)",
+      "Filter jenis kelamin, status aktif, & tingkat risiko",
       "Tab Biodata — data diri siswa",
       "Tab Akademik — nilai rata-rata, mata pelajaran gagal, tugas tidak lengkap",
       "Tab Absensi — jumlah hadir, sakit, izin, alpha per semester",
-      "Tab Sosial Ekonomi — penghasilan ortu, KIP, status tempat tinggal, pekerjaan siswa",
+      "Tab Sosial Ekonomi — penghasilan ortu, KIP, status tempat tinggal",
       "Tab Prediksi — lihat hasil prediksi & riwayat",
     ],
     link: "/student",
+    showFor: ["admin", "counselor"],
   },
   {
     icon: Brain,
     title: "Prediksi Risiko",
-    desc: "Jalankan prediksi risiko putus sekolah untuk semua siswa. Upload CSV data siswa, akademik, absensi, dan sosial ekonomi — data otomatis masuk database dan prediksi langsung dijalankan jika fitur lengkap.",
+    desc: "Jalankan prediksi risiko putus sekolah untuk semua siswa. Upload CSV untuk input massal atau jalankan prediksi untuk siswa yang sudah lengkap datanya.",
     features: [
-      "Upload CSV data siswa",
-      "Upload CSV data akademik",
-      "Upload CSV data absensi",
-      "Upload CSV data sosial ekonomi",
+      "Upload CSV data siswa, akademik, absensi, sosial ekonomi",
       "Prediksi otomatis saat data lengkap",
       "Notifikasi jika ada data yang kurang",
     ],
     link: "/prediction",
+    showFor: ["admin"],
+  },
+  {
+    icon: MessageSquareMore,
+    title: "Manajemen Konseling",
+    desc: "Pantau siswa berdasarkan tingkat risiko. Siswa dengan risiko tinggi otomatis berada di urutan teratas. Lihat detail siswa dan cetak surat panggilan orang tua.",
+    features: [
+      "Daftar siswa diurutkan berdasarkan skor risiko (tertinggi ke terendah)",
+      "Filter tingkat risiko & pencarian siswa",
+      "Lihat detail profil siswa",
+      "Cetak surat panggilan (.docx)",
+    ],
+    link: "/counseling",
+    showFor: ["counselor"],
   },
   {
     icon: BarChart3,
     title: "Laporan",
-    desc: "Akses laporan dan analitik data siswa, hasil prediksi, dan riwayat audit. Gunakan data ini untuk evaluasi dan pengambilan keputusan di tingkat sekolah.",
+    desc: "Akses laporan dan analitik data siswa, hasil prediksi, dan aktivitas sistem. Gunakan data ini untuk evaluasi dan pengambilan keputusan.",
+    features: [
+      "Ringkasan statistik siswa & tren risiko",
+      "Data mentah prediksi keseluruhan siswa",
+      "Laporan aktivitas audit sistem",
+    ],
     link: "/reports",
+    showFor: ["admin"],
   },
   {
     icon: UserCog,
     title: "Manajemen Akun",
-    desc: "Kelola akun pengguna di sekolah. Admin dapat membuat akun Guru BK (Counselor), mengedit profil, mengaktifkan atau menonaktifkan akun, serta menghapus akun. Admin hanya bisa mengelola akun di tenantnya sendiri dan tidak bisa menghapus sesama admin.",
+    desc: "Kelola akun pengguna di sekolah. Admin dapat membuat akun Guru BK (Counselor), mengedit profil, mengaktifkan/menonaktifkan akun, serta menghapus akun.",
     features: [
       "Buat akun Counselor/Guru BK",
       "Edit profil & email pengguna",
@@ -61,39 +81,31 @@ const sections = [
       "Hapus akun pengguna",
     ],
     link: "/manage-accounts",
+    showFor: ["admin"],
   },
   {
     icon: Bell,
     title: "Notifikasi",
     desc: "Pusat notifikasi sistem yang menampilkan aktivitas penting seperti hasil prediksi, perubahan data siswa, dan peringatan sistem.",
     link: "/notification",
-  },
-  {
-    icon: Settings2,
-    title: "Pengaturan",
-    desc: "Konfigurasi sekolah seperti tahun ajaran aktif, semester berjalan, dan preferensi notifikasi.",
-    features: [
-      "Atur tahun ajaran & semester aktif",
-      "Preferensi notifikasi email",
-    ],
-    link: "/settings",
+    showFor: ["admin", "counselor"],
   },
   {
     icon: ShieldCheck,
     title: "Profil & Keamanan Akun",
-    desc: "Kelola profil pribadi dan keamanan akun. Fitur ini bisa diakses dari menu dropdown di pojok kanan atas.",
+    desc: "Kelola profil pribadi dan keamanan akun. Bisa diakses dari menu dropdown di pojok kanan atas.",
     features: [
       "Lihat detail akun (email, role, tenant)",
       "Ubah nama lengkap & email",
       "Ganti password",
       "Logout dari perangkat lain",
-      "Riwayat login",
     ],
     link: "/profile",
+    showFor: ["admin", "counselor"],
   },
 ];
 
-const quickTips = [
+const adminQuickTips = [
   {
     icon: UserPlus,
     title: "Input Data Siswa",
@@ -101,13 +113,31 @@ const quickTips = [
   },
   {
     icon: Brain,
-    title: "Prediksi Cepat",
-    desc: "Setelah semua data siswa lengkap, gunakan halaman Prediksi Risiko untuk upload CSV atau jalankan prediksi massal. Sistem akan memberitahu jika ada data yang kurang.",
+    title: "Upload & Prediksi",
+    desc: "Gunakan halaman Prediksi Risiko untuk upload CSV atau jalankan prediksi massal. Sistem akan memberitahu jika ada data yang kurang.",
+  },
+  {
+    icon: BarChart3,
+    title: "Laporan & Analitik",
+    desc: "Akses laporan lengkap, statistik siswa, tren risiko, dan log aktivitas sistem di halaman Laporan.",
+  },
+];
+
+const counselorQuickTips = [
+  {
+    icon: GraduationCap,
+    title: "Pantau Siswa Berisiko",
+    desc: "Buka Manajemen Konseling untuk melihat daftar siswa diurutkan dari risiko tertinggi. Klik siswa untuk detail lengkap.",
+  },
+  {
+    icon: FileDown,
+    title: "Cetak Surat Panggilan",
+    desc: "Dari halaman Manajemen Konseling, klik tombol Cetak Surat untuk mengunduh template surat panggilan orang tua (.docx).",
   },
   {
     icon: Key,
     title: "Keamanan Akun",
-    desc: "Ganti password secara berkala melalui halaman Profil. Gunakan fitur Logout Semua Perangkat jika mencurigai akun digunakan di tempat lain.",
+    desc: "Ganti password secara berkala melalui halaman Profil untuk menjaga keamanan akun Anda.",
   },
 ];
 
@@ -118,22 +148,42 @@ const roleComparison = [
     counselor: false,
   },
   {
+    feature: "Lihat Data & Detail Siswa",
+    admin: true,
+    counselor: true,
+  },
+  {
     feature: "Input Data Akademik, Absensi, Ekonomi",
     admin: true,
     counselor: true,
   },
   {
-    feature: "Prediksi Risiko & Upload CSV",
+    feature: "Upload CSV Data Siswa",
     admin: true,
     counselor: false,
+  },
+  {
+    feature: "Jalankan Prediksi Risiko",
+    admin: true,
+    counselor: false,
+  },
+  {
+    feature: "Laporan & Analitik",
+    admin: true,
+    counselor: false,
+  },
+  {
+    feature: "Manajemen Konseling",
+    admin: false,
+    counselor: true,
+  },
+  {
+    feature: "Cetak Surat Panggilan (.docx)",
+    admin: false,
+    counselor: true,
   },
   {
     feature: "Manajemen Akun (Buat/Edit/Hapus Counselor)",
-    admin: true,
-    counselor: false,
-  },
-  {
-    feature: "Laporan & Audit Log",
     admin: true,
     counselor: false,
   },
@@ -142,14 +192,15 @@ const roleComparison = [
     admin: true,
     counselor: true,
   },
-  {
-    feature: "Pengaturan Sekolah",
-    admin: true,
-    counselor: false,
-  },
 ];
 
 export default function GuidePage() {
+  const { user } = useAuth();
+  const role = user?.role === "counselor" ? "counselor" : "admin";
+  const isCounselor = role === "counselor";
+
+  const filteredSections = sections.filter((s) => s.showFor.includes(role));
+
   return (
     <div className="space-y-10 relative">
 
@@ -160,11 +211,11 @@ export default function GuidePage() {
           Panduan Penggunaan
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-          Panduan Admin Sekolah & Guru BK
+          Panduan {isCounselor ? "Guru BK (Counselor)" : "Admin Sekolah"}
         </h1>
         <p className="text-white/70 text-base mt-3 max-w-2xl leading-relaxed">
           Selamat datang di ASGARD — Sistem Deteksi Risiko Putus Sekolah.
-          Panduan ini akan membantu Anda memahami setiap fitur dan cara penggunaannya.
+          Panduan ini akan membantu Anda memahami setiap fitur sesuai peran Anda.
         </p>
       </div>
 
@@ -175,7 +226,7 @@ export default function GuidePage() {
           Tips Cepat
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {quickTips.map((tip, i) => (
+          {(isCounselor ? counselorQuickTips : adminQuickTips).map((tip, i) => (
             <div key={i} className="bg-white rounded-[20px] border-2 border-slate-200 p-6 hover:border-asgard-primary transition-all">
               <div className="w-10 h-10 rounded-xl bg-asgard-secondary flex items-center justify-center text-asgard-primary mb-4">
                 <tip.icon size={20} />
@@ -194,7 +245,7 @@ export default function GuidePage() {
           Fitur & Fungsionalitas
         </h2>
         <div className="space-y-6">
-          {sections.map((section, i) => (
+          {filteredSections.map((section, i) => (
             <div key={i} className="bg-white rounded-[24px] border-2 border-slate-200 hover:border-asgard-primary transition-all p-6 md:p-8">
               <div className="flex items-start gap-5">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-asgard-primary to-blue-700 flex items-center justify-center text-white shrink-0">
@@ -266,7 +317,7 @@ export default function GuidePage() {
             </table>
           </div>
           <p className="mt-4 text-xs font-medium text-slate-400 leading-relaxed">
-            Admin memiliki akses penuh ke semua fitur manajemen, prediksi, dan pengaturan. Counselor hanya bisa mengelola data siswa (akademik, absensi, sosial ekonomi), melihat prediksi, dan mendapatkan notifikasi.
+            Admin memiliki akses penuh ke manajemen siswa, akun, prediksi, laporan, dan upload CSV. Counselor fokus pada pemantauan siswa berisiko, konseling, dan cetak surat panggilan.
           </p>
         </div>
       </div>
