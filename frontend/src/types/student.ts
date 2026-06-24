@@ -52,6 +52,7 @@ export interface StudentSocioEconomic {
   has_internet_access: boolean;
   distance_to_school_km: number | null;
   housing_status: string | null;
+  transportation_mode: string | null;
 }
 
 export interface StudentRiskPrediction {

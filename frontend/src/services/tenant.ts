@@ -22,11 +22,11 @@ export const tenantService = {
     return del<{ status: string; message: string }>(`/tenants/${id}`);
   },
 
-  async getRegistrationCode(id: string): Promise<{ status: string; data: { tenant_id: string; registration_code: string | null } }> {
-    return get<{ status: string; data: { tenant_id: string; registration_code: string | null } }>(`/tenants/${id}/registration-code`);
+  async getRegistrationCode(id: string): Promise<{ status: string; data: { tenant_id: string; registration_code: string | null; expires_in_seconds: number } }> {
+    return get<{ status: string; data: { tenant_id: string; registration_code: string | null; expires_in_seconds: number } }>(`/tenants/${id}/registration-code`);
   },
 
-  async regenerateCode(id: string): Promise<{ status: string; message: string; data: { tenant_id: string; new_registration_code: string } }> {
-    return post<{ status: string; message: string; data: { tenant_id: string; new_registration_code: string } }>(`/tenants/${id}/regenerate-code`);
+  async regenerateCode(id: string): Promise<{ status: string; message: string; data: { tenant_id: string; new_registration_code: string; expires_in_seconds: number } }> {
+    return post<{ status: string; message: string; data: { tenant_id: string; new_registration_code: string; expires_in_seconds: number } }>(`/tenants/${id}/regenerate-code`);
   },
 };

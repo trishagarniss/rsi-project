@@ -46,7 +46,14 @@ export default function RegisterPage() {
       await authService.checkRegCode(regCode);
       setStep(2);
     } catch (error: unknown) {
-      setErrorMsg(error instanceof Error ? error.message : 'Kode registrasi tidak valid.');
+      const err = error as { response?: { status?: number } };
+      const status = err.response?.status;
+      const messages: Record<number, string> = {
+        404: 'Kode registrasi tidak valid.',
+        400: 'Kode registrasi tidak valid atau sudah kadaluarsa.',
+        410: 'Kode registrasi sudah digunakan.',
+      };
+      setErrorMsg(messages[status ?? 0] || 'Koneksi gagal. Periksa jaringan Anda.');
     } finally {
       setIsChecking(false);
     }
@@ -77,7 +84,15 @@ export default function RegisterPage() {
       await authService.registerAdmin(regCode, { fullname, email, password });
       router.push('/login?registered=true');
     } catch (error: unknown) {
-      setErrorMsg(error instanceof Error ? error.message : 'Registrasi gagal. Silakan coba lagi.');
+      const err = error as { response?: { status?: number } };
+      const status = err.response?.status;
+      const messages: Record<number, string> = {
+        409: 'Email sudah terdaftar.',
+        400: 'Data yang dikirim tidak valid.',
+        422: 'Data yang dikirim tidak valid.',
+        500: 'Terjadi kesalahan server. Silakan coba lagi nanti.',
+      };
+      setErrorMsg(messages[status ?? 0] || 'Koneksi gagal. Periksa jaringan Anda.');
     } finally {
       setIsRegistering(false);
     }

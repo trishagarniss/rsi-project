@@ -1,273 +1,369 @@
 ﻿"use client";
 
-import React, { useEffect, useState } from 'react';
-import StatCard from '@/components/ui/StatCard';
-import RiskBadge from '@/components/ui/RiskBadge';
-import Button from '@/components/ui/Button';
-import { get } from '@/lib/api-client';
+import React, { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
+} from "recharts";
+import {
+  Users, AlertTriangle, Activity, TrendingUp, UserCheck,
+  BookOpen, Clock, AlertCircle, ChevronRight,
+  Loader2, UserMinus, UserPlus,
+} from "lucide-react";
+import { dashboardService } from "@/services/dashboard";
+import StatCard from "@/components/ui/StatCard";
 
-// --- TIPE DATA ---
-interface DashboardSummary {
-  totalStudents: number;
-  riskDistribution: {
-    tinggi: number;
-    sedang: number;
-    rendah: number;
-    aman: number;
-  };
-  topCriticalStudents: any[];
+const PIE_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#94a3b8"];
+const BAR_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#94a3b8"];
+
+function Counter({ value, suffix = "", className = "" }: { value: number; suffix?: string; className?: string }) {
+  const display = value;
+  return <span className={className}>{display}{suffix}</span>;
 }
 
-// Fungsi pembantu untuk klasifikasi risiko (fallback jika dari backend tidak ada teks labelnya)
-const getRiskLevel = (score: number) => {
-  if (score >= 80) return 'Tinggi';
-  if (score >= 60) return 'Sedang';
-  if (score >= 40) return 'Rendah';
-  return 'Aman';
-};
+export default function DashboardPage() {
+  const router = useRouter();
 
-export default function DashboardOverview() {
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: raw, isLoading, error } = useQuery({
+    queryKey: ["admin-dashboard"],
+    queryFn: async () => {
+      const res = await dashboardService.getAdminSummary();
+      return res.data;
+    },
+    refetchInterval: 60000,
+  });
 
-  useEffect(() => {
-    let isMounted = true;
+  const pieData = useMemo(() => {
+    if (!raw) return [];
+    return [
+      { name: "Tinggi", value: raw.predictions.tinggi },
+      { name: "Sedang", value: raw.predictions.sedang },
+      { name: "Rendah", value: raw.predictions.rendah },
+      { name: "Aman", value: raw.predictions.aman },
+    ].filter((d) => d.value > 0);
+  }, [raw]);
 
-    async function loadDashboardData() {
-      try {
-        setIsLoading(true);
+  const barData = useMemo(() => {
+    if (!raw) return [];
+    return [
+      { name: "Tinggi", count: raw.predictions.tinggi, fill: "#ef4444" },
+      { name: "Sedang", count: raw.predictions.sedang, fill: "#f59e0b" },
+      { name: "Rendah", count: raw.predictions.rendah, fill: "#10b981" },
+      { name: "Aman", count: raw.predictions.aman, fill: "#94a3b8" },
+    ];
+  }, [raw]);
 
-        // ==============================================================
-        // FETCH PARALEL: Ambil data Siswa DAN Prediksi Terakhir sekaligus
-        // ==============================================================
-        // Kita gunakan Promise.all agar request berjalan bersamaan (sangat cepat)
-        const [studentsResponse, predictionsResponse]: [any, any] = await Promise.all([
-          get('/students/?skip=0&limit=2000').catch(() => [] as any[]),
-          // Mencoba endpoint 'student/all' untuk prediksi terbaru, fallback ke '/' jika tidak ada
-          get('/predictions/student/all').catch(() => get('/predictions/?skip=0&limit=2000')).catch(() => [] as any[])
-        ]);
-
-        // Baris Detektif: Ekstrak array dari objek pagination (jika dibungkus)
-        const studentsArray = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.items || studentsResponse.data || []);
-        const predictionsArray = Array.isArray(predictionsResponse) ? predictionsResponse : (predictionsResponse.items || predictionsResponse.data || []);
-
-        // --- PROSES AGREGASI (Menghitung Data untuk Grafik) ---
-        let tinggi = 0, sedang = 0, rendah = 0, aman = 0;
-        const criticalList: any[] = [];
-
-        // Gabungkan data prediksi dengan data biodata siswa
-        predictionsArray.forEach((pred: any) => {
-          const score = pred.risk_score || 0;
-          const level = getRiskLevel(score);
-
-          if (level === 'Tinggi') tinggi++;
-          else if (level === 'Sedang') sedang++;
-          else if (level === 'Rendah') rendah++;
-          else aman++;
-
-          // Cari biodata siswa yang cocok dengan ID di prediksi
-          const studentInfo = studentsArray.find((s: any) => s.id === pred.student_id) || {};
-
-          criticalList.push({
-            id: pred.student_id || Math.random().toString(),
-            name: studentInfo.name || 'Nama Tidak Diketahui',
-            nis: studentInfo.nis || '-',
-            nisn: studentInfo.nisn || '-',
-            riskLevel: level,
-            latestPrediction: pred
-          });
-        });
-
-        // Urutkan siswa dari risiko paling tinggi/kritis ke rendah
-        criticalList.sort((a, b) => (b.latestPrediction.risk_score || 0) - (a.latestPrediction.risk_score || 0));
-
-        if (isMounted) {
-          setSummary({
-            // Jika ada siswa yang belum dievaluasi, total siswa tetap menggunakan jumlah data tabel students
-            totalStudents: Math.max(studentsArray.length, predictionsArray.length),
-            riskDistribution: { tinggi, sedang, rendah, aman },
-            topCriticalStudents: criticalList.slice(0, 5) // Ambil 5 teratas untuk tabel kritis
-          });
-          setError(null);
-        }
-
-      } catch (loadError) {
-        if (isMounted) {
-          console.error("Gagal menarik data dashboard:", loadError);
-          setError(loadError instanceof Error ? loadError.message : 'Gagal memuat data dashboard.');
-        }
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    }
-
-    loadDashboardData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const completenessData = useMemo(() => {
+    if (!raw) return [];
+    const max = raw.students.total_active || 1;
+    return [
+      { name: "Data Akademik", value: raw.data_completeness.with_academic, percentage: Math.round((raw.data_completeness.with_academic / max) * 100), fill: "#6366f1" },
+      { name: "Data Absensi", value: raw.data_completeness.with_attendance, percentage: Math.round((raw.data_completeness.with_attendance / max) * 100), fill: "#8b5cf6" },
+      { name: "Data Ekonomi", value: raw.data_completeness.with_socio_economic, percentage: Math.round((raw.data_completeness.with_socio_economic / max) * 100), fill: "#a855f7" },
+    ];
+  }, [raw]);
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm">
-        <p className="text-sm font-bold text-slate-500 animate-pulse">Menghitung model prediksi dan memuat analitik...</p>
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={24} className="animate-spin text-asgard-primary" />
+        <span className="ml-3 text-sm font-bold text-slate-500">Memuat data dashboard...</span>
       </div>
     );
   }
 
-  if (error || !summary) {
+  if (error || !raw) {
     return (
-      <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-red-700 shadow-sm">
-        <h3 className="text-base font-black">Gagal memuat dashboard</h3>
-        <p className="mt-2 text-sm font-medium">{error}</p>
+      <div className="bg-red-50 border-2 border-red-200 text-red-700 rounded-2xl p-6 flex items-start gap-3">
+        <AlertCircle size={20} className="shrink-0 mt-0.5" />
+        <div>
+          <p className="font-extrabold text-sm">Gagal memuat dashboard</p>
+          <p className="text-xs font-medium mt-1">{error instanceof Error ? error.message : "Terjadi kesalahan"}</p>
+        </div>
       </div>
     );
   }
 
-  const { totalStudents, riskDistribution, topCriticalStudents } = summary;
-  const interventionStudents = riskDistribution.tinggi + riskDistribution.sedang;
-  const totalPredicted = riskDistribution.tinggi + riskDistribution.sedang + riskDistribution.rendah + riskDistribution.aman;
+  const needIntervention = raw.predictions.tinggi + raw.predictions.sedang;
+  const riskPercentage = raw.predictions.total_predicted > 0
+    ? Math.round((needIntervention / raw.predictions.total_predicted) * 100)
+    : 0;
 
   return (
-    <div className="space-y-8 ">
-      
-      {/* ================= BARIS 1: STATISTIC CARDS ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Total Siswa Aktif" 
-          value={totalStudents} 
-          subtitle="Terdaftar pada sistem"
-          icon={
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-          }
+    <div className="space-y-6">
+      {/* ===== BARIS 1: KPI CARDS ===== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatCard
+          title="Total Siswa Aktif"
+          value={<Counter value={raw.students.total_active} />}
+          subtitle={`${raw.students.total_inactive} non-aktif`}
+          icon={<Users size={20} />}
         />
-        <StatCard 
-          title="Berisiko Tinggi" 
-          value={riskDistribution.tinggi} 
+        <StatCard
+          title="Berisiko Tinggi"
+          value={<Counter value={raw.predictions.tinggi} />}
+          subtitle={`${raw.predictions.total_predicted} sudah diprediksi`}
           trend="up"
-          subtitle="Berdasarkan prediksi terbaru"
-          icon={
-            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
-          }
+          icon={<AlertTriangle size={20} />}
         />
-        <StatCard 
-          title="Butuh Intervensi" 
-          value={interventionStudents} 
+        <StatCard
+          title="Butuh Intervensi"
+          value={<Counter value={needIntervention} />}
+          subtitle={`${riskPercentage}% dari total prediksi`}
+          trend="up"
+          icon={<Activity size={20} />}
+        />
+        <StatCard
+          title="Rata-rata Skor"
+          value={<Counter value={Math.round(raw.predictions.average_risk_score * 100)} suffix="%" />}
+          subtitle="Skor risiko rata-rata"
           trend="neutral"
-          subtitle="Tinggi + Sedang"
-          icon={
-            <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-          }
+          icon={<TrendingUp size={20} />}
+        />
+        <StatCard
+          title="Konselor Aktif"
+          value={<Counter value={raw.users.total_counselors} />}
+          subtitle="Tenaga pendidik"
+          icon={<UserCheck size={20} />}
         />
       </div>
 
-      {/* ================= BARIS 2: CHARTS ================= */}
+      {/* ===== BARIS 2: CHARTS ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-87.5">
-          <h3 className="text-base font-black text-asgard-primary mb-6">Tren Prediksi Risiko Dropout</h3>
-          <div className="flex-1 rounded-xl border border-slate-100 bg-slate-50 p-6">
-            <div className="grid grid-cols-2 gap-4 text-sm font-bold text-slate-600">
-              <div className="rounded-xl bg-white p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-wider text-slate-400">Siswa dievaluasi</p>
-                <p className="mt-2 text-3xl text-asgard-primary">{totalPredicted}</p>
-              </div>
-              <div className="rounded-xl bg-white p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-wider text-slate-400">Persentase Aman</p>
-                <p className="mt-2 text-3xl text-emerald-600">{Math.round((riskDistribution.aman / Math.max(totalPredicted, 1)) * 100)}%</p>
+        {/* PIE: Distribusi Risiko */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <h3 className="text-base font-black text-asgard-primary mb-4">Distribusi Tingkat Risiko</h3>
+          {raw.predictions.total_predicted === 0 ? (
+            <div className="flex items-center justify-center h-64 text-slate-400 text-sm font-bold">
+              Belum ada data prediksi
+            </div>
+          ) : (
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {pieData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "12px" }}
+                    formatter={(value) => [`${value} siswa`]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2 min-w-[140px]">
+                {pieData.map((item, i) => (
+                  <div key={item.name} className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[i] }} />
+                    {item.name}
+                    <span className="ml-auto">{item.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
+          )}
+        </div>
 
-            <div className="mt-6 space-y-4">
-              {[
-                { label: 'Tinggi', count: riskDistribution.tinggi, bar: 'bg-red-500' },
-                { label: 'Sedang', count: riskDistribution.sedang, bar: 'bg-amber-400' },
-                { label: 'Rendah', count: riskDistribution.rendah, bar: 'bg-emerald-500' },
-                { label: 'Aman', count: riskDistribution.aman, bar: 'bg-slate-300' },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-3">
-                  <span className="w-16 text-xs font-black uppercase tracking-wider text-slate-500">{item.label}</span>
-                  <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-200">
-                    <div
-                      className={`h-full rounded-full ${item.bar}`}
-                      style={{ width: `${Math.max((item.count / Math.max(totalPredicted, 1)) * 100, item.count > 0 ? 6 : 0)}%` }}
-                    />
+        {/* BAR: Perbandingan Risiko */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <h3 className="text-base font-black text-asgard-primary mb-4">Perbandingan Tingkat Risiko</h3>
+          {raw.predictions.total_predicted === 0 ? (
+            <div className="flex items-center justify-center h-64 text-slate-400 text-sm font-bold">
+              Belum ada data prediksi
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={barData} barSize={60}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "12px" }}
+                />
+                <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                  {barData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* ===== BARIS 3: ACADEMIC + ATTENDANCE + DATA COMPLETENESS ===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Academic & Attendance Summary */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <h3 className="text-base font-black text-asgard-primary mb-4">Ringkasan Akademik & Kehadiran</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-xl p-5 border border-indigo-200">
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen size={16} className="text-indigo-500" />
+                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">Nilai Rata-rata</span>
+              </div>
+              <p className="text-3xl font-black text-indigo-700">
+                {raw.academic_summary.average_score !== null
+                  ? raw.academic_summary.average_score
+                  : "—"}
+              </p>
+              <p className="text-xs font-bold text-indigo-500 mt-1">
+                {raw.academic_summary.students_with_data} siswa punya data
+              </p>
+              <p className="text-xs font-semibold text-red-500 mt-1">
+                {raw.academic_summary.students_with_failures} siswa dengan nilai gagal
+              </p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-5 border border-purple-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock size={16} className="text-purple-500" />
+                <span className="text-[10px] font-black text-purple-600 uppercase tracking-wider">Kehadiran Rata-rata</span>
+              </div>
+              <p className="text-3xl font-black text-purple-700">
+                {raw.attendance_summary.average_percentage !== null
+                  ? `${raw.attendance_summary.average_percentage}%`
+                  : "—"}
+              </p>
+              <p className="text-xs font-bold text-purple-500 mt-1">
+                {raw.attendance_summary.students_with_data} siswa punya data
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Completeness */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <h3 className="text-base font-black text-asgard-primary mb-4">Kelengkapan Data Siswa</h3>
+          <p className="text-xs font-bold text-slate-400 mb-4">
+            Dari {raw.students.total_active} siswa aktif
+          </p>
+          <div className="space-y-5">
+            {completenessData.map((item) => (
+              <div key={item.name}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-slate-600">{item.name}</span>
+                  <span className="text-xs font-black text-slate-500">{item.value} / {raw.students.total_active}</span>
+                </div>
+                <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${item.percentage}%`,
+                      backgroundColor: item.fill,
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] font-bold text-slate-400">{item.percentage}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ===== BARIS 4: TABEL KRITIS + AKTIVITAS ===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top 5 Critical */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 className="text-sm font-black text-asgard-primary">Siswa Peringatan Kritis</h3>
+            <button
+              onClick={() => router.push("/student")}
+              className="text-[11px] font-bold text-asgard-primary hover:underline flex items-center gap-1"
+            >
+              Lihat Semua <ChevronRight size={14} />
+            </button>
+          </div>
+          {raw.predictions.top_critical.length === 0 ? (
+            <div className="px-6 py-10 text-center text-sm font-bold text-slate-400">
+              <Users size={32} className="mx-auto text-slate-300 mb-2" />
+              Belum ada data siswa berisiko
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {raw.predictions.top_critical.map((siswa, idx) => (
+                <div
+                  key={siswa.student_id}
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                  onClick={() => router.push(`/student/${siswa.student_id}`)}
+                >
+                  <span className="w-6 h-6 rounded-lg bg-red-50 text-red-600 text-xs font-black flex items-center justify-center shrink-0">
+                    {idx + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-extrabold text-slate-800 truncate">{siswa.name}</p>
+                    <p className="text-[11px] font-medium text-slate-400">NISN: {siswa.nisn || "-"}</p>
                   </div>
-                  <span className="w-8 text-right text-sm font-bold text-slate-600">{item.count}</span>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-black text-red-500">{Math.round(siswa.risk_score * 100)}%</p>
+                    <p className="text-[10px] font-bold text-red-400">Skor Risiko</p>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
+          )}
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-87.5">
-          <h3 className="text-base font-black text-asgard-primary mb-6">Distribusi Tingkat Risiko</h3>
-          <div className="flex-1 flex items-center justify-center gap-8">
-            <div className="w-40 h-40 rounded-full border-16 border-slate-100 shadow-inner overflow-hidden">
-              <div className="h-full w-full rotate-45" style={{
-                background: totalPredicted === 0 
-                  ? '#f1f5f9' 
-                  : `conic-gradient(#ef4444 0 ${Math.max((riskDistribution.tinggi / totalPredicted) * 100, 1)}%, #f59e0b ${Math.max((riskDistribution.tinggi / totalPredicted) * 100, 1)}% ${Math.max(((riskDistribution.tinggi + riskDistribution.sedang) / totalPredicted) * 100, 2)}%, #10b981 ${Math.max(((riskDistribution.tinggi + riskDistribution.sedang) / totalPredicted) * 100, 2)}% 100%)`,
-              }} />
-            </div>
-            <div className="space-y-3 text-sm font-bold text-slate-600">
-               <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-400" /> Tinggi ({Math.round((riskDistribution.tinggi / Math.max(totalPredicted, 1)) * 100)}%)</div>
-               <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-400" /> Sedang ({Math.round((riskDistribution.sedang / Math.max(totalPredicted, 1)) * 100)}%)</div>
-               <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-400" /> Rendah/Aman ({Math.round(((riskDistribution.rendah + riskDistribution.aman) / Math.max(totalPredicted, 1)) * 100)}%)</div>
-            </div>
+        {/* Recent Activities */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 className="text-sm font-black text-asgard-primary">Aktivitas Terbaru</h3>
+            <button
+              onClick={() => router.push("/notification")}
+              className="text-[11px] font-bold text-asgard-primary hover:underline flex items-center gap-1"
+            >
+              Lihat Semua <ChevronRight size={14} />
+            </button>
           </div>
-        </div>
-      </div>
-
-      {/* ================= BARIS 3: MINI TABLE ================= */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 className="text-base font-black text-asgard-primary">Siswa Peringatan Kritis Teratas</h3>
-          <Button variant="outline" size="sm">Lihat Semua</Button>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                <th className="px-6 py-4 font-bold">Nama Siswa</th>
-                <th className="px-6 py-4 font-bold">NISN</th>
-                <th className="px-6 py-4 font-bold">Skor Risiko</th>
-                <th className="px-6 py-4 font-bold">Tingkat Risiko</th>
-                <th className="px-6 py-4 font-bold text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {topCriticalStudents.length === 0 ? (
-                 <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-slate-400 font-bold">
-                       Belum ada data siswa berisiko dari model Machine Learning.
-                    </td>
-                 </tr>
-              ) : topCriticalStudents.map((siswa) => (
-                <tr key={siswa.id} className="hover:bg-slate-50/80 transition-colors group">
-                  <td className="px-6 py-4 font-bold text-slate-800 uppercase">{siswa.name}</td>
-                  <td className="px-6 py-4 text-sm text-slate-500 font-medium">{siswa.nisn ?? '-'}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600 font-bold">{Math.round(siswa.latestPrediction.risk_score)}/100</td>
-                  <td className="px-6 py-4">
-                    {/* Hati-hati, format RiskBadge mungkin menyesuaikan komponen Anda */}
-                    <RiskBadge level={siswa.riskLevel as any} /> 
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <Button variant="secondary" size="sm" className="opacity-0 group-hover:opacity-100">
-                        Intervensi
-                      </Button>
+          {raw.recent_activities.length === 0 ? (
+            <div className="px-6 py-10 text-center text-sm font-bold text-slate-400">
+              <Clock size={32} className="mx-auto text-slate-300 mb-2" />
+              Belum ada aktivitas
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 max-h-[320px] overflow-y-auto">
+              {raw.recent_activities.map((act) => {
+                const actionLower = act.action.toLowerCase();
+                const actionColor =
+                  actionLower.includes("delete") ? "text-red-500 bg-red-50" :
+                  actionLower.includes("create") ? "text-emerald-500 bg-emerald-50" :
+                  actionLower.includes("login") ? "text-blue-500 bg-blue-50" :
+                  "text-amber-500 bg-amber-50";
+                return (
+                  <div key={act.id} className="flex items-start gap-3 px-6 py-3.5">
+                    <div className={`w-7 h-7 rounded-lg ${actionColor} flex items-center justify-center shrink-0 mt-0.5`}>
+                      {actionLower.includes("delete") ? <UserMinus size={14} /> :
+                       actionLower.includes("create") ? <UserPlus size={14} /> :
+                       actionLower.includes("login") ? <UserCheck size={14} /> :
+                       <Activity size={14} />}
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-700 leading-snug">
+                        <span className="uppercase">{act.action}</span>{" "}
+                        <span className="text-slate-500">{act.entity_name || ""}</span>
+                      </p>
+                      <p className="text-[11px] font-medium text-slate-400 mt-0.5">{act.user_name}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {act.created_at ? new Date(act.created_at).toLocaleString("id-ID") : "-"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
-
     </div>
   );
 }

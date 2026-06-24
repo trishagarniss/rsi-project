@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import {
  Building2, Search, Plus, Edit2, Trash2, ShieldAlert,
  CheckCircle, Loader2, X, RefreshCw,
- Mail, MapPin, Key
+ Mail, MapPin, Key, Clock
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
@@ -56,6 +56,18 @@ export default function KelolaTenantPage() {
   const [fetchedCode, setFetchedCode] = useState<string | null>(null);
   const [codeLoading, setCodeLoading] = useState(false);
 
+  const [codeExpiresIn, setCodeExpiresIn] = useState<number>(0);
+  const [regCodeExpiresIn, setRegCodeExpiresIn] = useState<number>(0);
+
+  const formatCountdown = (seconds: number): string => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}j ${m}m ${s}d`;
+    if (m > 0) return `${m}m ${s}d`;
+    return `${s}d`;
+  };
+
   const [createdRegCode, setCreatedRegCode] = useState<string | null>(null);
 
  const loadData = async () => {
@@ -82,9 +94,21 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
  useEffect(() => {
  if (successMsg) { const t = setTimeout(() => setSuccessMsg(""), 5000); return () => clearTimeout(t); }
  }, [successMsg]);
- useEffect(() => {
- if (errorMsg) { const t = setTimeout(() => setErrorMsg(""), 7000); return () => clearTimeout(t); }
- }, [errorMsg]);
+  useEffect(() => {
+  if (errorMsg) { const t = setTimeout(() => setErrorMsg(""), 7000); return () => clearTimeout(t); }
+  }, [errorMsg]);
+
+  useEffect(() => {
+    if (!isCodeModalOpen || codeExpiresIn <= 0) return;
+    const t = setInterval(() => setCodeExpiresIn(prev => Math.max(0, prev - 1)), 1000);
+    return () => clearInterval(t);
+  }, [isCodeModalOpen, codeExpiresIn]);
+
+  useEffect(() => {
+    if (!isEditModalOpen || !regCode || regCodeExpiresIn <= 0) return;
+    const t = setInterval(() => setRegCodeExpiresIn(prev => Math.max(0, prev - 1)), 1000);
+    return () => clearInterval(t);
+  }, [isEditModalOpen, regCode, regCodeExpiresIn]);
 
  const resetForm = () => {
  setFormData({ name: "", address: "", contact_email: "", status: "active" });
@@ -106,11 +130,14 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
     status: t.status,
     });
     setRegCode(null);
+    setRegCodeExpiresIn(0);
     setIsEditModalOpen(true);
     tenantService.getRegistrationCode(t.id).then(res => {
     setRegCode(res.data.registration_code);
+    setRegCodeExpiresIn(res.data?.expires_in_seconds ?? 0);
     }).catch(() => {
     setRegCode(null);
+    setRegCodeExpiresIn(0);
     });
   };
 
@@ -188,33 +215,37 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
   const openCodeModal = async (t: Tenant) => {
     setCodeModalTenant(t);
     setFetchedCode(null);
+    setCodeExpiresIn(0);
     setIsCodeModalOpen(true);
     setCodeLoading(true);
 
     try {
     const res = await tenantService.getRegistrationCode(t.id);
     setFetchedCode(res.data?.registration_code ?? null);
+    setCodeExpiresIn(res.data?.expires_in_seconds ?? 0);
     } catch {
     setFetchedCode(null);
+    setCodeExpiresIn(0);
     } finally {
     setCodeLoading(false);
     }
   };
 
   const handleRegenerateCode = async () => {
- if (!selectedTenant) return;
- setActionLoading(true);
- setErrorMsg("");
- try {
-  const res = await tenantService.regenerateCode(selectedTenant.id);
-  setRegCode(res.data.new_registration_code);
-  setSuccessMsg("Kode registrasi berhasil dibuat ulang!");
- } catch (err: unknown) {
-  setErrorMsg(err instanceof Error ? err.message : "Gagal membuat ulang kode registrasi.");
- } finally {
-  setActionLoading(false);
- }
- };
+  if (!selectedTenant) return;
+  setActionLoading(true);
+  setErrorMsg("");
+  try {
+   const res = await tenantService.regenerateCode(selectedTenant.id);
+   setRegCode(res.data.new_registration_code);
+   setRegCodeExpiresIn(res.data.expires_in_seconds);
+   setSuccessMsg("Kode registrasi berhasil dibuat ulang!");
+  } catch (err: unknown) {
+   setErrorMsg(err instanceof Error ? err.message : "Gagal membuat ulang kode registrasi.");
+  } finally {
+   setActionLoading(false);
+  }
+  };
 
  const filteredTenants = tenants.filter((t) => {
  const q = searchQuery.toLowerCase();
@@ -500,9 +531,17 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
      </button>
     </div>
     {regCode && (
-     <div className="flex items-center gap-2 p-3 bg-white rounded-xl border-2 border-asgard-primary/20">
-     <Key size={16} className="text-asgard-primary shrink-0" />
-     <code className="text-sm font-black text-asgard-primary tracking-widest">{regCode}</code>
+     <div className="space-y-2">
+      <div className="flex items-center gap-2 p-3 bg-white rounded-xl border-2 border-asgard-primary/20">
+       <Key size={16} className="text-asgard-primary shrink-0" />
+       <code className="text-sm font-black text-asgard-primary tracking-widest">{regCode}</code>
+      </div>
+      {regCodeExpiresIn > 0 && (
+       <div className="flex items-center gap-1.5 text-[10px] font-bold text-asgard-secondary">
+        <Clock size={12} />
+        <span>Berlaku: {formatCountdown(regCodeExpiresIn)}</span>
+       </div>
+      )}
      </div>
     )}
     </div>
@@ -546,17 +585,22 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
      <Loader2 size={28} className="animate-spin text-asgard-primary" />
     </div>
     ) : fetchedCode ? (
-    <div className="p-5 bg-asgard-primary/5 rounded-2xl border-2 border-asgard-primary/20">
-     <code className="text-2xl font-black text-asgard-primary tracking-[0.25em] select-all">{fetchedCode}</code>
+    <div className="space-y-3">
+     <div className="p-5 bg-asgard-primary/5 rounded-2xl border-2 border-asgard-primary/20">
+      <code className="text-2xl font-black text-asgard-primary tracking-[0.25em] select-all">{fetchedCode}</code>
+     </div>
+     {codeExpiresIn > 0 && (
+     <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-asgard-secondary">
+      <Clock size={14} />
+      <span>Berlaku: {formatCountdown(codeExpiresIn)}</span>
+     </div>
+     )}
     </div>
     ) : (
     <div className="p-5 bg-slate-50 rounded-2xl border-2 border-slate-200">
      <p className="text-slate-400 font-bold text-sm">Belum ada kode registrasi. Buat kode baru melalui menu Edit.</p>
     </div>
     )}
-    <p className="text-[10px] font-bold text-slate-400">
-    Kode ini berlaku selama 24 jam sejak dibuat/di-generate ulang.
-    </p>
    </div>
 
    <div className="px-8 pb-8 flex gap-3">

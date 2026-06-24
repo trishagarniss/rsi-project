@@ -54,23 +54,27 @@ def remove_tenant(db: Session, tenant_id: str, current_user: User):
 def fetch_registration_code(db: Session, tenant_id: str):
     tenant_service.get_tenant_detail(db, tenant_id)
     code = tenant_service.get_reg_code_from_redis(tenant_id)
+    expires_in = tenant_service.get_reg_code_ttl(tenant_id)
     return {
         "status": "success",
         "data": {
             "tenant_id": tenant_id,
-            "registration_code": code
+            "registration_code": code,
+            "expires_in_seconds": expires_in
         }
     }
 
 def regenerate_tenant_code(db: Session, tenant_id: str, current_user: User):
     tenant_service.get_tenant_detail(db, tenant_id)
     new_reg_code = tenant_service.generate_tenant_reg_code(tenant_id)
+    expires_in = tenant_service.get_reg_code_ttl(tenant_id)
     record_activity(db, "UPDATE", "tenant", current_user, entity_id=tenant_id, details={"action": "regenerate_code"})
     return {
         "status": "success",
         "message": "Kode registrasi baru berhasil dibuat (berlaku 24 jam ke depan)",
         "data": {
             "tenant_id": tenant_id,
-            "new_registration_code": new_reg_code
+            "new_registration_code": new_reg_code,
+            "expires_in_seconds": expires_in
         }
     }

@@ -58,7 +58,17 @@ export default function LoginPage() {
       }
 
     } catch (error: unknown) {
-      setErrorMsg(error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak terduga.');
+      const err = error as { response?: { status?: number } };
+      const status = err.response?.status;
+      const messages: Record<number, string> = {
+        401: 'Email atau password salah.',
+        404: 'Akun tidak ditemukan.',
+        400: 'Data yang dikirim tidak valid.',
+        422: 'Data yang dikirim tidak valid.',
+        403: 'Akses ditolak.',
+        500: 'Terjadi kesalahan server. Silakan coba lagi nanti.',
+      };
+      setErrorMsg(messages[status ?? 0] || 'Koneksi gagal. Periksa jaringan Anda.');
     } finally {
       setIsLoading(false);
     }
