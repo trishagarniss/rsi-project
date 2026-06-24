@@ -32,6 +32,7 @@ export default function StudentList() {
   const [error, setError] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const [genderFilter, setGenderFilter] = useState<"all" | "male" | "female">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [riskFilter, setRiskFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
@@ -42,7 +43,7 @@ export default function StudentList() {
       try {
         setIsLoading(true);
         const [studentsRes, predictionsRes] = await Promise.allSettled([
-          get<any>("/students/?skip=0&limit=2000"),
+          get<any>("/students/?skip=0&limit=999999"),
           get<any>("/predictions/student/all"),
         ]);
 
@@ -88,13 +89,15 @@ export default function StudentList() {
     return () => { mounted = false; };
   }, []);
 
-  useEffect(() => { setCurrentPage(1); }, [searchValue, genderFilter, riskFilter]);
+  useEffect(() => { setCurrentPage(1); }, [searchValue, genderFilter, statusFilter, riskFilter]);
 
   const filtered = useMemo(() => {
     const q = searchValue.trim().toLowerCase();
     return students.filter((s) => {
       if (q && !s.name.toLowerCase().includes(q) && !s.nis.toLowerCase().includes(q) && !(s.nisn && s.nisn.toLowerCase().includes(q))) return false;
       if (genderFilter !== "all" && s.gender !== genderFilter) return false;
+      if (statusFilter === "active" && !s.is_active) return false;
+      if (statusFilter === "inactive" && s.is_active) return false;
       if (riskFilter !== "all" && s.riskLevel !== riskFilter) return false;
       return true;
     });
@@ -135,7 +138,7 @@ export default function StudentList() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-asgard-primary">Manajemen Siswa</h1>
-          <p className="text-slate-500 text-sm font-medium mt-1">{students.length} siswa terdaftar</p>
+          <p className="text-slate-500 text-sm font-medium mt-1">{filtered.length} siswa</p>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" className="border-asgard-primary text-asgard-primary" onClick={() => router.push("/import")}>
@@ -161,6 +164,12 @@ export default function StudentList() {
             <option value="all">Semua Gender</option>
             <option value="male">Laki-laki</option>
             <option value="female">Perempuan</option>
+          </select>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm">
+            <option value="active">Aktif</option>
+            <option value="all">Semua Status</option>
+            <option value="inactive">Non-Aktif</option>
           </select>
           <select value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)}
             className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-asgard-primary cursor-pointer shadow-sm">
