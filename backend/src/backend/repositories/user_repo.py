@@ -26,6 +26,12 @@ def get_admin_by_tenant(db: Session, tenant_id: str):
         User.role == UserRole.ADMIN
     ).first()
 
+def get_admins_by_tenant(db: Session, tenant_id: str) -> List[User]:
+    return db.query(User).filter(
+        User.tenant_id == tenant_id,
+        User.role == UserRole.ADMIN
+    ).all()
+
 def get_all_superadmins(db: Session) -> List[User]:
     return db.query(User).filter(User.role == UserRole.SUPERADMIN).all()
 

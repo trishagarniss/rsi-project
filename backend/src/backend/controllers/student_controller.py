@@ -2,12 +2,16 @@ from sqlalchemy.orm import Session
 from src.backend.dto.student_dto import StudentCreateDTO, StudentResponseDTO
 from src.backend.services import student_service
 from src.backend.services.audit_log_service import record_activity
-from src.backend.services.notification_service import notify_all_superadmins
+from src.backend.services.notification_service import notify_tenant_admins
 from src.backend.models.user import User
 
 def register_student(db: Session, student_data: StudentCreateDTO, current_user: User):
     new_student = student_service.register_student(db, student_data, current_user)
     record_activity(db, "CREATE", "student", current_user, entity_id=new_student.id, details={"nisn": student_data.nisn, "fullname": student_data.fullname})
+    notify_tenant_admins(db, current_user.tenant_id,
+        f"Siswa Baru: {new_student.fullname}",
+        f"Siswa {new_student.fullname} (NISN: {student_data.nisn}) berhasil didaftarkan oleh {current_user.fullname}.",
+        "info", "student", new_student.id)
     return {
         "status": "success",
         "message": "Data siswa berhasil disimpan",

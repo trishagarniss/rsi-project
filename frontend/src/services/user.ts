@@ -1,5 +1,5 @@
 import { get, post, put, del } from '@/lib/api-client';
-import { User, UserUpdateDTO, SuperadminStaffCreateDTO } from '@/types/user';
+import { User, UserUpdateDTO, StaffCreateDTO, SuperadminStaffCreateDTO } from '@/types/user';
 
 export interface Tenant {
   id: string;
@@ -59,6 +59,13 @@ export const userService = {
    */
   async registerAdmin(regCode: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
     return post(`/auth/register/${regCode}`, data);
+  },
+
+  /**
+   * Create a staff member (admin, counselor) by admin within their own tenant
+   */
+  async createStaff(data: StaffCreateDTO): Promise<{ status: string; message: string; data: User }> {
+    return post<{ status: string; message: string; data: User }>('/users/staff', data);
   },
 
   /**

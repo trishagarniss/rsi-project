@@ -3,7 +3,7 @@
 import React from "react";
 import {
   BookOpen, ShieldCheck, Users, Building2, Brain,
-  Activity, ClipboardList, Settings2, GraduationCap,
+  Activity, ClipboardList, Settings2,
   UserPlus, Key, Monitor, ExternalLink
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
@@ -19,12 +19,13 @@ const sections = [
   {
     icon: Building2,
     title: "Kelola Tenant",
-    desc: "Halaman untuk mengelola data sekolah atau instansi yang terdaftar di sistem. Anda dapat menambahkan tenant baru, mengedit informasi tenant, dan menonaktifkan tenant. Setiap tenant memiliki kode registrasi unik yang digunakan untuk mendaftarkan Admin Sekolah.",
+    desc: "Halaman untuk mengelola data sekolah atau instansi yang terdaftar di sistem. Anda dapat menambahkan tenant baru, mengedit informasi tenant, dan menonaktifkan tenant. Setiap tenant memiliki kode registrasi unik yang digunakan untuk mendaftarkan Admin Sekolah. Ringkasan statistik tenant tersedia di halaman Beranda.",
     features: [
       "Tambah, edit, dan hapus tenant",
       "Lihat & salin kode registrasi tenant",
       "Setel ulang kode registrasi",
       "Aktifkan / nonaktifkan tenant",
+      "Lihat ringkasan statistik tenant di Beranda",
     ],
     link: "/superadmin/kelola-tenant",
   },
@@ -52,12 +53,6 @@ const sections = [
       "Hapus model yang tidak digunakan",
     ],
     link: "/models",
-  },
-  {
-    icon: GraduationCap,
-    title: "Data Siswa",
-    desc: "Pantau seluruh data siswa yang terdaftar di semua tenant. Halaman ini menampilkan total siswa di seluruh instansi, status, dan informasi dasar lainnya.",
-    link: "/superadmin/kelola-tenant",
   },
   {
     icon: ClipboardList,
