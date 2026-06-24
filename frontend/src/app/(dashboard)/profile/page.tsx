@@ -46,7 +46,8 @@ function PasswordModal({ open, onClose }: { open: boolean; onClose: () => void }
       setSuccessMsg("Password berhasil diubah!");
       setOldPassword(""); setNewPassword(""); setConfirmPassword("");
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Gagal mengubah password.");
+      const detail = (err as any)?.response?.data?.detail || (err instanceof Error ? err.message : "Gagal mengubah password.");
+      setErrorMsg(detail);
     } finally { setLoading(false); }
   };
 
@@ -122,7 +123,8 @@ function SessionModal({ open, onClose }: { open: boolean; onClose: () => void })
       const res = await authService.logoutAllDevices();
       if (res.status === "success") setSessionMsg("Perangkat lain telah di-logout.");
     } catch (err: unknown) {
-      setSessionMsg(err instanceof Error ? err.message : "Gagal.");
+      const detail = (err as any)?.response?.data?.detail || (err instanceof Error ? err.message : "Gagal.");
+      setSessionMsg(detail);
     } finally { setSessionLoading(false); }
   };
 
@@ -243,7 +245,8 @@ export default function ProfilePage() {
       if (res.data) refreshUser(res.data);
       setSuccessMsg("Profil berhasil diperbarui!");
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Gagal memperbarui profil.");
+      const detail = (err as any)?.response?.data?.detail || (err instanceof Error ? err.message : "Gagal memperbarui profil.");
+      setErrorMsg(detail);
     } finally { setProfileLoading(false); }
   };
 

@@ -49,6 +49,8 @@ export async function del<T = unknown>(url: string, config?: AxiosRequestConfig)
     return response.data;
 }
 
+export { apiClient };
+
 export async function uploadFile<T = unknown>(url: string, data: FormData | File, fieldName = 'file', config?: AxiosRequestConfig): Promise<T> {
     const formData = data instanceof File ? (() => { const fd = new FormData(); fd.append(fieldName, data); return fd; })() : data;
     const response: AxiosResponse<T> = await apiClient.post(url, formData, {

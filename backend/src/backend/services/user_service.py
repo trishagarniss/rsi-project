@@ -116,6 +116,11 @@ def get_user_detail(db: Session, user_id: str, current_user: User) -> User:
 def modify_existing_user(db: Session, user_id: str, update_data: UserUpdateDTO, current_user: User) -> User:
     target_user = get_user_detail(db, user_id, current_user)
     
+    if current_user.role == UserRole.COUNSELOR:
+        if current_user.id != target_user.id:
+            raise HTTPException(status_code=403, detail="Anda hanya dapat mengubah profil Anda sendiri.")
+        return user_repo.update_user(db, user_id, update_data)
+
     if current_user.role == UserRole.ADMIN:
         if target_user.role == UserRole.ADMIN and current_user.id != target_user.id:
             raise HTTPException(status_code=403, detail="Anda tidak diperbolehkan mengubah data sesama Admin.")

@@ -43,7 +43,7 @@ def get_user_detail(
 @router.put("/{user_id}")
 def update_user(
     user_id: str, update_data: UserUpdateDTO, db: Session = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.SUPERADMIN, UserRole.ADMIN]))
+    current_user: User = Depends(require_role([UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.COUNSELOR]))
 ):
     return user_controller.update_user_profile(db=db, user_id=user_id, update_data=update_data, current_user=current_user)
 

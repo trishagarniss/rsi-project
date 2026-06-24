@@ -1,10 +1,9 @@
 ﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import RiskBadge from '@/components/ui/RiskBadge';
 import Button from '@/components/ui/Button';
-import { get } from '@/lib/api-client';
+import { get, apiClient } from '@/lib/api-client';
 
 // --- TIPE DATA ---
 interface CounselingRow {
@@ -20,9 +19,9 @@ interface CounselingRow {
 
 // Fungsi pembantu klasifikasi risiko
 const getRiskLevel = (score: number) => {
-  if (score >= 80) return 'Tinggi';
-  if (score >= 60) return 'Sedang';
-  if (score >= 40) return 'Rendah';
+  if (score >= 0.8) return 'Tinggi';
+  if (score >= 0.6) return 'Sedang';
+  if (score >= 0.4) return 'Rendah';
   return 'Aman';
 };
 
@@ -57,11 +56,11 @@ export default function CounselingManagement() {
         // FETCH PARALEL: Ambil data Siswa & Prediksi (Sama seperti Dashboard)
         // ==============================================================
         const [studentsResponse, predictionsResponse]: [any, any] = await Promise.all([
-          get('/students/?skip=0&limit=2000').catch(() => [] as any[]),
-          get('/predictions/student/all').catch(() => get('/predictions/?skip=0&limit=2000')).catch(() => [] as any[])
+          get('/students/?skip=0&limit=2000').catch(() => ([] as any[])),
+          get('/predictions/?skip=0&limit=2000').catch(() => ([] as any[]))
         ]);
 
-        const studentsArray = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.items || studentsResponse.data || []);
+        const studentsArray = (Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.items || studentsResponse.data || [])).filter((s: any) => s.is_active);
         const predictionsArray = Array.isArray(predictionsResponse) ? predictionsResponse : (predictionsResponse.items || predictionsResponse.data || []);
 
         // Proses Penggabungan Data
@@ -79,7 +78,7 @@ export default function CounselingManagement() {
             risk_score: score,
             riskLevel: level,
             tanggal: formatDate(pred?.created_at),
-            topik: 'Belum ada catatan evaluasi kritis',
+            topik: pred?.risk_score ? 'Skor Risiko: ' + Math.round(pred.risk_score * 100) + '%' : 'Belum ada prediksi',
           };
         });
 
@@ -232,7 +231,21 @@ export default function CounselingManagement() {
                           variant="primary"
                           size="sm" 
                           className="text-xs px-4 py-2 h-auto w-full whitespace-nowrap"
-                          onClick={() => window.open('/api/v1/counseling/download-template', '_blank')}
+                          onClick={async () => {
+                            try {
+                              const res = await apiClient.get('/counseling/download-template', { responseType: 'blob' });
+                              const url = window.URL.createObjectURL(new Blob([res.data]));
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = 'Template_Surat_Panggilan.docx';
+                              document.body.appendChild(a);
+                              a.click();
+                              a.remove();
+                              window.URL.revokeObjectURL(url);
+                            } catch (e) {
+                              alert('Gagal mengunduh template. Pastikan Anda login sebagai Konselor.');
+                            }
+                          }}
                         >
                           <svg className="w-4 h-4 mr-1.5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                           Cetak Surat
