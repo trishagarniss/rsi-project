@@ -52,6 +52,46 @@ EDU_MAP = {
 HOUSING_CATEGORIES = ["orphanage", "other", "owned", "rented", "with_relatives"]
 TRANSPORT_CATEGORIES = ["bicycle", "bus", "car", "motorcycle", "walk"]
 
+FEATURE_LABELS = {
+    "avg_score": "Rata-rata nilai akademik",
+    "min_score": "Nilai terendah",
+    "max_score": "Nilai tertinggi",
+    "std_score": "Variasi nilai",
+    "total_failed": "Jumlah mata pelajaran tidak tuntas",
+    "total_incomplete": "Jumlah tugas tidak terkumpul",
+    "semester_count": "Jumlah semester",
+    "last_score": "Nilai semester terakhir",
+    "failed_rate": "Rasio mata pelajaran tidak tuntas",
+    "incomplete_rate": "Rasio tugas tidak terkumpul",
+    "score_trend": "Tren nilai akademik",
+    "avg_attendance": "Rata-rata kehadiran",
+    "total_unexcused": "Jumlah ketidakhadiran tanpa izin",
+    "total_sick": "Jumlah ketidakhadiran sakit",
+    "total_excused": "Jumlah ketidakhadiran izin",
+    "attendance_trend": "Tren kehadiran",
+    "parents_income": "Pendapatan orang tua",
+    "monthly_expenses": "Pengeluaran bulanan",
+    "birth_order": "Urutan kelahiran",
+    "dependents_count": "Jumlah tanggungan",
+    "has_kip_scholarship": "Penerima KIP",
+    "is_working_student": "Siswa bekerja",
+    "has_internet_access": "Akses internet",
+    "distance_to_school_km": "Jarak ke sekolah",
+    "expense_ratio": "Rasio pengeluaran terhadap pendapatan",
+    "is_firstborn": "Anak pertama",
+    "age": "Usia",
+    "gender_male": "Jenis kelamin (Laki-laki)",
+    "edu_level": "Pendidikan orang tua",
+    "housing_status_owned": "Status tempat tinggal (Milik sendiri)",
+    "housing_status_rented": "Status tempat tinggal (Kontrak)",
+    "housing_status_with_relatives": "Status tempat tinggal (Bersama kerabat)",
+    "housing_status_other": "Status tempat tinggal (Lainnya)",
+    "transportation_mode_motorcycle": "Transportasi (Motor)",
+    "transportation_mode_bus": "Transportasi (Bus)",
+    "transportation_mode_car": "Transportasi (Mobil)",
+    "transportation_mode_walk": "Transportasi (Jalan kaki)",
+}
+
 
 def _build_feature_vector(academic_data, attendance_data, se_data, student):
     ac_rows = sorted(academic_data, key=lambda x: x.semester)
@@ -345,6 +385,15 @@ def auto_predict_on_data_change(db: Session, student_id: str, current_user: User
 
         risk_status = 1 if risk_score >= threshold else 0
 
+        factors = []
+        if hasattr(model, "feature_importances_"):
+            importances = model.feature_importances_
+            if importances is not None:
+                indices = np.argsort(importances)[::-1][:5]
+                for i in indices:
+                    label = FEATURE_LABELS.get(FEATURE_COLUMNS[i], FEATURE_COLUMNS[i])
+                    factors.append(label)
+
         pred_data = RiskPredictionCreateDTO(
             student_id=student.id,
             model_id=active_model.id,
@@ -352,7 +401,9 @@ def auto_predict_on_data_change(db: Session, student_id: str, current_user: User
             risk_status=risk_status,
         )
 
-        return risk_prediction_repo.replace_prediction(db, pred_data.model_dump(), current_user.tenant_id)
+        pred_obj = risk_prediction_repo.replace_prediction(db, pred_data.model_dump(), current_user.tenant_id)
+        pred_obj.factors = factors
+        return pred_obj
     except Exception as e:
         print(f"ERROR auto_predict {student_id}: {e}")
         return None
@@ -436,16 +487,31 @@ def upload_file(db: Session, tenant_id: str, df: dict):
         ).all()
     }
 
+    all_nisn = [str(df["nisn"][i]).strip() for i in range(n) if str(df["nisn"][i]).strip()]
+    nisn_conflicts = {}
+    if all_nisn:
+        for s in db.query(Student).filter(
+            Student.nisn.in_(all_nisn), Student.deleted_at == None
+        ).all():
+            if s.nisn:
+                nisn_conflicts[s.nisn] = s
+
     T = [tenant_id] * n
     S = []
     aktif = [True] * n
     AC = []
     AT = []
     SE = []
+    skip = [False] * n
     for i in range(n):
         nis = str(df["nis"][i]).strip()
+        nisn = str(df["nisn"][i]).strip()
         if nis in existing:
             S.append(existing[nis].id)
+        elif nisn and nisn in nisn_conflicts and nisn_conflicts[nisn].nis != nis:
+            print(f"SKIP row {i}: NISN {nisn} milik siswa dengan NIS berbeda ({nisn_conflicts[nisn].nis}), skipping")
+            S.append(None)
+            skip[i] = True
         else:
             S.append(generate_student_id())
         AC.append(f"AC_{uuid.uuid4()}")
@@ -465,6 +531,8 @@ def upload_file(db: Session, tenant_id: str, df: dict):
     socio_table = SocioEconomic.__table__
 
     for i in range(n):
+        if skip[i]:
+            continue
         nis = str(df["nis"][i]).strip()
         sid = S[i]
 

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class RiskPredictionCreateDTO(BaseModel):
@@ -34,6 +34,7 @@ class RiskPredictionListDTO(BaseModel):
     risk_status: int
     risk_score: float
     created_at: datetime
+    factors: List[str] = []
 
     class Config:
         from_attributes = True

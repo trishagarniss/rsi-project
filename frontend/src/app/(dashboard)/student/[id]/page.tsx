@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, User, BookOpen, Clock, Wallet, Brain,
   Loader2, AlertCircle, Upload, RefreshCw,
-  ChevronLeft,
+  ChevronLeft, AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { get, post } from "@/lib/api-client";
@@ -21,6 +21,7 @@ interface PredictionRecord {
   risk_status: number;
   risk_score: number;
   created_at: string;
+  factors: string[];
 }
 
 type RiskLevel = "Tinggi" | "Sedang" | "Rendah" | "Aman";
@@ -458,6 +459,22 @@ export default function StudentDetail() {
                     </div>
                   </div>
                 </div>
+
+                {/* Faktor Risiko Utama */}
+                {prediction.factors && prediction.factors.length > 0 && (
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <h3 className="text-lg font-black text-asgard-primary mb-4">Faktor Risiko Utama</h3>
+                    <div className="space-y-3">
+                      {prediction.factors.map((factor, idx) => (
+                        <div key={idx} className="flex items-center gap-3 bg-red-50 rounded-xl px-4 py-3 border border-red-100">
+                          <AlertTriangle size={18} className="text-red-500 shrink-0" />
+                          <span className="text-sm font-bold text-slate-700">{factor}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs font-medium text-slate-400 mt-3">Berdasarkan analisis model prediksi terhadap data siswa.</p>
+                  </div>
+                )}
 
                 {/* Ringkasan data pendukung */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -15,6 +15,7 @@ interface CounselingRow {
   riskLevel: 'Tinggi' | 'Sedang' | 'Rendah' | 'Aman';
   topik: string;
   tanggal: string;
+  factors: string[];
 }
 
 // Fungsi pembantu klasifikasi risiko
@@ -70,6 +71,7 @@ export default function CounselingManagement() {
           const score = pred?.risk_score || 0;
           const level = getRiskLevel(score);
 
+          const factors = pred?.factors || [];
           return {
             id: student.id,
             name: student.name || 'Nama Tidak Diketahui',
@@ -79,6 +81,7 @@ export default function CounselingManagement() {
             riskLevel: level,
             tanggal: formatDate(pred?.created_at),
             topik: pred?.risk_score ? 'Skor Risiko: ' + Math.round(pred.risk_score * 100) + '%' : 'Belum ada prediksi',
+            factors,
           };
         });
 
@@ -223,7 +226,17 @@ export default function CounselingManagement() {
                     <RiskBadge level={sesi.riskLevel as any} />
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-sm font-medium text-slate-600 line-clamp-2">{sesi.topik}</p>
+                    {sesi.factors && sesi.factors.length > 0 ? (
+                      <div className="space-y-1">
+                        {sesi.factors.map((f, i) => (
+                          <span key={i} className="inline-block bg-red-50 text-red-700 text-[11px] font-bold px-2.5 py-1 rounded-full border border-red-100 mr-1 mb-1">
+                            {f}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium text-slate-600">{sesi.topik}</p>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">

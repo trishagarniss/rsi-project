@@ -12,6 +12,7 @@ export interface PredictionRecord {
   risk_status: number;
   risk_score: number;
   created_at: string;
+  factors: string[];
 }
 
 interface PredictionListResponse {
