@@ -66,9 +66,14 @@ def upload_file(db : Session,  current_user: User, df : dict) :
     } :
         if i not in df :
             raise HTTPException(status_code=400, detail="Kolom data tidak lengkap!")
-    risk_prediction_service.upload_file(db,current_user.tenant_id, df)
+    risk_prediction_service.upload_file(db, current_user.tenant_id, df)
+    
+    predicted_count = 0
+    for sid in df["student_id"]:
+        risk_prediction_service.auto_predict_on_data_change(db, sid, current_user)
+        predicted_count += 1
     
     return {
         "status": "success",
-        "message": "Data berhasil masuk!"
+        "message": f"Data berhasil masuk! {predicted_count} siswa diprediksi."
     }

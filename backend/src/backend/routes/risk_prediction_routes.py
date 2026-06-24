@@ -33,6 +33,13 @@ def trigger_all_unpredicted_prediction(
 ):
     return risk_prediction_controller.predict_all_students(db, current_user)
 
+@router.get("/student/all")
+def get_all_student_predictions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
+):
+    return risk_prediction_controller.get_prediction_history_all(db, current_user)
+
 @router.get("/student/{student_id}")
 def get_student_latest_prediction(
     student_id: str,
@@ -40,13 +47,6 @@ def get_student_latest_prediction(
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
 ):
     return risk_prediction_controller.get_prediction_history(db, student_id, current_user)
-
-@router.get("/student/all")
-def get_student_latest_prediction(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.COUNSELOR]))
-):
-    return risk_prediction_controller.get_prediction_history_all(db, current_user)
 
 @router.get("/count")
 def get_prediction_count(
@@ -72,7 +72,7 @@ async def upload_csv(file: UploadFile = File(...),db: Session = Depends(get_db),
         contents = await file.read()
         data = io.BytesIO(contents)
         df = pd.read_csv(data)
-        df.to_dict(orient="list")
+        df = df.to_dict(orient="list")
         return risk_prediction_controller.upload_file(db,current_user,df)
         
     except Exception as e:

@@ -1,11 +1,11 @@
 ﻿"use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend,
 } from "recharts";
 import {
   Users, AlertTriangle, Activity, TrendingUp, UserCheck,
@@ -15,7 +15,12 @@ import {
 import { dashboardService } from "@/services/dashboard";
 import StatCard from "@/components/ui/StatCard";
 
-const PIE_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#94a3b8"];
+const PIE_COLORS: Record<string, string> = {
+  Tinggi: "#ef4444",
+  Sedang: "#f59e0b",
+  Rendah: "#10b981",
+  Aman: "#94a3b8",
+};
 const BAR_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#94a3b8"];
 
 function Counter({ value, suffix = "", className = "" }: { value: number; suffix?: string; className?: string }) {
@@ -35,6 +40,29 @@ export default function DashboardPage() {
     refetchInterval: 60000,
   });
 
+  const [filterYear, setFilterYear] = useState("");
+  const [filterSemester, setFilterSemester] = useState("");
+
+  const uniqueYears = useMemo(() => {
+    if (!raw?.semester_trends) return [];
+    const years = [...new Set(raw.semester_trends.map((s) => s.academic_year))];
+    return years.sort();
+  }, [raw]);
+
+  const uniqueSemesters = useMemo(() => {
+    if (!raw?.semester_trends) return [];
+    const sems = [...new Set(raw.semester_trends.map((s) => s.semester))];
+    return sems.sort((a, b) => a - b);
+  }, [raw]);
+
+  const filteredTrends = useMemo(() => {
+    if (!raw?.semester_trends) return [];
+    let data = raw.semester_trends;
+    if (filterYear) data = data.filter((s) => s.academic_year === filterYear);
+    if (filterSemester) data = data.filter((s) => s.semester === Number(filterSemester));
+    return data;
+  }, [raw, filterYear, filterSemester]);
+
   const pieData = useMemo(() => {
     if (!raw) return [];
     return [
@@ -42,7 +70,7 @@ export default function DashboardPage() {
       { name: "Sedang", value: raw.predictions.sedang },
       { name: "Rendah", value: raw.predictions.rendah },
       { name: "Aman", value: raw.predictions.aman },
-    ].filter((d) => d.value > 0);
+    ];
   }, [raw]);
 
   const barData = useMemo(() => {
@@ -152,8 +180,8 @@ export default function DashboardPage() {
                     paddingAngle={3}
                     dataKey="value"
                   >
-                    {pieData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index]} />
+                    {pieData.map((entry) => (
+                      <Cell key={entry.name} fill={PIE_COLORS[entry.name]} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -163,9 +191,9 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="space-y-2 min-w-[140px]">
-                {pieData.map((item, i) => (
+                {pieData.map((item) => (
                   <div key={item.name} className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[i] }} />
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[item.name] }} />
                     {item.name}
                     <span className="ml-auto">{item.value}</span>
                   </div>
@@ -202,13 +230,67 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ===== BARIS 3: ACADEMIC + ATTENDANCE + DATA COMPLETENESS ===== */}
+      {/* ===== BARIS 3: SEMESTER TRENDS ===== */}
+      {raw.semester_trends.length > 0 && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h3 className="text-base font-black text-asgard-primary">Tren Akademik per Semester</h3>
+            <div className="flex gap-2">
+              <select
+                value={filterYear}
+                onChange={(e) => setFilterYear(e.target.value)}
+                className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-3 py-2 focus:outline-none focus:border-asgard-primary cursor-pointer"
+              >
+                <option value="">Semua Tahun</option>
+                {uniqueYears.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <select
+                value={filterSemester}
+                onChange={(e) => setFilterSemester(e.target.value)}
+                className="bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-3 py-2 focus:outline-none focus:border-asgard-primary cursor-pointer"
+              >
+                <option value="">Semua Semester</option>
+                {uniqueSemesters.map((s) => (
+                  <option key={s} value={String(s)}>Semester {s}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {filteredTrends.length === 0 ? (
+            <div className="flex items-center justify-center h-64 text-slate-400 text-sm font-bold">
+              Tidak ada data untuk filter yang dipilih
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={filteredTrends.map((s) => ({
+                label: `S${s.semester} ${s.academic_year}`,
+                "Rata-rata Nilai": s.avg_score ?? 0,
+                "Rata-rata Kehadiran": s.avg_attendance ?? 0,
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                <Tooltip
+                  contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "12px" }}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="Rata-rata Nilai" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="Rata-rata Kehadiran" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      )}
+
+      {/* ===== BARIS 4: ACADEMIC + ATTENDANCE + DATA COMPLETENESS ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Academic & Attendance Summary */}
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <h3 className="text-base font-black text-asgard-primary mb-4">Ringkasan Akademik & Kehadiran</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-xl p-5 border border-indigo-200">
+            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <BookOpen size={16} className="text-indigo-500" />
                 <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">Nilai Rata-rata</span>
@@ -225,7 +307,7 @@ export default function DashboardPage() {
                 {raw.academic_summary.students_with_failures} siswa dengan nilai gagal
               </p>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-5 border border-purple-200">
+            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <Clock size={16} className="text-purple-500" />
                 <span className="text-[10px] font-black text-purple-600 uppercase tracking-wider">Kehadiran Rata-rata</span>
@@ -271,7 +353,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ===== BARIS 4: TABEL KRITIS + AKTIVITAS ===== */}
+      {/* ===== BARIS 5: TABEL KRITIS + AKTIVITAS ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top 5 Critical */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">

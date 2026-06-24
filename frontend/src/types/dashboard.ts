@@ -29,7 +29,16 @@ export interface DashboardData {
     with_attendance: number;
     with_socio_economic: number;
   };
+  semester_trends: SemesterTrend[];
   recent_activities: RecentActivity[];
+}
+
+export interface SemesterTrend {
+  semester: number;
+  academic_year: string;
+  avg_score: number | null;
+  avg_attendance: number | null;
+  student_count: number;
 }
 
 export interface TopCriticalStudent {

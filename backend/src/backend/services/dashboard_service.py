@@ -137,7 +137,49 @@ def build_admin_dashboard(db: Session, current_user: User) -> dict:
         or 0
     )
 
-    # 8. Recent activities (last 10 audit logs)
+    # 8. Semester trends (academic & attendance per semester)
+    academic_trend_query = (
+        db.query(
+            Academic.semester,
+            Academic.academic_year,
+            func.avg(Academic.average_score).label("avg_score"),
+            func.count(func.distinct(Academic.student_id)).label("student_count"),
+        )
+        .filter(Academic.tenant_id == tenant_id, Academic.deleted_at == None)
+        .group_by(Academic.semester, Academic.academic_year)
+        .order_by(Academic.academic_year, Academic.semester)
+        .all()
+    )
+
+    attendance_trend_query = (
+        db.query(
+            Attendance.semester,
+            Attendance.academic_year,
+            func.avg(Attendance.attendance_percentage).label("avg_percentage"),
+        )
+        .filter(Attendance.tenant_id == tenant_id, Attendance.deleted_at == None)
+        .group_by(Attendance.semester, Attendance.academic_year)
+        .order_by(Attendance.academic_year, Attendance.semester)
+        .all()
+    )
+
+    attendance_map = {}
+    for at in attendance_trend_query:
+        key = (at.academic_year, at.semester)
+        attendance_map[key] = round(at.avg_percentage, 2) if at.avg_percentage else None
+
+    semester_trends = []
+    for ac in academic_trend_query:
+        key = (ac.academic_year, ac.semester)
+        semester_trends.append({
+            "semester": ac.semester,
+            "academic_year": ac.academic_year,
+            "avg_score": round(ac.avg_score, 2) if ac.avg_score else None,
+            "avg_attendance": attendance_map.get(key),
+            "student_count": ac.student_count,
+        })
+
+    # 9. Recent activities (last 10 audit logs)
     recent_logs = (
         db.query(AuditLog)
         .filter(AuditLog.tenant_id == tenant_id)
@@ -194,5 +236,6 @@ def build_admin_dashboard(db: Session, current_user: User) -> dict:
             "with_attendance": students_with_attendance,
             "with_socio_economic": students_with_socio,
         },
+        "semester_trends": semester_trends,
         "recent_activities": recent_activities,
     }
