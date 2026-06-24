@@ -231,7 +231,7 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
  try {
   const deleteRes = await userService.deleteUser(selectedUser.id);
   if (deleteRes.status === "success") {
-  setSuccessMsg(`Akun pengguna "${selectedUser.fullname}" berhasil dihapus.`);
+   setSuccessMsg(`Akun pengguna "${selectedUser.fullname}" berhasil dinonaktifkan.`);
   setIsDeleteModalOpen(false);
   setSelectedUser(null);
   loadData();
@@ -755,7 +755,7 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
     <div className="w-3.5 h-3.5 rounded-full bg-[#27C93F] border-2 border-[#1DAB34]" />
     <div className="ml-3 text-sm font-extrabold text-slate-700 flex items-center gap-2">
     <Trash2 className="text-red-500" size={16} />
-    Hapus Akun
+     Nonaktifkan Akun
     </div>
     <button onClick={() => setIsDeleteModalOpen(false)} className="ml-auto p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
     <X size={18} />
@@ -766,9 +766,9 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
     <div className="w-16 h-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-4 border-2 border-red-100">
     <Trash2 size={28} />
     </div>
-    <h3 className="text-xl font-extrabold text-slate-800">Hapus Akun Pengguna?</h3>
+    <h3 className="text-xl font-extrabold text-slate-800">Nonaktifkan Akun Pengguna?</h3>
     <p className="text-slate-500 text-sm mt-2 px-2 leading-relaxed font-medium">
-    Apakah Anda yakin ingin menghapus akun **{selectedUser?.fullname}**? Tindakan ini permanen dan tidak dapat dibatalkan.
+    Apakah Anda yakin ingin menonaktifkan akun <strong>{selectedUser?.fullname}</strong>? Akun yang dinonaktifkan tidak dapat digunakan untuk login, tetapi dapat diaktifkan kembali melalui menu edit.
     </p>
    </div>
 
@@ -788,7 +788,7 @@ useEffect(() => { loadData(); // eslint-disable-line react-hooks/set-state-in-ef
     className="flex-1 py-3.5 bg-red-500 hover:bg-red-600 text-white text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 border-2 border-red-200"
     >
     {actionLoading && <Loader2 size={14} className="animate-spin" />}
-    Ya, Hapus
+    Ya, Nonaktifkan
     </button>
    </div>
 
