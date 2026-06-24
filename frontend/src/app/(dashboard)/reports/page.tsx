@@ -8,18 +8,19 @@ interface RiskPredictionRecord {
   id: string;
   student_id: string;
   model_id: string;
-  risk_status: 'at_risk' | 'not_at_risk';
+  risk_status: number;
   risk_score: number;
   created_at: string;
 }
 
 type RiskLevel = 'Tinggi' | 'Sedang' | 'Rendah' | 'Aman';
 
-function formatRiskLabel(risk_score: number, risk_status: string): RiskLevel {
-  if (risk_status === 'not_at_risk') return 'Aman';
-  if (risk_score >= 0.7) return 'Tinggi';
-  if (risk_score >= 0.4) return 'Sedang';
-  return 'Rendah';
+function formatRiskLabel(risk_score: number, risk_status: number): RiskLevel {
+  if (risk_status === 0) return 'Aman';
+  if (risk_score >= 0.8) return 'Tinggi';
+  if (risk_score >= 0.6) return 'Sedang';
+  if (risk_score >= 0.4) return 'Rendah';
+  return 'Aman';
 }
 
 
@@ -53,7 +54,7 @@ export default function ReportsAnalytics() {
           get<{ status: string; data: AuditLog[] }>('/audit-logs/?skip=0&limit=999999'),
         ]);
 
-        const studentRecords = studentRes.status === 'fulfilled' ? studentRes.value.data : [];
+        const studentRecords = (studentRes.status === 'fulfilled' ? studentRes.value.data : []).filter((s) => s.is_active);
         const logs = auditRes.status === 'fulfilled' ? auditRes.value.data : [];
 
         const predictionResults = await Promise.allSettled(
@@ -110,12 +111,14 @@ export default function ReportsAnalytics() {
     return { totalStudents, highRiskStudents, totalPredicted, activeLogs };
   }, [auditLogs, students]);
 
+  const predictedStudents = useMemo(() => students.filter((s) => s.latestPrediction), [students]);
+
   const riskDistribution = useMemo(() => [
-    { label: 'Tinggi', count: students.filter((s) => s.riskLevel === 'Tinggi').length, color: 'bg-red-500' },
-    { label: 'Sedang', count: students.filter((s) => s.riskLevel === 'Sedang').length, color: 'bg-amber-500' },
-    { label: 'Rendah', count: students.filter((s) => s.riskLevel === 'Rendah').length, color: 'bg-yellow-500' },
-    { label: 'Aman', count: students.filter((s) => s.riskLevel === 'Aman').length, color: 'bg-emerald-500' },
-  ], [students]);
+    { label: 'Tinggi', count: predictedStudents.filter((s) => s.riskLevel === 'Tinggi').length, color: 'bg-red-500' },
+    { label: 'Sedang', count: predictedStudents.filter((s) => s.riskLevel === 'Sedang').length, color: 'bg-amber-500' },
+    { label: 'Rendah', count: predictedStudents.filter((s) => s.riskLevel === 'Rendah').length, color: 'bg-yellow-500' },
+    { label: 'Aman', count: predictedStudents.filter((s) => s.riskLevel === 'Aman').length, color: 'bg-emerald-500' },
+  ], [predictedStudents]);
 
   const topRiskStudents = useMemo(() =>
     [...students].filter((s) => s.latestPrediction).sort((a, b) => (b.latestPrediction?.risk_score ?? 0) - (a.latestPrediction?.risk_score ?? 0)).slice(0, 5),
