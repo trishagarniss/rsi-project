@@ -1,4 +1,5 @@
 import os
+import uuid
 import numpy as np
 import pandas as pd
 import joblib
@@ -346,9 +347,9 @@ def auto_predict_on_data_change(db: Session, student_id: str, current_user: User
             risk_status=risk_status,
         )
 
-        risk_prediction_repo.replace_prediction(db, pred_data.model_dump(), current_user.tenant_id)
+        return risk_prediction_repo.replace_prediction(db, pred_data.model_dump(), current_user.tenant_id)
     except Exception:
-        pass
+        return None
 
 
 def fetch_student_prediction_history(db: Session, student_id: str, current_user: User):
@@ -388,13 +389,22 @@ def upload_file(db : Session, tenant_id : str, df : dict) :
     T = []
     S = []
     aktif = []
+    AC = []
+    AT = []
+    SE = []
     for i in range(len(df["name"])) :
         T.append(tenant_id)
         S.append(generate_student_id())
         aktif.append(True)
+        AC.append(f"AC_{uuid.uuid4()}")
+        AT.append(f"AT_{uuid.uuid4()}")
+        SE.append(f"SE_{uuid.uuid4()}")
     df["tenant_id"] = T
     df["student_id"] = S
     df["is_active"] = aktif
+    df["academic_id"] = AC
+    df["attendance_id"] = AT
+    df["socio_id"] = SE
     
     engine = db.get_bind()
     
@@ -413,9 +423,10 @@ def upload_file(db : Session, tenant_id : str, df : dict) :
     try:
         pd.DataFrame(STUDENT).to_sql('students', con=engine, if_exists='append', index=False)
     except Exception as e:
-        pass
+        print(f"ERROR insert students: {e}")
     
     ACADEMIC = {}
+    ACADEMIC["id"] = df["academic_id"]
     ACADEMIC["student_id"] = df["student_id"]
     ACADEMIC["tenant_id"] = df["tenant_id"]
     ACADEMIC["semester"] = df["semester"]
@@ -426,9 +437,10 @@ def upload_file(db : Session, tenant_id : str, df : dict) :
     try:
         pd.DataFrame(ACADEMIC).to_sql('academics', con=engine, if_exists='append', index=False)
     except Exception as e:
-        pass
+        print(f"ERROR insert academics: {e}")
     
     ATTENDANCE = {}
+    ATTENDANCE["id"] = df["attendance_id"]
     ATTENDANCE["student_id"] = df["student_id"]
     ATTENDANCE["tenant_id"] = df["tenant_id"]
     ATTENDANCE["semester"] = df["semester"]
@@ -441,9 +453,10 @@ def upload_file(db : Session, tenant_id : str, df : dict) :
     try:
         pd.DataFrame(ATTENDANCE).to_sql('attendances', con=engine, if_exists='append', index=False)
     except Exception as e:
-        pass
+        print(f"ERROR insert attendances: {e}")
     
     SOCIO_ECONOMY = {}
+    SOCIO_ECONOMY["id"] = df["socio_id"]
     SOCIO_ECONOMY["student_id"] = df["student_id"] 
     SOCIO_ECONOMY["tenant_id"] = df["tenant_id"]
     SOCIO_ECONOMY["parents_income"] = df["parents_income"]
@@ -460,4 +473,4 @@ def upload_file(db : Session, tenant_id : str, df : dict) :
     try:
         pd.DataFrame(SOCIO_ECONOMY).to_sql('socio_economics', con=engine, if_exists='append', index=False)
     except Exception as e:
-        pass
+        print(f"ERROR insert socio_economics: {e}")

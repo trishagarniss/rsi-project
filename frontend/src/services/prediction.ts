@@ -22,6 +22,7 @@ interface PredictionListResponse {
 interface UploadResponse {
   status: string;
   message: string;
+  data?: PredictionRecord[];
 }
 
 export const predictionService = {

@@ -1,34 +1,45 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { Brain, Upload, FileText, Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Brain, Upload, FileText, Loader2, CheckCircle, XCircle, AlertTriangle, ChevronLeft, ChevronRight, History } from "lucide-react";
 import { predictionService, type PredictionRecord } from "@/services/prediction";
 import Button from "@/components/ui/Button";
+
+const PAGE_SIZE = 10;
 
 export default function PredictionPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [predictions, setPredictions] = useState<PredictionRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [uploadResults, setUploadResults] = useState<PredictionRecord[] | null>(null);
+  const [allHistory, setAllHistory] = useState<PredictionRecord[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadPredictions();
-  }, []);
+  const displayData = showHistory ? allHistory : (uploadResults ?? []);
+  const totalPages = Math.max(Math.ceil(displayData.length / PAGE_SIZE), 1);
+  const paginated = displayData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const firstIdx = displayData.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
 
-  async function loadPredictions() {
+  const pageNums = Array.from({ length: totalPages }, (_, i) => i + 1).slice(
+    Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2),
+  );
+
+  async function loadAllHistory() {
     try {
-      setIsLoading(true);
+      setIsLoadingHistory(true);
       setError(null);
       const res = await predictionService.getAll();
-      setPredictions(res.data);
+      setAllHistory(res.data);
+      setShowHistory(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal memuat data prediksi");
+      setError(err instanceof Error ? err.message : "Gagal memuat riwayat prediksi");
     } finally {
-      setIsLoading(false);
+      setIsLoadingHistory(false);
     }
   }
 
@@ -37,13 +48,20 @@ export default function PredictionPage() {
     setIsUploading(true);
     setError(null);
     setSuccess(null);
+    setUploadResults(null);
+    setShowHistory(false);
+    setCurrentPage(1);
     try {
       const formData = new FormData();
       formData.append("file", file);
       const res = await predictionService.uploadCSV(formData);
       setSuccess(res.message);
       setFile(null);
-      await loadPredictions();
+      if (res.data && res.data.length > 0) {
+        setUploadResults(res.data);
+      } else {
+        setUploadResults([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal mengunggah file");
     } finally {
@@ -127,16 +145,37 @@ export default function PredictionPage() {
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-black text-asgard-primary">Hasil Prediksi</h2>
-            <p className="text-xs font-medium text-slate-400 mt-0.5">Riwayat prediksi risiko putus sekolah</p>
+            <p className="text-xs font-medium text-slate-400 mt-0.5">
+              {showHistory ? "Riwayat seluruh prediksi" : "Hasil upload terakhir"}
+            </p>
           </div>
-          <span className="text-sm font-bold text-slate-500">{predictions.length} siswa</span>
+          <div className="flex items-center gap-3">
+            {showHistory ? (
+              <button
+                onClick={() => { setShowHistory(false); setCurrentPage(1); }}
+                className="text-xs font-bold text-asgard-primary hover:underline flex items-center gap-1"
+              >
+                &larr; Kembali ke hasil upload
+              </button>
+            ) : (
+              uploadResults !== null && (
+                <button
+                  onClick={() => { loadAllHistory(); setCurrentPage(1); }}
+                  className="text-xs font-bold text-asgard-primary hover:underline flex items-center gap-1"
+                >
+                  <History size={14} /> Lihat Semua Riwayat
+                </button>
+              )
+            )}
+            <span className="text-sm font-bold text-slate-500">{displayData.length} siswa</span>
+          </div>
         </div>
 
-        {isLoading ? (
+        {isLoadingHistory ? (
           <div className="p-10 flex items-center justify-center text-slate-400">
-            <Loader2 size={24} className="animate-spin mr-2" /> Memuat data...
+            <Loader2 size={24} className="animate-spin mr-2" /> Memuat riwayat...
           </div>
-        ) : predictions.length === 0 ? (
+        ) : displayData.length === 0 ? (
           <div className="p-10 flex flex-col items-center justify-center text-center">
             <Brain size={48} className="text-slate-200 mb-3" />
             <p className="text-sm font-bold text-slate-400">Belum ada data prediksi</p>
@@ -155,7 +194,7 @@ export default function PredictionPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
-                {predictions.map((p) => (
+                {paginated.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 text-sm font-bold text-slate-700">
                       {p.student?.name ?? <span className="text-slate-400">-</span>}
@@ -180,6 +219,30 @@ export default function PredictionPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {displayData.length > PAGE_SIZE && !isLoadingHistory && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-slate-100">
+            <span className="text-sm font-bold text-slate-500">
+              Menampilkan {firstIdx}-{Math.min(currentPage * PAGE_SIZE, displayData.length)} dari {displayData.length} siswa
+            </span>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50">
+                <ChevronLeft size={16} />
+              </button>
+              {pageNums.map((p) => (
+                <button key={p} onClick={() => setCurrentPage(p)}
+                  className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold transition-colors text-sm ${p === currentPage ? "bg-asgard-primary text-white shadow-md" : "text-slate-600 hover:text-asgard-primary hover:bg-slate-100"}`}>
+                  {p}
+                </button>
+              ))}
+              <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-lg text-slate-600 hover:text-asgard-primary hover:bg-slate-100 font-bold transition-colors disabled:opacity-50">
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
         )}
       </div>

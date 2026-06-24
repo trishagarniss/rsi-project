@@ -68,12 +68,14 @@ def upload_file(db : Session,  current_user: User, df : dict) :
             raise HTTPException(status_code=400, detail="Kolom data tidak lengkap!")
     risk_prediction_service.upload_file(db, current_user.tenant_id, df)
     
-    predicted_count = 0
+    results = []
     for sid in df["student_id"]:
-        risk_prediction_service.auto_predict_on_data_change(db, sid, current_user)
-        predicted_count += 1
+        pred = risk_prediction_service.auto_predict_on_data_change(db, sid, current_user)
+        if pred:
+            results.append(RiskPredictionResponseDTO.model_validate(pred))
     
     return {
         "status": "success",
-        "message": f"Data berhasil masuk! {predicted_count} siswa diprediksi."
+        "message": f"Data berhasil masuk! {len(results)} siswa diprediksi.",
+        "data": results
     }
