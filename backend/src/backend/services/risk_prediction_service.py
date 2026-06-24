@@ -5,9 +5,14 @@ import pandas as pd
 import joblib
 from datetime import datetime
 from sqlalchemy.orm import Session
+from sqlalchemy import text, func as sa_func
+from sqlalchemy.dialects.postgresql import insert
 from fastapi import HTTPException
 import pandas as pd
-from src.backend.models.student import generate_student_id
+from src.backend.models.student import generate_student_id, Student
+from src.backend.models.academic import Academic
+from src.backend.models.attendance import Attendance
+from src.backend.models.socio_economic import SocioEconomic
 
 from src.backend.repositories import (
     risk_prediction_repo,
@@ -386,17 +391,63 @@ def fetch_all_predictions(db: Session, current_user: User, risk_status: int | No
     )
     return predictions
 
-def upload_file(db : Session, tenant_id : str, df : dict) :
-    T = []
+def _to_bool(v):
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v.strip().upper() == "TRUE"
+    return bool(v)
+
+def _to_int(v):
+    try:
+        return int(float(v))
+    except (ValueError, TypeError):
+        return 0
+
+def _to_float(v):
+    try:
+        return float(v)
+    except (ValueError, TypeError):
+        return 0.0
+
+def upload_file(db: Session, tenant_id: str, df: dict):
+    n = len(df["name"])
+
+    GENDER_MAP = {
+        "L": "MALE", "P": "FEMALE",
+        "LAKI": "MALE", "LAKI_LAKI": "MALE",
+        "PEREMPUAN": "FEMALE",
+        "MALE": "MALE", "FEMALE": "FEMALE",
+    }
+    HOUSING_MAP = {
+        "OWNED": "OWNED", "RENTED": "RENTED",
+        "WITH_RELATIVES": "WITH_RELATIVES",
+        "ORPHANAGE": "ORPHANAGE", "OTHER": "OTHER",
+    }
+
+    genders = [GENDER_MAP.get(str(df["gender"][i]).strip().upper(), "MALE") for i in range(n)]
+    housings = [HOUSING_MAP.get(str(df["housing_status"][i]).strip().upper(), "OTHER") for i in range(n)]
+    df["gender"] = genders
+    df["housing_status"] = housings
+
+    existing = {
+        s.nis: s for s in db.query(Student).filter(
+            Student.tenant_id == tenant_id, Student.deleted_at == None
+        ).all()
+    }
+
+    T = [tenant_id] * n
     S = []
-    aktif = []
+    aktif = [True] * n
     AC = []
     AT = []
     SE = []
-    for i in range(len(df["name"])) :
-        T.append(tenant_id)
-        S.append(generate_student_id())
-        aktif.append(True)
+    for i in range(n):
+        nis = str(df["nis"][i]).strip()
+        if nis in existing:
+            S.append(existing[nis].id)
+        else:
+            S.append(generate_student_id())
         AC.append(f"AC_{uuid.uuid4()}")
         AT.append(f"AT_{uuid.uuid4()}")
         SE.append(f"SE_{uuid.uuid4()}")
@@ -406,87 +457,113 @@ def upload_file(db : Session, tenant_id : str, df : dict) :
     df["academic_id"] = AC
     df["attendance_id"] = AT
     df["socio_id"] = SE
-    
-    GENDER_MAP = {
-        "L": "MALE", "P": "FEMALE",
-        "LAKI": "MALE", "LAKI_LAKI": "MALE",
-        "PEREMPUAN": "FEMALE",
-        "MALE": "MALE", "FEMALE": "FEMALE",
-    }
-    df["gender"] = [GENDER_MAP.get(str(g).strip().upper(), str(g).strip().upper()) for g in df["gender"]]
 
-    HOUSING_MAP = {
-        "OWNED": "owned", "RENTED": "rented",
-        "WITH_RELATIVES": "with_relatives",
-        "ORPHANAGE": "orphanage", "OTHER": "other",
-    }
-    df["housing_status"] = [HOUSING_MAP.get(str(h).strip().upper(), str(h).strip().lower()) for h in df["housing_status"]]
-    
     engine = db.get_bind()
-    
-    STUDENT = {}
-    STUDENT["id"] = df["student_id"]
-    STUDENT["tenant_id"] = df["tenant_id"]
-    STUDENT["nis"] = df["nis"]
-    STUDENT["nisn"] = df["nisn"]
-    STUDENT["name"] = df["name"]
-    STUDENT["gender"] = df["gender"]
-    STUDENT["date_of_birth"] = df["date_of_birth"]
-    STUDENT["address"] = df["address"]
-    STUDENT["parent_name"] = df["parent_name"]
-    STUDENT["parent_phone"] = df["parent_phone"]
-    STUDENT["is_active"] = df["is_active"]
-    try:
-        pd.DataFrame(STUDENT).to_sql('students', con=engine, if_exists='append', index=False)
-    except Exception as e:
-        print(f"ERROR insert students: {e}")
-    
-    ACADEMIC = {}
-    ACADEMIC["id"] = df["academic_id"]
-    ACADEMIC["student_id"] = df["student_id"]
-    ACADEMIC["tenant_id"] = df["tenant_id"]
-    ACADEMIC["semester"] = df["semester"]
-    ACADEMIC["academic_year"] = df["academic_year"]
-    ACADEMIC["average_score"] = df["average_score"]
-    ACADEMIC["failed_subjects_count"] = df["failed_subjects_count"]
-    ACADEMIC["incomplete_assignments_count"] = df["incomplete_assignments_count"]
-    try:
-        pd.DataFrame(ACADEMIC).to_sql('academics', con=engine, if_exists='append', index=False)
-    except Exception as e:
-        print(f"ERROR insert academics: {e}")
-    
-    ATTENDANCE = {}
-    ATTENDANCE["id"] = df["attendance_id"]
-    ATTENDANCE["student_id"] = df["student_id"]
-    ATTENDANCE["tenant_id"] = df["tenant_id"]
-    ATTENDANCE["semester"] = df["semester"]
-    ATTENDANCE["academic_year"] = df["academic_year"]
-    ATTENDANCE["present_count"] = df["present_count"]
-    ATTENDANCE["sick_count"] = df["sick_count"]
-    ATTENDANCE["excused_count"] = df["excused_count"]
-    ATTENDANCE["unexcused_count"] = df["unexcused_count"]
-    ATTENDANCE["attendance_percentage"] = df["attendance_percentage"]
-    try:
-        pd.DataFrame(ATTENDANCE).to_sql('attendances', con=engine, if_exists='append', index=False)
-    except Exception as e:
-        print(f"ERROR insert attendances: {e}")
-    
-    SOCIO_ECONOMY = {}
-    SOCIO_ECONOMY["id"] = df["socio_id"]
-    SOCIO_ECONOMY["student_id"] = df["student_id"] 
-    SOCIO_ECONOMY["tenant_id"] = df["tenant_id"]
-    SOCIO_ECONOMY["parents_income"] = df["parents_income"]
-    SOCIO_ECONOMY["monthly_expenses"] = df["monthly_expenses"]
-    SOCIO_ECONOMY["parents_education_level"] = df["parents_education_level"]
-    SOCIO_ECONOMY["birth_order"] = df["birth_order"]
-    SOCIO_ECONOMY["dependents_count"] = df["dependents_count"]
-    SOCIO_ECONOMY["has_kip_scholarship"] = df["has_kip_scholarship"]
-    SOCIO_ECONOMY["is_working_student"] = df["is_working_student"]
-    SOCIO_ECONOMY["has_internet_access"] = df["has_internet_access"]
-    SOCIO_ECONOMY["distance_to_school_km"] = df["distance_to_school_km"]
-    SOCIO_ECONOMY["housing_status"] = df["housing_status"]
-    SOCIO_ECONOMY["transportation_mode"] = df["transportation_mode"]
-    try:
-        pd.DataFrame(SOCIO_ECONOMY).to_sql('socio_economics', con=engine, if_exists='append', index=False)
-    except Exception as e:
-        print(f"ERROR insert socio_economics: {e}")
+    students_table = Student.__table__
+    academics_table = Academic.__table__
+    attendances_table = Attendance.__table__
+    socio_table = SocioEconomic.__table__
+
+    for i in range(n):
+        nis = str(df["nis"][i]).strip()
+        sid = S[i]
+
+        db.execute(
+            insert(students_table).values(
+                id=sid, tenant_id=tenant_id,
+                nis=nis, nisn=str(df["nisn"][i]),
+                name=str(df["name"][i]), gender=df["gender"][i],
+                date_of_birth=df["date_of_birth"][i], address=df["address"][i],
+                parent_name=str(df["parent_name"][i] or ""),
+                parent_phone=str(df["parent_phone"][i] or ""),
+                is_active=True,
+            ).on_conflict_do_update(
+                index_elements=["tenant_id", "nis"],
+                set_={
+                    "nisn": str(df["nisn"][i]),
+                    "name": str(df["name"][i]),
+                    "gender": df["gender"][i],
+                    "date_of_birth": df["date_of_birth"][i],
+                    "address": df["address"][i],
+                    "parent_name": str(df["parent_name"][i] or ""),
+                    "parent_phone": str(df["parent_phone"][i] or ""),
+                    "is_active": True,
+                    "updated_at": sa_func.now(),
+                },
+            )
+        )
+
+        db.execute(
+            insert(academics_table).values(
+                id=AC[i], student_id=sid, tenant_id=tenant_id,
+                semester=_to_int(df["semester"][i]), academic_year=str(df["academic_year"][i]),
+                average_score=_to_float(df["average_score"][i]),
+                failed_subjects_count=_to_int(df["failed_subjects_count"][i]),
+                incomplete_assignments_count=_to_int(df["incomplete_assignments_count"][i]),
+            ).on_conflict_do_update(
+                index_elements=["student_id", "semester", "academic_year"],
+                set_={
+                    "average_score": _to_float(df["average_score"][i]),
+                    "failed_subjects_count": _to_int(df["failed_subjects_count"][i]),
+                    "incomplete_assignments_count": _to_int(df["incomplete_assignments_count"][i]),
+                    "updated_at": sa_func.now(),
+                },
+            )
+        )
+
+        db.execute(
+            insert(attendances_table).values(
+                id=AT[i], student_id=sid, tenant_id=tenant_id,
+                semester=_to_int(df["semester"][i]), academic_year=str(df["academic_year"][i]),
+                present_count=_to_int(df["present_count"][i]),
+                sick_count=_to_int(df["sick_count"][i]),
+                excused_count=_to_int(df["excused_count"][i]),
+                unexcused_count=_to_int(df["unexcused_count"][i]),
+                attendance_percentage=_to_float(df["attendance_percentage"][i]),
+            ).on_conflict_do_update(
+                index_elements=["student_id", "semester", "academic_year"],
+                set_={
+                    "present_count": _to_int(df["present_count"][i]),
+                    "sick_count": _to_int(df["sick_count"][i]),
+                    "excused_count": _to_int(df["excused_count"][i]),
+                    "unexcused_count": _to_int(df["unexcused_count"][i]),
+                    "attendance_percentage": _to_float(df["attendance_percentage"][i]),
+                    "updated_at": sa_func.now(),
+                },
+            )
+        )
+
+        db.execute(
+            insert(socio_table).values(
+                id=SE[i], student_id=sid, tenant_id=tenant_id,
+                parents_income=_to_int(df["parents_income"][i]),
+                monthly_expenses=_to_int(df["monthly_expenses"][i]),
+                parents_education_level=str(df["parents_education_level"][i] or ""),
+                birth_order=_to_int(df["birth_order"][i]),
+                dependents_count=_to_int(df["dependents_count"][i]),
+                has_kip_scholarship=_to_bool(df["has_kip_scholarship"][i]),
+                is_working_student=_to_bool(df["is_working_student"][i]),
+                has_internet_access=_to_bool(df["has_internet_access"][i]),
+                distance_to_school_km=_to_float(df["distance_to_school_km"][i]),
+                housing_status=df["housing_status"][i],
+                transportation_mode=str(df["transportation_mode"][i]),
+            ).on_conflict_do_update(
+                index_elements=["student_id"],
+                set_={
+                    "parents_income": _to_int(df["parents_income"][i]),
+                    "monthly_expenses": _to_int(df["monthly_expenses"][i]),
+                    "parents_education_level": str(df["parents_education_level"][i] or ""),
+                    "birth_order": _to_int(df["birth_order"][i]),
+                    "dependents_count": _to_int(df["dependents_count"][i]),
+                    "has_kip_scholarship": _to_bool(df["has_kip_scholarship"][i]),
+                    "is_working_student": _to_bool(df["is_working_student"][i]),
+                    "has_internet_access": _to_bool(df["has_internet_access"][i]),
+                    "distance_to_school_km": _to_float(df["distance_to_school_km"][i]),
+                    "housing_status": df["housing_status"][i],
+                    "transportation_mode": str(df["transportation_mode"][i]),
+                    "updated_at": sa_func.now(),
+                },
+            )
+        )
+
+    db.commit()
