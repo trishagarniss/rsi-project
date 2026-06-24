@@ -72,7 +72,7 @@ def upload_file(db : Session,  current_user: User, df : dict) :
     for sid in df["student_id"]:
         pred = risk_prediction_service.auto_predict_on_data_change(db, sid, current_user)
         if pred:
-            results.append(RiskPredictionResponseDTO.model_validate(pred))
+            results.append(RiskPredictionListDTO.model_validate(pred))
     
     return {
         "status": "success",
